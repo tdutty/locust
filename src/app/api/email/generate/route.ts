@@ -1,0 +1,260 @@
+import { NextRequest, NextResponse } from 'next/server';
+
+interface GenerateEmailRequest {
+  leadType: 'landlord' | 'employer';
+  lead: {
+    name: string;
+    email: string;
+    company?: string;
+    city?: string;
+    properties?: number;
+    units?: number;
+    relocationsPerYear?: number;
+    industry?: string;
+  };
+  emailNumber: number;
+}
+
+const LANDLORD_SEQUENCES = [
+  {
+    subject: 'How to compete with corporate landlords',
+    body: (lead: GenerateEmailRequest['lead']) => `Hi ${lead.name.split(' ')[0]},
+
+I noticed you manage ${lead.properties || 'several'} properties in ${lead.city || 'Texas'}. Impressive portfolio.
+
+The big corporate landlords are eating independent landlords alive right now. They have dedicated sales teams reaching out to relocating employees before those tenants ever hit Zillow or Apartments.com.
+
+But here's the thing: you can access that same pipeline without building an entire corporate infrastructure.
+
+SweetLease partners with HR departments at companies like Tesla, Apple, and Bank of America. When their employees need housing, we match them with landlords like you first.
+
+These are W-2 employed tenants, pre-vetted by Fortune 500 companies, ready to sign quickly at competitive rates.
+
+Want to see how it works? I can show you in 15 minutes: https://calendly.com/sweetlease/intro
+
+Best,
+Terrell Gilbert
+SweetLease | Batch Fulfillment for Landlords`,
+  },
+  {
+    subject: '{{company}} relocations - a better way',
+    body: (lead: GenerateEmailRequest['lead']) => `Hi ${lead.name.split(' ')[0]},
+
+Following up on my last note.
+
+Corporate landlords fill vacancies 3x faster than independent landlords. Not because they have better properties, but because they have better distribution.
+
+They're embedded in relocation networks. When a Tesla engineer moves to ${lead.city || 'Austin'}, corporate landlords hear about it weeks before that tenant starts browsing listings.
+
+SweetLease gives you that same advantage.
+
+Last month, we placed 47 relocating employees in ${lead.city || 'Texas'} properties. Average days to lease: 11.
+
+Would it make sense to chat for 15 minutes? I can walk you through exactly how we'd work with your ${lead.units || 'units'} units.
+
+https://calendly.com/sweetlease/intro
+
+Best,
+Terrell Gilbert
+SweetLease`,
+  },
+  {
+    subject: 'Your ${city} vacancies are costing you $X/day',
+    body: (lead: GenerateEmailRequest['lead']) => `Hi ${lead.name.split(' ')[0]},
+
+Quick math:
+
+If your average unit rents for $1,800/month, that's $60/day.
+
+A 30-day vacancy costs you $1,800. A 60-day vacancy costs $3,600.
+
+Corporate landlords minimize this by having dedicated tenant pipelines. They don't wait for tenants to find them.
+
+You could hire a sales team to build corporate relationships. Or you could plug into the network we've already built.
+
+Our landlord partners in ${lead.city || 'your area'} are averaging 14-day fills with relocating employees from major companies.
+
+Worth a 15-minute call to explore? https://calendly.com/sweetlease/intro
+
+Best,
+Terrell Gilbert
+SweetLease`,
+  },
+  {
+    subject: 'Should I close your file?',
+    body: (lead: GenerateEmailRequest['lead']) => `Hi ${lead.name.split(' ')[0]},
+
+I've reached out a few times about connecting your properties with relocating employees.
+
+I know you're busy managing ${lead.properties || 'your'} properties, so I wanted to check if this is something worth exploring or if I should close your file for now.
+
+Either way, no hard feelings. Just let me know.
+
+If the timing is better later this year, I'm happy to reconnect then.
+
+Best,
+Terrell Gilbert
+SweetLease`,
+  },
+  {
+    subject: 'We\'re onboarding 5 ${city} landlords this month',
+    body: (lead: GenerateEmailRequest['lead']) => `Hi ${lead.name.split(' ')[0]},
+
+Last chance note:
+
+We're onboarding 5 more landlords in ${lead.city || 'your area'} this month to handle increased relocation demand from tech companies.
+
+If you'd like to be considered, here's what we need:
+1. 15-minute intro call
+2. List of available or soon-to-be-available units
+3. Your pricing guidelines
+
+That's it. No long-term contracts, no listing fees.
+
+Interested? https://calendly.com/sweetlease/intro
+
+Best,
+Terrell Gilbert
+SweetLease`,
+  },
+];
+
+const EMPLOYER_SEQUENCES = [
+  {
+    subject: 'Housing support for relocating employees',
+    body: (lead: GenerateEmailRequest['lead']) => `Hi ${lead.name?.split(' ')[0] || 'there'},
+
+I understand ${lead.company || 'your company'} relocates ${lead.relocationsPerYear || 'hundreds of'} employees each year. Finding quality housing quickly is often one of the biggest pain points in the relocation process.
+
+SweetLease works with landlords who prioritize corporate relocations. That means your employees get access to pre-vetted, move-in ready properties before they hit the public market.
+
+Benefits for your employees:
+- Access to quality rentals 2-3 weeks before public listing
+- Pre-negotiated rates with flexible lease terms
+- Dedicated support throughout the leasing process
+
+We're already partnered with HR teams at Tesla, Apple, and Bank of America.
+
+Would it be helpful to explore how this could benefit your relocating employees? I can share a brief overview in 15 minutes.
+
+Best,
+Terrell Gilbert
+SweetLease | Corporate Housing Solutions`,
+  },
+  {
+    subject: 'Reducing relocation friction for ${company} employees',
+    body: (lead: GenerateEmailRequest['lead']) => `Hi ${lead.name?.split(' ')[0] || 'there'},
+
+Following up on my previous note about housing support for relocating employees.
+
+The #1 complaint we hear from HR teams: employees struggle to find quality housing fast enough, which delays start dates and hurts productivity.
+
+SweetLease solves this by giving your employees first access to a network of landlords who specialize in corporate relocations.
+
+The result? Your employees find housing 40% faster than through traditional channels.
+
+Would a quick call make sense to explore if this could help ${lead.company || 'your'} team?
+
+https://calendly.com/sweetlease/employer-intro
+
+Best,
+Terrell Gilbert
+SweetLease`,
+  },
+  {
+    subject: 'Case study: How Tesla reduced relocation housing time by 50%',
+    body: (lead: GenerateEmailRequest['lead']) => `Hi ${lead.name?.split(' ')[0] || 'there'},
+
+Quick case study:
+
+A major tech company was struggling with relocation delays. New hires were spending 6+ weeks finding housing, delaying start dates and burning through temporary housing budgets.
+
+After partnering with SweetLease:
+- Average time to find housing: 14 days (down from 45)
+- Employee satisfaction with relocation: up 35%
+- Temporary housing costs: down 40%
+
+I'd love to share more details and explore if similar results are possible for ${lead.company || 'your organization'}.
+
+15 minutes work for you? https://calendly.com/sweetlease/employer-intro
+
+Best,
+Terrell Gilbert
+SweetLease`,
+  },
+  {
+    subject: 'Quick question about ${company} relocations',
+    body: (lead: GenerateEmailRequest['lead']) => `Hi ${lead.name?.split(' ')[0] || 'there'},
+
+I've reached out a couple times about housing support for relocating employees.
+
+I'm guessing either:
+A) This isn't a priority right now
+B) You're already happy with your current solution
+C) My emails got buried
+
+If A or B, totally understand. Just let me know and I'll close your file.
+
+If C, here's the 30-second version: SweetLease gives your relocating employees first access to quality rentals before they hit the public market. Faster housing = faster start dates = happier employees.
+
+Worth a quick chat?
+
+Best,
+Terrell Gilbert
+SweetLease`,
+  },
+  {
+    subject: 'Closing the loop on housing support',
+    body: (lead: GenerateEmailRequest['lead']) => `Hi ${lead.name?.split(' ')[0] || 'there'},
+
+This will be my last note about SweetLease's corporate housing solution.
+
+If supporting ${lead.company || 'your'} relocating employees with faster, easier housing isn't a current priority, I completely understand.
+
+If things change or you'd like to explore this down the road, I'm always happy to reconnect: https://calendly.com/sweetlease/employer-intro
+
+Wishing you and the team continued success!
+
+Best,
+Terrell Gilbert
+SweetLease`,
+  },
+];
+
+export async function POST(request: NextRequest) {
+  try {
+    const body: GenerateEmailRequest = await request.json();
+    const { leadType, lead, emailNumber } = body;
+
+    if (!leadType || !lead || !emailNumber) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
+    const sequences = leadType === 'landlord' ? LANDLORD_SEQUENCES : EMPLOYER_SEQUENCES;
+    const index = Math.min(emailNumber - 1, sequences.length - 1);
+    const template = sequences[index];
+
+    // Replace placeholders
+    let subject = template.subject
+      .replace('{{company}}', lead.company || lead.name)
+      .replace('${city}', lead.city || 'your area')
+      .replace('${company}', lead.company || 'your company');
+
+    const emailBody = template.body(lead);
+
+    return NextResponse.json({
+      to: lead.email,
+      subject,
+      body: emailBody,
+      emailNumber,
+      leadType,
+      lead: {
+        name: lead.name,
+        email: lead.email,
+      },
+    });
+  } catch (error) {
+    console.error('Error generating email:', error);
+    return NextResponse.json({ error: 'Failed to generate email' }, { status: 500 });
+  }
+}
