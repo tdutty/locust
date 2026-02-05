@@ -21,6 +21,7 @@ import {
 import { StatCard } from '@/components/ui/stat-card';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { LoadingSkeleton } from '@/components/ui/loading-state';
+import { PageHeader } from '@/components/layout/page-header';
 
 // Types
 interface Lead {
@@ -339,8 +340,27 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
+      {/* Header */}
+      <PageHeader
+        title="Send Emails"
+        description="Generate and send personalized outreach emails"
+        icon={<Send className="w-7 h-7 text-green-600" />}
+        badge={
+          <span className={`ml-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 text-xs font-medium rounded-full ${
+            dataSource === 'Sample Data'
+              ? 'bg-gray-100 text-gray-600'
+              : dataSource === 'Grasshopper'
+                ? 'bg-emerald-100 text-emerald-700'
+                : 'bg-blue-100 text-blue-700'
+          }`}>
+            <Database className="w-3 h-3" />
+            {dataSource}
+          </span>
+        }
+      />
+
       {/* Stats */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <StatCard icon={<Users className="w-6 h-6 text-blue-600" />} label="Total Leads" value={String(totalLeads)} />
         <StatCard icon={<Send className="w-6 h-6 text-green-600" />} label="Emails Sent" value={String(recentlySent.length > 0 ? recentlySent.length + '+' : '0')} />
         <StatCard icon={<Mail className="w-6 h-6 text-purple-600" />} label="Responses" value="--" subtext="Tracking enabled" />
@@ -348,22 +368,12 @@ export default function DashboardPage() {
       </div>
 
       {/* Main Content */}
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Lead Selection */}
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           <div className="p-4 border-b border-gray-200 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <h3 className="font-semibold text-gray-900">Select Lead</h3>
-              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full ${
-                dataSource === 'Sample Data'
-                  ? 'bg-gray-100 text-gray-600'
-                  : dataSource === 'Grasshopper'
-                    ? 'bg-emerald-100 text-emerald-700'
-                    : 'bg-blue-100 text-blue-700'
-              }`}>
-                <Database className="w-3 h-3" />
-                {dataSource}
-              </span>
             </div>
             <div className="flex gap-2">
               <button
@@ -450,7 +460,7 @@ export default function DashboardPage() {
                 <button
                   onClick={generateEmail}
                   disabled={isGenerating}
-                  className="flex-1 py-2 px-4 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+                  className="flex-1 btn-primary"
                 >
                   {isGenerating ? (
                     <>

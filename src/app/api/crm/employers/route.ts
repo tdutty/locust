@@ -39,8 +39,27 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await response.json();
+
+    // Cricket API returns a raw array — wrap and map to Locust Employer format
+    const employers = (Array.isArray(data) ? data : data.employers || []).map((e: any) => ({
+      id: String(e.id),
+      company: e.name || e.company || '',
+      contact_name: e.contact_name || 'HR Department',
+      contact_title: e.contact_title || '',
+      contact_email: e.contact_email || '',
+      phone: e.phone || '',
+      relocation_count: e.avg_relocations_per_year ?? e.relocation_count ?? 0,
+      city: e.city || '',
+      state: e.state || '',
+      industry: (e.industry || '').charAt(0).toUpperCase() + (e.industry || '').slice(1).toLowerCase(),
+      employees: e.employee_count ?? e.employees ?? 0,
+      score: e.lead_score ?? e.score ?? 0,
+      status: (e.status || 'new').toLowerCase(),
+    }));
+
     return NextResponse.json({
-      ...data,
+      employers,
+      total: employers.length,
       source: 'cricket',
     });
   } catch (error) {
@@ -56,13 +75,13 @@ export async function GET(request: NextRequest) {
 
 function getSampleEmployers() {
   return [
-    { id: '1', company: 'Tesla', industry: 'Automotive', location: 'Austin, TX', relocationsPerYear: 450, contact: 'hr@tesla.com', hrManager: 'Emily Chen', status: 'new', lastContact: null },
-    { id: '2', company: 'Delta Airlines', industry: 'Aviation', location: 'Atlanta, GA', relocationsPerYear: 890, contact: 'relocation@delta.com', hrManager: 'James Wilson', status: 'contacted', lastContact: '2024-01-14' },
-    { id: '3', company: 'Apple', industry: 'Technology', location: 'Austin, TX', relocationsPerYear: 620, contact: 'mobility@apple.com', hrManager: 'Sarah Park', status: 'new', lastContact: null },
-    { id: '4', company: 'Bank of America', industry: 'Financial', location: 'Charlotte, NC', relocationsPerYear: 1200, contact: 'hr.relocations@bofa.com', hrManager: 'Michael Torres', status: 'qualified', lastContact: '2024-01-18' },
-    { id: '5', company: 'Oracle', industry: 'Technology', location: 'Austin, TX', relocationsPerYear: 380, contact: 'relocation@oracle.com', hrManager: 'Lisa Wang', status: 'new', lastContact: null },
-    { id: '6', company: 'Boeing Defense', industry: 'Aerospace', location: 'Arlington, VA', relocationsPerYear: 560, contact: 'mobility@boeing.com', hrManager: 'Robert Martinez', status: 'contacted', lastContact: '2024-01-16' },
-    { id: '7', company: 'Amazon', industry: 'Technology', location: 'Austin, TX', relocationsPerYear: 2100, contact: 'relocation@amazon.com', hrManager: 'Jennifer Adams', status: 'new', lastContact: null },
-    { id: '8', company: 'Lockheed Martin', industry: 'Aerospace', location: 'Fort Worth, TX', relocationsPerYear: 420, contact: 'hr@lockheedmartin.com', hrManager: 'David Kim', status: 'qualified', lastContact: '2024-01-19' },
+    { id: '1', company: 'Tesla', contact_name: 'Emily Chen', contact_title: 'VP of HR', contact_email: 'hr@tesla.com', phone: '(512) 516-8177', relocation_count: 850, city: 'Austin', state: 'TX', industry: 'Automotive', employees: 127000, score: 95, status: 'new' },
+    { id: '2', company: 'Delta Air Lines', contact_name: 'James Wilson', contact_title: 'Relocation Manager', contact_email: 'relocation@delta.com', phone: '(404) 715-2600', relocation_count: 650, city: 'Atlanta', state: 'GA', industry: 'Airlines', employees: 95000, score: 90, status: 'contacted' },
+    { id: '3', company: 'Apple', contact_name: 'Sarah Park', contact_title: 'HR Operations', contact_email: 'mobility@apple.com', phone: '(512) 555-0203', relocation_count: 520, city: 'Austin', state: 'TX', industry: 'Technology', employees: 164000, score: 88, status: 'new' },
+    { id: '4', company: 'Bank of America', contact_name: 'Michael Torres', contact_title: 'Relocation Director', contact_email: 'hr.relocations@bofa.com', phone: '(704) 386-5000', relocation_count: 450, city: 'Charlotte', state: 'NC', industry: 'Finance', employees: 213000, score: 85, status: 'qualified' },
+    { id: '5', company: 'Oracle', contact_name: 'Lisa Wang', contact_title: 'People Ops', contact_email: 'relocation@oracle.com', phone: '(512) 555-0206', relocation_count: 380, city: 'Austin', state: 'TX', industry: 'Technology', employees: 143000, score: 80, status: 'new' },
+    { id: '6', company: 'Boeing Defense', contact_name: 'Robert Martinez', contact_title: 'HR Manager', contact_email: 'mobility@boeing.com', phone: '(843) 555-0205', relocation_count: 560, city: 'Arlington', state: 'VA', industry: 'Aerospace', employees: 142000, score: 82, status: 'contacted' },
+    { id: '7', company: 'Amazon', contact_name: 'Jennifer Adams', contact_title: 'Mobility Director', contact_email: 'relocation@amazon.com', phone: '(512) 555-0207', relocation_count: 2100, city: 'Austin', state: 'TX', industry: 'Technology', employees: 1500000, score: 92, status: 'new' },
+    { id: '8', company: 'Lockheed Martin', contact_name: 'David Kim', contact_title: 'Relocation Coordinator', contact_email: 'hr@lockheedmartin.com', phone: '(817) 555-0208', relocation_count: 420, city: 'Fort Worth', state: 'TX', industry: 'Aerospace', employees: 116000, score: 78, status: 'qualified' },
   ];
 }

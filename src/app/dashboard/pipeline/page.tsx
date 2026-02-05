@@ -21,6 +21,7 @@ import { StatCard } from '@/components/ui/stat-card';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { LoadingState } from '@/components/ui/loading-state';
 import { EmptyState } from '@/components/ui/empty-state';
+import { PageHeader } from '@/components/layout/page-header';
 import { formatCurrency, formatRelativeTime } from '@/lib/utils';
 
 interface Deal {
@@ -157,30 +158,26 @@ export default function PipelinePage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <BarChart3 className="w-7 h-7 text-green-600" />
-            Sales Pipeline
-          </h1>
-          <p className="text-gray-500 flex items-center gap-2">
-            Track deals from lead to close
-            {dataSource === 'sample' && (
-              <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 text-xs font-medium rounded-full">Sample Data</span>
-            )}
-          </p>
-        </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg flex items-center gap-2 transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          Create Deal
-        </button>
-      </div>
+      <PageHeader
+        title="Sales Pipeline"
+        description="Track deals from lead to close"
+        icon={<BarChart3 className="w-7 h-7 text-green-600" />}
+        badge={dataSource === 'sample' ? (
+          <span className="ml-2 px-2 py-0.5 bg-yellow-100 text-yellow-700 text-xs font-medium rounded-full">Sample Data</span>
+        ) : undefined}
+        actions={
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="btn-primary"
+          >
+            <Plus className="w-4 h-4" />
+            Create Deal
+          </button>
+        }
+      />
 
       {/* Stats */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <StatCard
           label="Total Deals"
           value={deals.length.toString()}

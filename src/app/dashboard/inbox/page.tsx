@@ -24,6 +24,7 @@ import {
 import { StatusBadge } from '@/components/ui/status-badge';
 import { LoadingState } from '@/components/ui/loading-state';
 import { EmptyState } from '@/components/ui/empty-state';
+import { PageHeader } from '@/components/layout/page-header';
 import { formatRelativeTime } from '@/lib/utils';
 
 interface Email {
@@ -255,10 +256,11 @@ export default function InboxPage() {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Inbox</h1>
-          <p className="text-gray-500">Loading emails...</p>
-        </div>
+        <PageHeader
+          title="Inbox"
+          description="Loading emails..."
+          icon={<Inbox className="w-7 h-7 text-green-600" />}
+        />
         <LoadingState message="Fetching your inbox..." />
       </div>
     );
@@ -267,37 +269,32 @@ export default function InboxPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Inbox</h1>
-            <p className="text-gray-500">
-              {unreadCount} unread{' '}
-              {unreadCount !== 1 ? 'messages' : 'message'} &bull;{' '}
-              {highPriorityCount} high priority
-            </p>
+      <PageHeader
+        title="Inbox"
+        description={`${unreadCount} unread ${unreadCount !== 1 ? 'messages' : 'message'} \u2022 ${highPriorityCount} high priority`}
+        icon={<Inbox className="w-7 h-7 text-green-600" />}
+        badge={getSourceIndicator()}
+        actions={
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleMarkAllAsRead}
+              disabled={unreadCount === 0}
+              className="btn-secondary disabled:cursor-not-allowed"
+            >
+              <CheckCheck className="w-4 h-4" />
+              Mark all as read
+            </button>
+            <button
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              className="btn-secondary"
+            >
+              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
           </div>
-          {getSourceIndicator()}
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleMarkAllAsRead}
-            disabled={unreadCount === 0}
-            className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <CheckCheck className="w-4 h-4" />
-            Mark all as read
-          </button>
-          <button
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors disabled:opacity-50"
-          >
-            <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-            Refresh
-          </button>
-        </div>
-      </div>
+        }
+      />
 
       {/* Error Banner */}
       {error && (
@@ -358,7 +355,7 @@ export default function InboxPage() {
       </div>
 
       {/* Email List & Preview */}
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Email List */}
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           {emails.length === 0 ? (

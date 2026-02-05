@@ -12,7 +12,7 @@ interface StatCardProps {
 
 export function StatCard({ label, value, icon, subtext, change, trend, className }: StatCardProps) {
   return (
-    <div className={cn('bg-white rounded-xl border border-gray-200 p-4', className)}>
+    <div className={cn('bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-shadow', className)}>
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm text-gray-500">{label}</p>

@@ -11,6 +11,7 @@ import {
   Download,
 } from 'lucide-react';
 import { LoadingState } from '@/components/ui/loading-state';
+import { PageHeader } from '@/components/layout/page-header';
 import { formatCurrency } from '@/lib/utils';
 
 interface Stats {
@@ -113,36 +114,31 @@ export default function ReportsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <BarChart3 className="w-7 h-7 text-green-600" />
-            Reports
-          </h1>
-          <p className="text-gray-500">Analytics and performance metrics</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <select
-            value={dateRange}
-            onChange={(e) => setDateRange(e.target.value)}
-            className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-          >
-            <option value="7d">Last 7 days</option>
-            <option value="30d">Last 30 days</option>
-            <option value="90d">Last 90 days</option>
-          </select>
-          <button
-            onClick={exportCSV}
-            className="px-4 py-2 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-          >
-            <Download className="w-4 h-4" />
-            Export CSV
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        title="Reports"
+        description="Analytics and performance metrics"
+        icon={<BarChart3 className="w-7 h-7 text-green-600" />}
+        actions={
+          <div className="flex items-center gap-3">
+            <select
+              value={dateRange}
+              onChange={(e) => setDateRange(e.target.value)}
+              className="input-base w-auto"
+            >
+              <option value="7d">Last 7 days</option>
+              <option value="30d">Last 30 days</option>
+              <option value="90d">Last 90 days</option>
+            </select>
+            <button onClick={exportCSV} className="btn-secondary">
+              <Download className="w-4 h-4" />
+              Export CSV
+            </button>
+          </div>
+        }
+      />
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <MetricCard
           label="Emails Sent"
           value={emailsSent.toString()}
@@ -173,7 +169,7 @@ export default function ReportsPage() {
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Weekly Activity */}
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <h3 className="font-semibold text-gray-900 mb-4">Weekly Activity</h3>
@@ -230,7 +226,7 @@ export default function ReportsPage() {
         </div>
 
         {/* Pipeline Breakdown */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6 col-span-2">
+        <div className="bg-white rounded-xl border border-gray-200 p-6 lg:col-span-2">
           <h3 className="font-semibold text-gray-900 mb-4">Pipeline Breakdown</h3>
           <div className="grid grid-cols-6 gap-4">
             {pipelineBreakdown.map((stage) => (

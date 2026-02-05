@@ -16,6 +16,7 @@ import {
   WifiOff,
 } from 'lucide-react';
 import { LoadingState } from '@/components/ui/loading-state';
+import { PageHeader } from '@/components/layout/page-header';
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('profile');
@@ -153,13 +154,11 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <Settings className="w-7 h-7 text-green-600" />
-          Settings
-        </h1>
-        <p className="text-gray-500">Manage your account and preferences</p>
-      </div>
+      <PageHeader
+        title="Settings"
+        description="Manage your account and preferences"
+        icon={<Settings className="w-7 h-7 text-green-600" />}
+      />
 
       <div className="flex gap-6">
         {/* Sidebar */}

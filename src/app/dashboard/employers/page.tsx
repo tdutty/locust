@@ -162,7 +162,7 @@ export default function EmployersPage() {
           icon={<Building2 className="w-7 h-7 text-green-600" />}
         />
         {/* Stat card skeletons */}
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 animate-pulse">
               <div className="flex items-center justify-between">
@@ -235,7 +235,7 @@ export default function EmployersPage() {
           <button
             onClick={handleSync}
             disabled={isSyncing}
-            className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors disabled:opacity-50"
+            className="btn-secondary"
           >
             <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
             Sync from Cricket
@@ -244,7 +244,7 @@ export default function EmployersPage() {
       />
 
       {/* Stats */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <StatCard label="Total Employers" value={employers.length.toString()} icon={<Building2 className="w-5 h-5 text-blue-600" />} />
         <StatCard label="Annual Relocations" value={totalRelocations.toLocaleString()} icon={<Users className="w-5 h-5 text-green-600" />} />
         <StatCard label="Industries" value={industries.length.toString()} icon={<Briefcase className="w-5 h-5 text-purple-600" />} />
@@ -260,7 +260,7 @@ export default function EmployersPage() {
             placeholder="Search employers..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+            className="input-base pl-10"
           />
         </div>
         <select
