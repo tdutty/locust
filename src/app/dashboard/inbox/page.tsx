@@ -216,16 +216,16 @@ export default function InboxPage() {
 
   const getClassificationBadge = (classification: string) => {
     const styles: Record<string, string> = {
-      interested: 'bg-black text-white border-2 border-black',
-      objection: 'bg-white text-black border-2 border-black',
-      not_interested: 'bg-white text-black/50 border-2 border-black',
-      question: 'bg-white text-black border-2 border-black',
-      spam: 'bg-transparent text-black/40 border-2 border-black/40 line-through',
-      system: 'bg-white text-black/50 border-2 border-black/50',
+      interested: 'bg-primary-50 text-primary-700 border border-primary-200',
+      objection: 'bg-amber-50 text-amber-700 border border-amber-200',
+      not_interested: 'bg-slate-50 text-slate-500 border border-slate-200',
+      question: 'bg-sky-50 text-sky-700 border border-sky-200',
+      spam: 'bg-slate-50 text-slate-400 border border-slate-200 line-through',
+      system: 'bg-slate-50 text-slate-500 border border-slate-200',
     };
     return (
       <span
-        className={`inline-block px-2 py-0.5 text-xs font-medium uppercase tracking-wider ${styles[classification] || 'bg-white text-black border-2 border-black'}`}
+        className={`inline-block px-2 py-0.5 text-xs font-medium rounded-full ${styles[classification] || 'bg-slate-50 text-slate-600 border border-slate-200'}`}
       >
         {classification.replace('_', ' ')}
       </span>
@@ -233,8 +233,8 @@ export default function InboxPage() {
   };
 
   const getPriorityIcon = (priority: string) => {
-    if (priority === 'high') return <AlertCircle className="w-4 h-4 text-[#dc2626]" />;
-    if (priority === 'medium') return <Clock className="w-4 h-4 text-black/60" />;
+    if (priority === 'high') return <AlertCircle className="w-4 h-4 text-red-500" />;
+    if (priority === 'medium') return <Clock className="w-4 h-4 text-slate-500" />;
     return null;
   };
 
@@ -243,8 +243,8 @@ export default function InboxPage() {
     const isImap = dataSource === 'imap';
     return (
       <span
-        className={`inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-medium uppercase tracking-wider border-2 border-black ${
-          isImap ? 'bg-black text-white' : 'bg-white text-black'
+        className={`inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-medium rounded-full border ${
+          isImap ? 'bg-primary-50 text-primary-700 border-primary-200' : 'bg-slate-50 text-slate-600 border-slate-200'
         }`}
       >
         {isImap ? <Server className="w-3 h-3" /> : <Database className="w-3 h-3" />}
@@ -259,7 +259,7 @@ export default function InboxPage() {
         <PageHeader
           title="Inbox"
           description="Loading emails..."
-          icon={<Inbox className="w-7 h-7 text-black" />}
+          icon={<Inbox className="w-7 h-7 text-slate-600" />}
         />
         <LoadingState message="Fetching your inbox..." />
       </div>
@@ -272,7 +272,7 @@ export default function InboxPage() {
       <PageHeader
         title="Inbox"
         description={`${unreadCount} unread ${unreadCount !== 1 ? 'messages' : 'message'} \u2022 ${highPriorityCount} high priority`}
-        icon={<Inbox className="w-7 h-7 text-black" />}
+        icon={<Inbox className="w-7 h-7 text-slate-600" />}
         badge={getSourceIndicator()}
         actions={
           <div className="flex items-center gap-2">
@@ -298,11 +298,11 @@ export default function InboxPage() {
 
       {/* Error Banner */}
       {error && (
-        <div className="bg-white border-2 border-[#dc2626] p-3 flex items-center justify-between">
-          <p className="text-sm text-[#dc2626] font-medium">{error}</p>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-center justify-between">
+          <p className="text-sm text-red-600 font-medium">{error}</p>
           <button
             onClick={() => setError(null)}
-            className="text-xs font-medium uppercase tracking-widest text-black/60 hover:text-black transition-all duration-200"
+            className="text-xs font-medium text-slate-500 hover:text-slate-700 transition-all duration-200"
           >
             Dismiss
           </button>
@@ -311,14 +311,14 @@ export default function InboxPage() {
 
       {/* Send Success Banner */}
       {sendSuccess && (
-        <div className="bg-black text-white border-2 border-black p-3 flex items-center justify-between">
+        <div className="bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-lg p-3 flex items-center justify-between">
           <p className="text-sm font-medium flex items-center gap-2">
             <CheckCircle className="w-4 h-4" />
             Reply sent successfully!
           </p>
           <button
             onClick={() => setSendSuccess(false)}
-            className="text-xs font-medium uppercase tracking-widest text-white/60 hover:text-white transition-all duration-200"
+            className="text-xs font-medium text-emerald-600 hover:text-emerald-800 transition-all duration-200"
           >
             Dismiss
           </button>
@@ -328,7 +328,7 @@ export default function InboxPage() {
       {/* Filters */}
       <div className="flex items-center gap-4">
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-black/40" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
             type="text"
             placeholder="Search emails..."
@@ -342,10 +342,10 @@ export default function InboxPage() {
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`px-3 py-1.5 text-xs font-medium uppercase tracking-wider border-2 border-black transition-all duration-200 ${
+              className={`px-3 py-1.5 text-xs font-medium rounded-full transition-all duration-200 ${
                 filter === f
-                  ? 'bg-black text-white'
-                  : 'bg-white text-black hover:bg-black hover:text-white'
+                  ? 'bg-primary text-white'
+                  : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
               }`}
             >
               {f.charAt(0).toUpperCase() + f.slice(1)}
@@ -371,7 +371,7 @@ export default function InboxPage() {
               description="Try adjusting your search or filter criteria."
             />
           ) : (
-            <div className="max-h-[600px] overflow-y-auto divide-y divide-black/10">
+            <div className="max-h-[600px] overflow-y-auto divide-y divide-slate-100">
               {filteredEmails.map((email) => (
                 <div
                   key={email.id}
@@ -385,10 +385,10 @@ export default function InboxPage() {
                   }}
                   className={`p-4 cursor-pointer transition-all duration-200 ${
                     selectedEmail?.id === email.id
-                      ? 'bg-black text-white'
+                      ? 'bg-primary-50 border-l-[3px] border-l-primary'
                       : email.isRead
-                        ? 'bg-white hover:bg-[#FAF9F6]'
-                        : 'bg-white border-l-[3px] border-l-black hover:bg-[#FAF9F6]'
+                        ? 'bg-white hover:bg-slate-50'
+                        : 'bg-white border-l-[3px] border-l-primary-400 hover:bg-slate-50'
                   }`}
                 >
                   <div className="flex items-start gap-3">
@@ -400,9 +400,9 @@ export default function InboxPage() {
                       className="mt-1 transition-all duration-200"
                     >
                       {email.isStarred ? (
-                        <Star className={`w-4 h-4 ${selectedEmail?.id === email.id ? 'text-white fill-white' : 'text-black fill-black'}`} />
+                        <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
                       ) : (
-                        <StarOff className={`w-4 h-4 ${selectedEmail?.id === email.id ? 'text-white/40 hover:text-white' : 'text-black/30 hover:text-black'}`} />
+                        <StarOff className="w-4 h-4 text-slate-300 hover:text-amber-400" />
                       )}
                     </button>
                     <div className="flex-1 min-w-0">
@@ -410,16 +410,16 @@ export default function InboxPage() {
                         <span
                           className={`font-medium truncate ${
                             selectedEmail?.id === email.id
-                              ? 'text-white'
+                              ? 'text-primary-900'
                               : !email.isRead
-                                ? 'text-black'
-                                : 'text-black/60'
+                                ? 'text-slate-900'
+                                : 'text-slate-500'
                           }`}
                         >
                           {email.from}
                         </span>
                         <span className={`text-xs whitespace-nowrap ${
-                          selectedEmail?.id === email.id ? 'text-white/60' : 'text-black/40'
+                          selectedEmail?.id === email.id ? 'text-primary-500' : 'text-slate-400'
                         }`}>
                           {formatRelativeTime(email.date)}
                         </span>
@@ -427,31 +427,25 @@ export default function InboxPage() {
                       <p
                         className={`text-sm truncate ${
                           selectedEmail?.id === email.id
-                            ? 'text-white/80'
+                            ? 'text-primary-800'
                             : !email.isRead
-                              ? 'font-medium text-black'
-                              : 'text-black/60'
+                              ? 'font-medium text-slate-900'
+                              : 'text-slate-500'
                         }`}
                       >
                         {email.subject}
                       </p>
                       <p className={`text-sm truncate ${
-                        selectedEmail?.id === email.id ? 'text-white/50' : 'text-black/40'
+                        selectedEmail?.id === email.id ? 'text-primary-500' : 'text-slate-400'
                       }`}>
                         {email.preview}
                       </p>
                       <div className="flex items-center gap-2 mt-2">
                         {getPriorityIcon(email.priority)}
-                        {selectedEmail?.id === email.id ? (
-                          <span className="inline-block px-2 py-0.5 text-xs font-medium uppercase tracking-wider border border-white/40 text-white/80">
-                            {email.classification.replace('_', ' ')}
-                          </span>
-                        ) : (
-                          getClassificationBadge(email.classification)
-                        )}
+                        {getClassificationBadge(email.classification)}
                         {email.hasReplied && (
                           <span className={`text-xs flex items-center gap-1 ${
-                            selectedEmail?.id === email.id ? 'text-white/60' : 'text-black/60'
+                            selectedEmail?.id === email.id ? 'text-primary-600' : 'text-slate-500'
                           }`}>
                             <CheckCircle className="w-3 h-3" />
                             Replied
@@ -469,23 +463,23 @@ export default function InboxPage() {
         {/* Email Preview */}
         <div className="card overflow-hidden">
           {!selectedEmail ? (
-            <div className="h-[600px] flex items-center justify-center text-black/30">
+            <div className="h-[600px] flex items-center justify-center text-slate-300">
               <div className="text-center">
                 <Mail className="w-12 h-12 mx-auto mb-3" />
-                <p className="text-sm uppercase tracking-wider">Select an email to view</p>
+                <p className="text-sm">Select an email to view</p>
               </div>
             </div>
           ) : (
             <div className="flex flex-col h-[600px]">
               {/* Email Header */}
-              <div className="p-4 border-b-2 border-black">
+              <div className="p-4 border-b border-slate-200">
                 <div className="flex items-start justify-between">
                   <div>
-                    <h3 className="font-semibold text-black">{selectedEmail.subject}</h3>
-                    <p className="text-sm text-black/60 mt-1">
+                    <h3 className="font-semibold text-slate-900">{selectedEmail.subject}</h3>
+                    <p className="text-sm text-slate-500 mt-1">
                       From: {selectedEmail.from} &lt;{selectedEmail.fromEmail}&gt;
                     </p>
-                    <p className="text-sm text-black/40">
+                    <p className="text-sm text-slate-400">
                       {formatRelativeTime(selectedEmail.date)}
                     </p>
                   </div>
@@ -496,9 +490,9 @@ export default function InboxPage() {
               </div>
 
               {/* Email Body */}
-              <div className="flex-1 p-4 overflow-y-auto bg-[#FAF9F6]">
+              <div className="flex-1 p-4 overflow-y-auto bg-slate-50">
                 <div className="max-w-none">
-                  <pre className="whitespace-pre-wrap font-sans text-sm text-black/80">
+                  <pre className="whitespace-pre-wrap font-sans text-sm text-slate-700">
                     {selectedEmail.body}
                   </pre>
                 </div>
@@ -507,7 +501,7 @@ export default function InboxPage() {
               {/* Reply Section */}
               {selectedEmail.classification !== 'system' &&
                 selectedEmail.classification !== 'spam' && (
-                  <div className="p-4 border-t-2 border-black bg-white">
+                  <div className="p-4 border-t border-slate-200 bg-white">
                     {!generatedReply ? (
                       <button
                         onClick={handleGenerateReply}
@@ -529,10 +523,10 @@ export default function InboxPage() {
                     ) : (
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-medium uppercase tracking-widest text-black/60">
+                          <span className="text-xs font-medium text-slate-500">
                             To: {replyTo}
                           </span>
-                          <span className="text-xs font-medium uppercase tracking-widest text-black/60">
+                          <span className="text-xs font-medium text-slate-500">
                             Subject: {replySubject}
                           </span>
                         </div>

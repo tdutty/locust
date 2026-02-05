@@ -180,7 +180,7 @@ export default function LandlordsPage() {
         description="Manage landlord leads from Grasshopper CRM"
         icon={<Home className="w-7 h-7" />}
         badge={
-          <span className="border border-black px-2 py-0.5 text-xs uppercase tracking-wider inline-flex items-center gap-1.5">
+          <span className="border border-slate-200 rounded-lg px-2 py-0.5 text-xs inline-flex items-center gap-1.5">
             <Database className="w-3 h-3" />
             {dataSource}
           </span>
@@ -224,7 +224,7 @@ export default function LandlordsPage() {
       {/* Filters */}
       <div className="flex items-center gap-4">
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-black/40" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
             type="text"
             placeholder="Search landlords..."
@@ -265,65 +265,65 @@ export default function LandlordsPage() {
           <>
             <table className="w-full">
               <thead>
-                <tr className="bg-black text-white">
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Landlord</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Location</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Properties</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Avg Rent</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Score</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Status</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Actions</th>
+                <tr className="bg-slate-50 text-slate-600 font-medium">
+                  <th className="px-4 py-3 text-left text-xs font-medium">Landlord</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium">Location</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium">Properties</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium">Avg Rent</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium">Score</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium">Status</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-black/10">
+              <tbody className="divide-y divide-slate-200">
                 {filteredLandlords.map((landlord) => (
-                  <tr key={landlord.id} className="group hover:bg-black hover:text-white transition-all duration-200">
+                  <tr key={landlord.id} className="hover:bg-slate-50 transition-all duration-200">
                     <td className="px-4 py-3">
                       <div>
-                        <p className="font-medium">{landlord.name}</p>
-                        <p className="text-sm text-black/50 group-hover:text-white/50">{landlord.email}</p>
+                        <p className="font-medium text-slate-900">{landlord.name}</p>
+                        <p className="text-sm text-slate-400">{landlord.email}</p>
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1 text-slate-600">
                         <MapPin className="w-4 h-4" />
                         {landlord.city}, {landlord.state}
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="font-medium">{landlord.propertyCount}</span>
-                      <span className="text-black/50 group-hover:text-white/50 text-sm ml-1">({landlord.totalUnits} units)</span>
+                      <span className="font-medium text-slate-900">{landlord.propertyCount}</span>
+                      <span className="text-slate-400 text-sm ml-1">({landlord.totalUnits} units)</span>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 text-slate-900">
                       {landlord.avgRent ? `${formatCurrency(landlord.avgRent)}/mo` : '--'}
                     </td>
                     <td className="px-4 py-3">
-                      <span className="font-semibold">{landlord.score}</span>
+                      <span className="font-semibold text-slate-900">{landlord.score}</span>
                     </td>
                     <td className="px-4 py-3">
                       <StatusBadge status={landlord.status} />
                       {landlord.lastContact && (
-                        <p className="text-xs text-black/50 group-hover:text-white/50 mt-1">{landlord.lastContact}</p>
+                        <p className="text-xs text-slate-400 mt-1">{landlord.lastContact}</p>
                       )}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => handleEmailClick(landlord.id)}
-                          className="border border-black group-hover:border-white p-1.5 hover:bg-black hover:text-white group-hover:hover:bg-white group-hover:hover:text-black transition-all duration-200"
+                          className="border border-slate-200 p-1.5 hover:bg-slate-100 rounded-md text-slate-600 transition-all duration-200"
                           title="Send Email"
                         >
                           <Mail className="w-4 h-4" />
                         </button>
                         <a
                           href={`tel:${landlord.phone}`}
-                          className="border border-black group-hover:border-white p-1.5 hover:bg-black hover:text-white group-hover:hover:bg-white group-hover:hover:text-black transition-all duration-200"
+                          className="border border-slate-200 p-1.5 hover:bg-slate-100 rounded-md text-slate-600 transition-all duration-200"
                           title="Call"
                         >
                           <Phone className="w-4 h-4" />
                         </a>
                         <button
-                          className="border border-black group-hover:border-white p-1.5 hover:bg-black hover:text-white group-hover:hover:bg-white group-hover:hover:text-black transition-all duration-200"
+                          className="border border-slate-200 p-1.5 hover:bg-slate-100 rounded-md text-slate-600 transition-all duration-200"
                           title="View in Grasshopper"
                         >
                           <ExternalLink className="w-4 h-4" />
@@ -334,7 +334,7 @@ export default function LandlordsPage() {
                 ))}
                 {filteredLandlords.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-4 py-12 text-center text-black/50">
+                    <td colSpan={7} className="px-4 py-12 text-center text-slate-400">
                       No landlords found matching your criteria.
                     </td>
                   </tr>
@@ -344,7 +344,7 @@ export default function LandlordsPage() {
 
             {/* Load More */}
             {hasMore && (
-              <div className="px-4 py-4 border-t-2 border-black flex items-center justify-center">
+              <div className="px-4 py-4 border-t border-slate-200 flex items-center justify-center">
                 <button
                   onClick={handleLoadMore}
                   disabled={isLoadingMore}

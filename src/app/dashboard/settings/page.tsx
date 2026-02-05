@@ -167,10 +167,10 @@ export default function SettingsPage() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`w-full px-3 py-2 text-left border-2 border-black flex items-center gap-2 text-sm font-medium transition-all duration-200 ${
+              className={`w-full px-3 py-2 text-left rounded-md flex items-center gap-2 text-sm font-medium transition-all duration-200 ${
                 activeTab === tab.id
-                  ? 'bg-black text-white'
-                  : 'bg-white text-black hover:bg-black hover:text-white'
+                  ? 'bg-primary text-white'
+                  : 'bg-white text-slate-700 hover:bg-slate-100'
               }`}
             >
               {tab.icon}
@@ -212,14 +212,14 @@ export default function SettingsPage() {
           {activeTab === 'email' && (
             <div className="space-y-6">
               <h2 className="text-lg font-semibold tracking-tight">Email Settings</h2>
-              <div className="border-2 border-black p-4 bg-[#FAF9F6]">
+              <div className="border border-slate-200 rounded-lg p-4 bg-slate-50">
                 <h3 className="text-sm font-medium mb-2">SMTP/IMAP Configuration</h3>
-                <p className="text-sm text-black/50 mb-3">Email credentials are managed via environment variables for security.</p>
+                <p className="text-sm text-slate-500 mb-3">Email credentials are managed via environment variables for security.</p>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-sm">SMTP</span>
                     {emailSettings.smtpConfigured ? (
-                      <span className="flex items-center gap-1 text-sm"><Wifi className="w-4 h-4" />Configured ({emailSettings.smtpUser})</span>
+                      <span className="flex items-center gap-1 text-sm text-emerald-600"><Wifi className="w-4 h-4" />Configured ({emailSettings.smtpUser})</span>
                     ) : (
                       <span className="flex items-center gap-1 text-red-600 text-sm"><WifiOff className="w-4 h-4" />Not configured</span>
                     )}
@@ -227,7 +227,7 @@ export default function SettingsPage() {
                   <div className="flex items-center justify-between">
                     <span className="text-sm">IMAP</span>
                     {emailSettings.imapConfigured ? (
-                      <span className="flex items-center gap-1 text-sm"><Wifi className="w-4 h-4" />Configured</span>
+                      <span className="flex items-center gap-1 text-sm text-emerald-600"><Wifi className="w-4 h-4" />Configured</span>
                     ) : (
                       <span className="flex items-center gap-1 text-red-600 text-sm"><WifiOff className="w-4 h-4" />Not configured</span>
                     )}
@@ -235,9 +235,9 @@ export default function SettingsPage() {
                   <div className="flex items-center justify-between">
                     <span className="text-sm">Claude AI</span>
                     {emailSettings.anthropicConfigured ? (
-                      <span className="flex items-center gap-1 text-sm"><Wifi className="w-4 h-4" />Configured</span>
+                      <span className="flex items-center gap-1 text-sm text-emerald-600"><Wifi className="w-4 h-4" />Configured</span>
                     ) : (
-                      <span className="flex items-center gap-1 text-black/50 text-sm"><AlertCircle className="w-4 h-4" />Not set (using templates)</span>
+                      <span className="flex items-center gap-1 text-slate-500 text-sm"><AlertCircle className="w-4 h-4" />Not set (using templates)</span>
                     )}
                   </div>
                 </div>
@@ -264,17 +264,26 @@ export default function SettingsPage() {
                   { key: 'dailyDigest', label: 'Daily Digest', desc: 'Summary of daily outreach activity' },
                   { key: 'weeklyReport', label: 'Weekly Report', desc: 'Pipeline and performance summary' },
                 ].map((item) => (
-                  <label key={item.key} className="flex items-center justify-between p-4 border-2 border-black cursor-pointer hover:bg-black hover:text-white transition-all duration-200 group">
+                  <label key={item.key} className="flex items-center justify-between p-4 border border-slate-200 rounded-lg cursor-pointer hover:shadow-md transition-all duration-200">
                     <div>
-                      <p className="font-medium">{item.label}</p>
-                      <p className="text-sm text-black/50 group-hover:text-white/60">{item.desc}</p>
+                      <p className="font-medium text-slate-900">{item.label}</p>
+                      <p className="text-sm text-slate-500">{item.desc}</p>
                     </div>
-                    <input
-                      type="checkbox"
-                      checked={notifications[item.key as keyof typeof notifications]}
-                      onChange={(e) => setNotifications({ ...notifications, [item.key]: e.target.checked })}
-                      className="w-5 h-5 border-2 border-black accent-black"
-                    />
+                    <div className="relative">
+                      <input
+                        type="checkbox"
+                        checked={notifications[item.key as keyof typeof notifications]}
+                        onChange={(e) => setNotifications({ ...notifications, [item.key]: e.target.checked })}
+                        className="sr-only peer"
+                      />
+                      <div className="w-10 h-6 bg-slate-200 rounded-full peer-checked:bg-primary transition-colors cursor-pointer" onClick={(e) => {
+                        const key = item.key as keyof typeof notifications;
+                        setNotifications({ ...notifications, [key]: !notifications[key] });
+                        e.preventDefault();
+                      }}>
+                        <div className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${notifications[item.key as keyof typeof notifications] ? 'translate-x-4' : 'translate-x-0'}`} />
+                      </div>
+                    </div>
                   </label>
                 ))}
               </div>
@@ -290,34 +299,34 @@ export default function SettingsPage() {
                   { key: 'cricket', name: 'Cricket CRM', desc: 'Employer database', icon: '\uD83E\uDD97', url: 'http://198.199.78.62:8081' },
                   { key: 'smtp', name: 'Porkbun Email', desc: 'SMTP & IMAP', iconEl: <Mail className="w-5 h-5" /> },
                 ].map((integration) => (
-                  <div key={integration.key} className="border-2 border-black p-4 hover:bg-black hover:text-white transition-all duration-200 group">
+                  <div key={integration.key} className="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-all duration-200">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 border-2 border-black flex items-center justify-center bg-white group-hover:bg-white group-hover:text-black">
+                        <div className="w-10 h-10 border border-slate-200 rounded-lg flex items-center justify-center bg-white">
                           {integration.iconEl || <span className="text-xl">{integration.icon}</span>}
                         </div>
                         <div>
-                          <p className="font-medium">{integration.name}</p>
-                          <p className="text-sm text-black/50 group-hover:text-white/60">{integration.desc}</p>
+                          <p className="font-medium text-slate-900">{integration.name}</p>
+                          <p className="text-sm text-slate-500">{integration.desc}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
                         {connectionStatuses[integration.key] === 'checking' ? (
-                          <span className="border border-black px-2 py-0.5 text-xs uppercase tracking-wider bg-white text-black">Unknown</span>
+                          <span className="border border-slate-200 px-2.5 py-1 text-xs font-medium rounded-full bg-slate-50 text-slate-600">Unknown</span>
                         ) : connectionStatuses[integration.key] === 'connected' ? (
-                          <span className="border border-black px-2 py-0.5 text-xs uppercase tracking-wider bg-black text-white group-hover:bg-white group-hover:text-black">Connected</span>
+                          <span className="border border-emerald-200 px-2.5 py-1 text-xs font-medium rounded-full bg-emerald-50 text-emerald-700">Connected</span>
                         ) : (
-                          <span className="border border-black px-2 py-0.5 text-xs uppercase tracking-wider bg-white text-black group-hover:border-white">Disconnected</span>
+                          <span className="border border-slate-200 px-2.5 py-1 text-xs font-medium rounded-full bg-slate-50 text-slate-500">Disconnected</span>
                         )}
                         <button
                           onClick={() => testConnection(integration.key)}
-                          className="p-2 text-black/40 hover:text-black group-hover:text-white/60 group-hover:hover:text-white"
+                          className="p-2 text-slate-400 hover:text-slate-700 transition-colors"
                           title="Test Connection"
                         >
                           <RefreshCw className="w-4 h-4" />
                         </button>
                         {integration.url && (
-                          <a href={integration.url} target="_blank" rel="noopener noreferrer" className="p-2 text-black/40 hover:text-black group-hover:text-white/60 group-hover:hover:text-white">
+                          <a href={integration.url} target="_blank" rel="noopener noreferrer" className="p-2 text-slate-400 hover:text-slate-700 transition-colors">
                             <ExternalLink className="w-4 h-4" />
                           </a>
                         )}
@@ -326,18 +335,18 @@ export default function SettingsPage() {
                   </div>
                 ))}
 
-                <div className="border-2 border-black p-4 hover:bg-black hover:text-white transition-all duration-200 group">
+                <div className="border border-slate-200 rounded-lg p-4 hover:shadow-md transition-all duration-200">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 border-2 border-black flex items-center justify-center bg-white group-hover:bg-white group-hover:text-black">
+                      <div className="w-10 h-10 border border-slate-200 rounded-lg flex items-center justify-center bg-white">
                         <span className="text-xl">{'\uD83C\uDFE0'}</span>
                       </div>
                       <div>
-                        <p className="font-medium">SweetLease</p>
-                        <p className="text-sm text-black/50 group-hover:text-white/60">Main platform</p>
+                        <p className="font-medium text-slate-900">SweetLease</p>
+                        <p className="text-sm text-slate-500">Main platform</p>
                       </div>
                     </div>
-                    <span className="border border-black px-2 py-0.5 text-xs uppercase tracking-wider bg-black text-white group-hover:bg-white group-hover:text-black">Connected</span>
+                    <span className="border border-emerald-200 px-2.5 py-1 text-xs font-medium rounded-full bg-emerald-50 text-emerald-700">Connected</span>
                   </div>
                 </div>
               </div>
@@ -345,9 +354,9 @@ export default function SettingsPage() {
           )}
 
           {/* Save Button */}
-          <div className="mt-6 pt-6 border-t-2 border-black flex items-center justify-end gap-3">
+          <div className="mt-6 pt-6 border-t border-slate-200 flex items-center justify-end gap-3">
             {saveSuccess && (
-              <span className="flex items-center gap-1 text-sm font-medium">
+              <span className="flex items-center gap-1 text-sm font-medium text-emerald-600">
                 <CheckCircle className="w-4 h-4" />
                 Settings saved!
               </span>

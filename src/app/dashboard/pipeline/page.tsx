@@ -48,12 +48,12 @@ interface Activity {
 }
 
 const STAGES = [
-  { id: 'lead', label: 'Lead' },
-  { id: 'contacted', label: 'Contacted' },
-  { id: 'qualified', label: 'Qualified' },
-  { id: 'proposal', label: 'Proposal' },
-  { id: 'negotiation', label: 'Negotiation' },
-  { id: 'closed', label: 'Closed Won' },
+  { id: 'lead', label: 'Lead', color: 'bg-slate-400' },
+  { id: 'contacted', label: 'Contacted', color: 'bg-sky-500' },
+  { id: 'qualified', label: 'Qualified', color: 'bg-indigo-500' },
+  { id: 'proposal', label: 'Proposal', color: 'bg-blue-500' },
+  { id: 'negotiation', label: 'Negotiation', color: 'bg-amber-500' },
+  { id: 'closed', label: 'Closed Won', color: 'bg-emerald-500' },
 ];
 
 const SAMPLE_DEALS: Deal[] = [
@@ -155,6 +155,10 @@ export default function PipelinePage() {
   const currentStageIndex = selectedDeal ? STAGES.findIndex(s => s.id === selectedDeal.stage) : -1;
   const nextStage = currentStageIndex >= 0 && currentStageIndex < STAGES.length - 1 ? STAGES[currentStageIndex + 1] : null;
 
+  const getStageColor = (stageId: string) => {
+    return STAGES.find(s => s.id === stageId)?.color ?? 'bg-slate-400';
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -163,7 +167,7 @@ export default function PipelinePage() {
         description="Track deals from lead to close"
         icon={<BarChart3 className="w-7 h-7" />}
         badge={dataSource === 'sample' ? (
-          <span className="ml-2 px-2 py-0.5 border-2 border-black bg-white text-black text-xs font-medium uppercase tracking-wider">Sample Data</span>
+          <span className="ml-2 px-2 py-0.5 border border-slate-200 rounded-md bg-white text-slate-600 text-xs font-medium">Sample Data</span>
         ) : undefined}
         actions={
           <button
@@ -211,19 +215,22 @@ export default function PipelinePage() {
           return (
             <div key={stage.id} className="flex-shrink-0 w-72">
               {/* Column header */}
-              <div className="border-2 border-black border-t-[3px] bg-white">
-                <div className="p-3 border-b-2 border-black">
+              <div className="border border-slate-200 rounded-lg bg-white overflow-hidden">
+                <div className="p-3 border-b border-slate-200">
                   <div className="flex items-center justify-between">
-                    <h3 className="font-medium text-black uppercase tracking-wider text-sm">{stage.label}</h3>
-                    <span className="px-2 py-0.5 border-2 border-black bg-white text-black text-xs font-medium">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-2 h-2 rounded-full ${stage.color}`} />
+                      <h3 className="font-medium text-slate-900 text-sm">{stage.label}</h3>
+                    </div>
+                    <span className="px-2 py-0.5 bg-slate-100 text-slate-600 text-xs font-medium rounded-full">
                       {stageDeals.length}
                     </span>
                   </div>
                 </div>
                 {/* Column body */}
-                <div className="p-2 min-h-[400px] bg-beige">
+                <div className="p-2 min-h-[400px] bg-slate-50/50">
                   {stageDeals.length === 0 ? (
-                    <div className="flex items-center justify-center h-20 text-black/40 text-sm uppercase tracking-wider">
+                    <div className="flex items-center justify-center h-20 text-slate-400 text-sm">
                       No deals
                     </div>
                   ) : (
@@ -232,36 +239,36 @@ export default function PipelinePage() {
                         <div
                           key={deal.id}
                           onClick={() => setSelectedDeal(deal)}
-                          className={`p-3 bg-white border-2 border-black cursor-pointer hover:bg-black hover:text-white transition-all duration-200 group ${
-                            selectedDeal?.id === deal.id ? 'border-[3px] border-black' : ''
+                          className={`p-3 bg-white border border-slate-200 rounded-lg cursor-pointer hover:shadow-md transition-all duration-200 ${
+                            selectedDeal?.id === deal.id ? 'ring-2 ring-primary border-primary' : ''
                           }`}
                         >
                           <div className="flex items-start justify-between">
                             <div className="flex items-center gap-2">
                               {deal.type === 'landlord' ? (
-                                <Home className="w-4 h-4 text-black group-hover:text-white transition-colors duration-200" />
+                                <Home className="w-4 h-4 text-slate-500" />
                               ) : (
-                                <Building2 className="w-4 h-4 text-black group-hover:text-white transition-colors duration-200" />
+                                <Building2 className="w-4 h-4 text-slate-500" />
                               )}
-                              <span className="font-medium text-sm">
+                              <span className="font-medium text-sm text-slate-900">
                                 {deal.company || deal.name}
                               </span>
                             </div>
                           </div>
                           {deal.type === 'landlord' && deal.value > 0 && (
-                            <p className="text-sm text-black/50 group-hover:text-white/60 mt-1 transition-colors duration-200">
+                            <p className="text-sm text-slate-500 mt-1">
                               {formatCurrency(deal.value)} potential
                             </p>
                           )}
                           <div className="flex items-center justify-between mt-2">
-                            <span className="text-xs text-black/50 group-hover:text-white/50 transition-colors duration-200">
+                            <span className="text-xs text-slate-500">
                               {deal.updated_at ? formatRelativeTime(deal.updated_at) : ''}
                             </span>
-                            <span className="text-xs font-medium text-black group-hover:text-white transition-colors duration-200">{deal.probability}%</span>
+                            <span className="text-xs font-medium text-slate-900">{deal.probability}%</span>
                           </div>
                           {deal.next_action && (
-                            <div className="mt-2 pt-2 border-t-2 border-black/10 group-hover:border-white/20 transition-colors duration-200">
-                              <p className="text-xs text-black/60 group-hover:text-white/70 flex items-center gap-1 transition-colors duration-200">
+                            <div className="mt-2 pt-2 border-t border-slate-100">
+                              <p className="text-xs text-slate-600 flex items-center gap-1">
                                 <ArrowRight className="w-3 h-3" />
                                 {deal.next_action}
                               </p>
@@ -280,12 +287,12 @@ export default function PipelinePage() {
 
       {/* Deal Detail Panel */}
       {selectedDeal && (
-        <div className="fixed inset-y-0 right-0 w-96 bg-white border-l-2 border-black p-6 overflow-y-auto z-50">
+        <div className="fixed inset-y-0 right-0 w-96 bg-white border-l border-slate-200 shadow-xl p-6 overflow-y-auto z-50">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-medium text-black uppercase tracking-wider">Deal Details</h3>
+            <h3 className="text-lg font-medium text-slate-900">Deal Details</h3>
             <button
               onClick={() => setSelectedDeal(null)}
-              className="p-1 text-black/40 hover:text-black transition-colors"
+              className="p-1 text-slate-400 hover:text-slate-900 transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
@@ -294,46 +301,49 @@ export default function PipelinePage() {
           <div className="space-y-4">
             <div className="flex items-center gap-3">
               {selectedDeal.type === 'landlord' ? (
-                <div className="w-12 h-12 border-2 border-black bg-white flex items-center justify-center">
-                  <Home className="w-6 h-6 text-black" />
+                <div className="w-12 h-12 border border-slate-200 rounded-lg bg-white flex items-center justify-center">
+                  <Home className="w-6 h-6 text-slate-600" />
                 </div>
               ) : (
-                <div className="w-12 h-12 border-2 border-black bg-black flex items-center justify-center">
+                <div className="w-12 h-12 border border-slate-200 rounded-lg bg-primary flex items-center justify-center">
                   <Building2 className="w-6 h-6 text-white" />
                 </div>
               )}
               <div>
-                <p className="font-medium text-black">{selectedDeal.company || selectedDeal.name}</p>
-                <p className="text-sm text-black/50 uppercase tracking-wider text-xs">{selectedDeal.type}</p>
+                <p className="font-medium text-slate-900">{selectedDeal.company || selectedDeal.name}</p>
+                <p className="text-sm text-slate-500 text-xs">{selectedDeal.type}</p>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div className="border-2 border-black p-3">
-                <p className="text-xs text-black/50 uppercase tracking-wider">Stage</p>
-                <p className="font-medium text-black capitalize">{selectedDeal.stage}</p>
+              <div className="border border-slate-200 rounded-lg p-3">
+                <p className="text-xs text-slate-500">Stage</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <div className={`w-2 h-2 rounded-full ${getStageColor(selectedDeal.stage)}`} />
+                  <p className="font-medium text-slate-900 capitalize">{selectedDeal.stage}</p>
+                </div>
               </div>
-              <div className="border-2 border-black p-3">
-                <p className="text-xs text-black/50 uppercase tracking-wider">Probability</p>
-                <p className="font-medium text-black">{selectedDeal.probability}%</p>
+              <div className="border border-slate-200 rounded-lg p-3">
+                <p className="text-xs text-slate-500">Probability</p>
+                <p className="font-medium text-slate-900">{selectedDeal.probability}%</p>
               </div>
               {selectedDeal.type === 'landlord' && (
-                <div className="border-2 border-black p-3">
-                  <p className="text-xs text-black/50 uppercase tracking-wider">Deal Value</p>
-                  <p className="font-medium text-black">{formatCurrency(selectedDeal.value)}</p>
+                <div className="border border-slate-200 rounded-lg p-3">
+                  <p className="text-xs text-slate-500">Deal Value</p>
+                  <p className="font-medium text-slate-900">{formatCurrency(selectedDeal.value)}</p>
                 </div>
               )}
-              <div className="border-2 border-black p-3">
-                <p className="text-xs text-black/50 uppercase tracking-wider">Days in Stage</p>
-                <p className="font-medium text-black">{selectedDeal.days_in_stage || 0} days</p>
+              <div className="border border-slate-200 rounded-lg p-3">
+                <p className="text-xs text-slate-500">Days in Stage</p>
+                <p className="font-medium text-slate-900">{selectedDeal.days_in_stage || 0} days</p>
               </div>
             </div>
 
             {selectedDeal.next_action && (
               <div>
-                <p className="text-sm font-medium text-black mb-2 uppercase tracking-wider text-xs">Next Action</p>
-                <div className="border-2 border-black p-3">
-                  <p className="text-sm text-black">{selectedDeal.next_action}</p>
+                <p className="text-sm font-medium text-slate-900 mb-2 text-xs">Next Action</p>
+                <div className="border border-slate-200 rounded-lg p-3">
+                  <p className="text-sm text-slate-900">{selectedDeal.next_action}</p>
                 </div>
               </div>
             )}
@@ -349,7 +359,7 @@ export default function PipelinePage() {
               </button>
             )}
 
-            <div className="pt-4 border-t-2 border-black space-y-2">
+            <div className="pt-4 border-t border-slate-200 space-y-2">
               <button className="btn-primary w-full">
                 <Mail className="w-4 h-4" />
                 Send Email
@@ -366,22 +376,22 @@ export default function PipelinePage() {
 
             {/* Activity Timeline */}
             {selectedDeal.created_at && (
-              <div className="pt-4 border-t-2 border-black">
-                <p className="text-xs font-medium text-black uppercase tracking-wider mb-3">Activity</p>
+              <div className="pt-4 border-t border-slate-200">
+                <p className="text-xs font-medium text-slate-900 mb-3">Activity</p>
                 <div className="space-y-3">
                   <div className="flex gap-3">
-                    <div className="w-2 h-2 mt-2 bg-black" />
+                    <div className="w-2 h-2 mt-2 rounded-full bg-primary" />
                     <div>
-                      <p className="text-sm text-black">Deal created</p>
-                      <p className="text-xs text-black/50">{formatRelativeTime(selectedDeal.created_at)}</p>
+                      <p className="text-sm text-slate-900">Deal created</p>
+                      <p className="text-xs text-slate-500">{formatRelativeTime(selectedDeal.created_at)}</p>
                     </div>
                   </div>
                   {selectedDeal.stage !== 'lead' && (
                     <div className="flex gap-3">
-                      <div className="w-2 h-2 mt-2 bg-black" />
+                      <div className="w-2 h-2 mt-2 rounded-full bg-primary" />
                       <div>
-                        <p className="text-sm text-black">Moved to {selectedDeal.stage}</p>
-                        <p className="text-xs text-black/50">{formatRelativeTime(selectedDeal.updated_at)}</p>
+                        <p className="text-sm text-slate-900">Moved to {selectedDeal.stage}</p>
+                        <p className="text-xs text-slate-500">{formatRelativeTime(selectedDeal.updated_at)}</p>
                       </div>
                     </div>
                   )}
@@ -395,17 +405,17 @@ export default function PipelinePage() {
       {/* Create Deal Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white border-2 border-black w-full max-w-md p-6">
+          <div className="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-md p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-medium text-black uppercase tracking-wider">Create Deal</h3>
-              <button onClick={() => setShowCreateModal(false)} className="text-black/40 hover:text-black transition-colors">
+              <h3 className="text-lg font-medium text-slate-900">Create Deal</h3>
+              <button onClick={() => setShowCreateModal(false)} className="text-slate-400 hover:text-slate-900 transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-black uppercase tracking-wider mb-1">Name</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Name</label>
                 <input
                   type="text"
                   value={newDeal.name}
@@ -415,7 +425,7 @@ export default function PipelinePage() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-black uppercase tracking-wider mb-1">Company (optional)</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Company (optional)</label>
                 <input
                   type="text"
                   value={newDeal.company}
@@ -425,7 +435,7 @@ export default function PipelinePage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-black uppercase tracking-wider mb-1">Type</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Type</label>
                   <select
                     value={newDeal.type}
                     onChange={(e) => setNewDeal({ ...newDeal, type: e.target.value as 'landlord' | 'employer' })}
@@ -436,7 +446,7 @@ export default function PipelinePage() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-black uppercase tracking-wider mb-1">Stage</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Stage</label>
                   <select
                     value={newDeal.stage}
                     onChange={(e) => setNewDeal({ ...newDeal, stage: e.target.value as Deal['stage'] })}
@@ -448,7 +458,7 @@ export default function PipelinePage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-medium text-black uppercase tracking-wider mb-1">Value ($)</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Value ($)</label>
                   <input
                     type="number"
                     value={newDeal.value}
@@ -457,7 +467,7 @@ export default function PipelinePage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-black uppercase tracking-wider mb-1">Probability (%)</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Probability (%)</label>
                   <input
                     type="number"
                     value={newDeal.probability}
@@ -468,7 +478,7 @@ export default function PipelinePage() {
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-medium text-black uppercase tracking-wider mb-1">Next Action</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Next Action</label>
                 <input
                   type="text"
                   value={newDeal.next_action}

@@ -3,11 +3,13 @@
 @tailwind utilities;
 
 :root {
-  --foreground: #000000;
-  --background: #FAF9F6;
+  --foreground: #0f172a;
+  --background: #f8fafc;
   --card: #FFFFFF;
-  --border: #000000;
-  --accent: #dc2626;
+  --border: #e2e8f0;
+  --accent: #ef4444;
+  --primary: #6366f1;
+  --primary-hover: #4f46e5;
   --transition-fast: 200ms cubic-bezier(0.4, 0, 0.2, 1);
   --transition-base: 400ms cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -22,41 +24,46 @@ body {
 @layer base {
   * {
     @apply scroll-smooth;
-    border-color: #000000;
+    border-color: #e2e8f0;
   }
 }
 
 @layer components {
-  /* Cards: 2px black border, white bg, sharp corners */
+  /* Cards: 1px slate border, white bg, rounded corners, subtle shadow */
   .card {
-    @apply bg-white border-2 border-black;
+    @apply bg-white border border-slate-200 rounded-lg shadow-sm;
   }
 
-  /* Primary button: black bg, white text, invert on hover */
+  /* Primary button: indigo bg, white text */
   .btn-primary {
-    @apply px-4 py-2.5 bg-black text-white font-medium border-2 border-black
+    @apply px-4 py-2.5 bg-primary text-white font-medium border border-primary rounded-md
            flex items-center justify-center gap-2 transition-all duration-200
-           hover:bg-white hover:text-black active:translate-y-0.5
-           disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-black disabled:hover:text-white disabled:active:translate-y-0;
+           hover:bg-primary-600 active:translate-y-0.5
+           disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-primary disabled:active:translate-y-0;
   }
 
-  /* Secondary button: white bg, black text, invert on hover */
+  /* Secondary button: white bg, slate text, slate border */
   .btn-secondary {
-    @apply px-4 py-2.5 bg-white text-black font-medium border-2 border-black
-           flex items-center gap-2 transition-all duration-200
-           hover:bg-black hover:text-white active:translate-y-0.5
-           disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:text-black disabled:active:translate-y-0;
+    @apply px-4 py-2.5 bg-white text-slate-700 font-medium border border-slate-200 rounded-md
+           flex items-center gap-2 transition-all duration-200 shadow-sm
+           hover:bg-slate-50 hover:border-slate-300 active:translate-y-0.5
+           disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-white disabled:active:translate-y-0;
   }
 
-  /* Input: 2px black border, black outline on focus */
+  /* Input: 1px slate border, indigo ring on focus */
   .input-base {
-    @apply w-full px-3 py-2.5 bg-white border-2 border-black text-black placeholder:text-black/40
-           focus:outline focus:outline-black focus:outline-offset-2 transition-colors;
+    @apply w-full px-3 py-2.5 bg-white border border-slate-200 rounded-md text-slate-900 placeholder:text-slate-400
+           focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors;
   }
 
   /* Table row hover */
   .table-row-hover {
-    @apply hover:bg-black hover:text-white transition-colors duration-200;
+    @apply hover:bg-slate-50 transition-colors duration-200;
+  }
+
+  /* Shimmer skeleton */
+  .shimmer {
+    @apply bg-gradient-to-r from-slate-100 via-slate-200 to-slate-100 bg-[length:200%_100%] animate-shimmer rounded;
   }
 }
 
@@ -74,15 +81,15 @@ body {
   background: transparent;
 }
 .overflow-y-auto::-webkit-scrollbar-thumb {
-  background-color: rgba(0, 0, 0, 0.2);
-  border-radius: 0;
+  background-color: rgba(0, 0, 0, 0.1);
+  border-radius: 3px;
 }
 .overflow-y-auto::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(0, 0, 0, 0.4);
+  background-color: rgba(0, 0, 0, 0.2);
 }
 
 /* Focus-visible outline for accessibility */
 *:focus-visible {
-  outline: 3px solid #000000;
+  outline: 2px solid #6366f1;
   outline-offset: 2px;
 }

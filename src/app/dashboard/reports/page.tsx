@@ -163,52 +163,52 @@ export default function ReportsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Weekly Activity */}
         <div className="card p-6">
-          <h3 className="text-xs uppercase tracking-wider text-black/60 mb-4">Weekly Activity</h3>
+          <h3 className="text-sm font-medium text-slate-600 mb-4">Weekly Activity</h3>
           {emailsSent === 0 ? (
-            <div className="flex items-center justify-center h-40 text-black/40 text-sm">
+            <div className="flex items-center justify-center h-40 text-slate-400 text-sm">
               No email activity yet. Send emails to see data here.
             </div>
           ) : (
             <div className="space-y-3">
               {weeklyData.map((day) => (
                 <div key={day.day} className="flex items-center gap-4">
-                  <span className="w-8 text-xs uppercase tracking-wider text-black/60">{day.day}</span>
+                  <span className="w-8 text-xs text-slate-600">{day.day}</span>
                   <div className="flex-1 flex items-center gap-2">
-                    <div className="flex-1 bg-black/10 h-2 overflow-hidden">
+                    <div className="flex-1 bg-slate-100 rounded-full h-2 overflow-hidden">
                       <div
-                        className="bg-black h-full transition-all"
+                        className="bg-primary h-full rounded-full transition-all"
                         style={{ width: `${(day.sent / maxSent) * 100}%` }}
                       />
                     </div>
-                    <span className="text-sm text-black/60 w-8">{day.sent}</span>
+                    <span className="text-sm text-slate-600 w-8">{day.sent}</span>
                   </div>
                 </div>
               ))}
             </div>
           )}
-          <div className="flex items-center justify-center gap-6 mt-4 pt-4 border-t-2 border-black">
+          <div className="flex items-center justify-center gap-6 mt-4 pt-4 border-t border-slate-200">
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-black" />
-              <span className="text-xs uppercase tracking-wider text-black/60">Emails Sent</span>
+              <div className="w-3 h-3 rounded-full bg-primary" />
+              <span className="text-xs text-slate-600">Emails Sent</span>
             </div>
           </div>
         </div>
 
         {/* Top Performing Subjects */}
         <div className="card p-6">
-          <h3 className="text-xs uppercase tracking-wider text-black/60 mb-4">Top Performing Subject Lines</h3>
+          <h3 className="text-sm font-medium text-slate-600 mb-4">Top Performing Subject Lines</h3>
           {stats?.topSubjects.length === 0 ? (
-            <div className="flex items-center justify-center h-40 text-black/40 text-sm">
+            <div className="flex items-center justify-center h-40 text-slate-400 text-sm">
               No subject line data yet.
             </div>
           ) : (
             <div className="space-y-3">
               {(stats?.topSubjects || []).map((item, i) => (
-                <div key={i} className="flex items-center justify-between py-2 border-b-2 border-black/10 last:border-0">
-                  <p className="text-sm text-black truncate flex-1 mr-4">{item.subject}</p>
+                <div key={i} className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
+                  <p className="text-sm text-slate-900 truncate flex-1 mr-4">{item.subject}</p>
                   <div className="text-right">
-                    <p className="text-sm font-medium text-black">{item.send_count}x</p>
-                    <p className="text-xs uppercase tracking-wider text-black/60">Sent</p>
+                    <p className="text-sm font-medium text-slate-900">{item.send_count}x</p>
+                    <p className="text-xs text-slate-600">Sent</p>
                   </div>
                 </div>
               ))}
@@ -218,20 +218,20 @@ export default function ReportsPage() {
 
         {/* Pipeline Breakdown */}
         <div className="card p-6 lg:col-span-2">
-          <h3 className="text-xs uppercase tracking-wider text-black/60 mb-4">Pipeline Breakdown</h3>
+          <h3 className="text-sm font-medium text-slate-600 mb-4">Pipeline Breakdown</h3>
           <div className="grid grid-cols-6 gap-4">
             {pipelineBreakdown.map((stage) => (
               <div key={stage.stage} className="text-center">
-                <div className="h-32 bg-black/10 flex items-end justify-center p-2 mb-2">
+                <div className="h-32 bg-slate-100 rounded-lg flex items-end justify-center p-2 mb-2">
                   <div
-                    className="w-full bg-black transition-all"
+                    className="w-full bg-primary rounded-md transition-all"
                     style={{ height: `${Math.max((stage.count / maxPipelineCount) * 100, stage.count > 0 ? 10 : 0)}%` }}
                   />
                 </div>
-                <p className="text-xs uppercase tracking-wider text-black/60 capitalize">{stage.stage}</p>
-                <p className="text-lg font-light text-black">{stage.count}</p>
+                <p className="text-xs text-slate-600 capitalize">{stage.stage}</p>
+                <p className="text-lg font-light text-slate-900">{stage.count}</p>
                 {stage.total_value > 0 && (
-                  <p className="text-xs text-black/60">{formatCurrency(stage.total_value)}</p>
+                  <p className="text-xs text-slate-600">{formatCurrency(stage.total_value)}</p>
                 )}
               </div>
             ))}
@@ -254,16 +254,16 @@ function MetricCard({
   trend: 'up' | 'down';
 }) {
   return (
-    <div className="card p-4 hover:bg-black hover:text-white transition-colors group">
+    <div className="card p-4 hover:shadow-md transition-shadow">
       <div className="flex items-center justify-between mb-2">
         {change !== 0 && (
-          <span className={`text-sm ${trend === 'up' ? 'text-black group-hover:text-white' : 'text-accent'}`}>
+          <span className={`text-sm ${trend === 'up' ? 'text-emerald-600' : 'text-red-500'}`}>
             {trend === 'up' ? '↑' : '↓'} {change > 0 ? '+' : ''}{change}
           </span>
         )}
       </div>
-      <p className="text-3xl font-light text-black group-hover:text-white">{value}</p>
-      <p className="text-xs uppercase tracking-wider text-black/60 group-hover:text-white/60 mt-1">{label}</p>
+      <p className="text-3xl font-light text-slate-900">{value}</p>
+      <p className="text-xs text-slate-600 mt-1">{label}</p>
     </div>
   );
 }

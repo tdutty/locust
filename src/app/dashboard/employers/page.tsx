@@ -166,48 +166,48 @@ export default function EmployersPage() {
             <div key={i} className="card p-5 animate-pulse">
               <div className="flex items-center justify-between">
                 <div className="space-y-2">
-                  <div className="h-4 bg-black/10 w-24" />
-                  <div className="h-7 bg-black/10 w-16" />
+                  <div className="h-4 bg-slate-200 rounded animate-pulse w-24" />
+                  <div className="h-7 bg-slate-200 rounded animate-pulse w-16" />
                 </div>
-                <div className="w-10 h-10 bg-black/10 border-2 border-black/20" />
+                <div className="w-10 h-10 bg-slate-200 rounded animate-pulse border border-slate-200 rounded-lg" />
               </div>
             </div>
           ))}
         </div>
         {/* Filter skeleton */}
         <div className="flex items-center gap-4 animate-pulse">
-          <div className="h-10 bg-black/10 flex-1 max-w-md border-2 border-black/20" />
-          <div className="h-10 bg-black/10 w-40 border-2 border-black/20" />
-          <div className="h-10 bg-black/10 w-36 border-2 border-black/20" />
+          <div className="h-10 bg-slate-200 rounded animate-pulse flex-1 max-w-md border border-slate-200 rounded-lg" />
+          <div className="h-10 bg-slate-200 rounded animate-pulse w-40 border border-slate-200 rounded-lg" />
+          <div className="h-10 bg-slate-200 rounded animate-pulse w-36 border border-slate-200 rounded-lg" />
         </div>
         {/* Table skeleton */}
         <div className="card overflow-hidden">
-          <div className="bg-black px-4 py-3">
+          <div className="bg-slate-50 px-4 py-3">
             <div className="flex gap-16 animate-pulse">
               {Array.from({ length: 7 }).map((_, i) => (
-                <div key={i} className="h-3 bg-white/20 w-20" />
+                <div key={i} className="h-3 bg-slate-200 rounded animate-pulse w-20" />
               ))}
             </div>
           </div>
-          <div className="divide-y divide-black/10">
+          <div className="divide-y divide-slate-200">
             {Array.from({ length: 6 }).map((_, i) => (
               <div key={i} className="px-4 py-3 flex items-center gap-8 animate-pulse">
                 <div className="space-y-2 flex-1">
-                  <div className="h-4 bg-black/10 w-32" />
-                  <div className="h-3 bg-black/10 w-20" />
+                  <div className="h-4 bg-slate-200 rounded animate-pulse w-32" />
+                  <div className="h-3 bg-slate-200 rounded animate-pulse w-20" />
                 </div>
                 <div className="space-y-2 flex-1">
-                  <div className="h-4 bg-black/10 w-28" />
-                  <div className="h-3 bg-black/10 w-24" />
+                  <div className="h-4 bg-slate-200 rounded animate-pulse w-28" />
+                  <div className="h-3 bg-slate-200 rounded animate-pulse w-24" />
                 </div>
-                <div className="h-4 bg-black/10 w-24" />
-                <div className="h-4 bg-black/10 w-12" />
-                <div className="h-4 bg-black/10 w-10" />
-                <div className="h-5 bg-black/10 w-16" />
+                <div className="h-4 bg-slate-200 rounded animate-pulse w-24" />
+                <div className="h-4 bg-slate-200 rounded animate-pulse w-12" />
+                <div className="h-4 bg-slate-200 rounded animate-pulse w-10" />
+                <div className="h-5 bg-slate-200 rounded animate-pulse w-16" />
                 <div className="flex gap-2">
-                  <div className="h-7 w-7 bg-black/10" />
-                  <div className="h-7 w-7 bg-black/10" />
-                  <div className="h-7 w-7 bg-black/10" />
+                  <div className="h-7 w-7 bg-slate-200 rounded animate-pulse" />
+                  <div className="h-7 w-7 bg-slate-200 rounded animate-pulse" />
+                  <div className="h-7 w-7 bg-slate-200 rounded animate-pulse" />
                 </div>
               </div>
             ))}
@@ -225,7 +225,7 @@ export default function EmployersPage() {
         description="Manage employer leads from Cricket CRM"
         icon={<Building2 className="w-7 h-7" />}
         badge={
-          <span className="ml-2 inline-flex items-center gap-1.5 border border-black px-2 py-0.5 text-xs uppercase tracking-wider">
+          <span className="ml-2 inline-flex items-center gap-1.5 border border-slate-200 rounded-lg px-2 py-0.5 text-xs">
             <Database className="w-3 h-3" />
             {dataSource}
           </span>
@@ -253,7 +253,7 @@ export default function EmployersPage() {
       {/* Filters */}
       <div className="flex items-center gap-4">
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-black/40" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
             type="text"
             placeholder="Search employers..."
@@ -289,43 +289,43 @@ export default function EmployersPage() {
       {/* Table */}
       <div className="card overflow-hidden">
         <table className="w-full">
-          <thead className="bg-black text-white border-b-2 border-black">
+          <thead className="bg-slate-50 text-slate-600 font-medium border-b border-slate-200">
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Company</th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Contact</th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Location</th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Relocations/yr</th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Score</th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Status</th>
-              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Actions</th>
+              <th className="px-4 py-3 text-left text-xs font-medium">Company</th>
+              <th className="px-4 py-3 text-left text-xs font-medium">Contact</th>
+              <th className="px-4 py-3 text-left text-xs font-medium">Location</th>
+              <th className="px-4 py-3 text-left text-xs font-medium">Relocations/yr</th>
+              <th className="px-4 py-3 text-left text-xs font-medium">Score</th>
+              <th className="px-4 py-3 text-left text-xs font-medium">Status</th>
+              <th className="px-4 py-3 text-left text-xs font-medium">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-black/10">
+          <tbody className="divide-y divide-slate-200">
             {filteredEmployers.map((employer) => (
-              <tr key={employer.id} className="group hover:bg-black hover:text-white transition-all duration-200">
+              <tr key={employer.id} className="hover:bg-slate-50 transition-all duration-200">
                 <td className="px-4 py-3">
                   <div>
-                    <p className="font-medium text-black group-hover:text-white transition-colors duration-200">{employer.company}</p>
-                    <p className="text-sm text-black/50 group-hover:text-white/50 transition-colors duration-200">{employer.industry}</p>
+                    <p className="font-medium text-slate-900">{employer.company}</p>
+                    <p className="text-sm text-slate-400">{employer.industry}</p>
                   </div>
                 </td>
                 <td className="px-4 py-3">
                   <div>
-                    <p className="text-black group-hover:text-white transition-colors duration-200">{employer.contact_name}</p>
-                    <p className="text-sm text-black/50 group-hover:text-white/50 transition-colors duration-200">{employer.contact_title}</p>
+                    <p className="text-slate-900">{employer.contact_name}</p>
+                    <p className="text-sm text-slate-400">{employer.contact_title}</p>
                   </div>
                 </td>
                 <td className="px-4 py-3">
-                  <div className="flex items-center gap-1 text-black/60 group-hover:text-white/60 transition-colors duration-200">
+                  <div className="flex items-center gap-1 text-slate-600">
                     <MapPin className="w-4 h-4" />
                     {employer.city}, {employer.state}
                   </div>
                 </td>
                 <td className="px-4 py-3">
-                  <span className="font-medium text-black group-hover:text-white transition-colors duration-200">{employer.relocation_count.toLocaleString()}</span>
+                  <span className="font-medium text-slate-900">{employer.relocation_count.toLocaleString()}</span>
                 </td>
                 <td className="px-4 py-3">
-                  <span className="font-medium text-black group-hover:text-white transition-colors duration-200">{employer.score}</span>
+                  <span className="font-medium text-slate-900">{employer.score}</span>
                 </td>
                 <td className="px-4 py-3">
                   <StatusBadge status={employer.status} />
@@ -334,19 +334,19 @@ export default function EmployersPage() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => handleEmailClick(employer.id)}
-                      className="border border-black p-1.5 hover:bg-black hover:text-white transition-all duration-200 group-hover:border-white group-hover:text-white group-hover:hover:bg-white group-hover:hover:text-black"
+                      className="border border-slate-200 p-1.5 hover:bg-slate-100 rounded-md text-slate-600 transition-all duration-200"
                       title="Send Email"
                     >
                       <Mail className="w-4 h-4" />
                     </button>
                     <button
-                      className="border border-black p-1.5 hover:bg-black hover:text-white transition-all duration-200 group-hover:border-white group-hover:text-white group-hover:hover:bg-white group-hover:hover:text-black"
+                      className="border border-slate-200 p-1.5 hover:bg-slate-100 rounded-md text-slate-600 transition-all duration-200"
                       title="Call"
                     >
                       <Phone className="w-4 h-4" />
                     </button>
                     <button
-                      className="border border-black p-1.5 hover:bg-black hover:text-white transition-all duration-200 group-hover:border-white group-hover:text-white group-hover:hover:bg-white group-hover:hover:text-black"
+                      className="border border-slate-200 p-1.5 hover:bg-slate-100 rounded-md text-slate-600 transition-all duration-200"
                       title="View in Cricket"
                     >
                       <ExternalLink className="w-4 h-4" />
@@ -357,7 +357,7 @@ export default function EmployersPage() {
             ))}
             {filteredEmployers.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-12 text-center text-black/50">
+                <td colSpan={7} className="px-4 py-12 text-center text-slate-400">
                   No employers match your filters.
                 </td>
               </tr>
