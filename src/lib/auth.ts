@@ -1,25 +1,27 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'locust-secret-key-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET!;
 
-// Default users (in production, use database)
-const USERS = [
-  {
-    id: '1',
-    email: 'admin@sweetlease.io',
-    password: '$2a$10$K.0HwpsoPDGaB/atFBmmXOGTw4ceeg33.WrxJx/SJIxCFt4xEwpCi', // locust2024
-    name: 'Terrell Gilbert',
-    role: 'admin',
-  },
-  {
-    id: '2',
-    email: 'tgilbert@sweetlease.io',
-    password: '$2a$10$K.0HwpsoPDGaB/atFBmmXOGTw4ceeg33.WrxJx/SJIxCFt4xEwpCi', // locust2024
-    name: 'Terrell Gilbert',
-    role: 'ae',
-  },
-];
+if (!JWT_SECRET) {
+  throw new Error('JWT_SECRET environment variable is required');
+}
+
+// Users configured via environment variables
+// Format: LOCUST_USERS=email:hashedPassword:name:role,email2:hashedPassword2:name2:role2
+function loadUsers() {
+  const usersEnv = process.env.LOCUST_USERS;
+  if (!usersEnv) {
+    console.warn('LOCUST_USERS not configured. No users available.');
+    return [];
+  }
+  return usersEnv.split(',').map((entry, idx) => {
+    const [email, password, name, role] = entry.split(':');
+    return { id: String(idx + 1), email, password, name, role: role || 'ae' };
+  });
+}
+
+const USERS = loadUsers();
 
 export interface User {
   id: string;

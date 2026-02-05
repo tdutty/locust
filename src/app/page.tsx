@@ -119,11 +119,9 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Demo Credentials */}
+          {/* Platform info */}
           <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-            <p className="text-sm font-medium text-gray-700 mb-2">Demo Credentials:</p>
-            <p className="text-sm text-gray-600">Email: <code className="bg-gray-200 px-1 rounded">admin@sweetlease.io</code></p>
-            <p className="text-sm text-gray-600">Password: <code className="bg-gray-200 px-1 rounded">locust2024</code></p>
+            <p className="text-sm text-gray-600">Use your SweetLease account credentials to sign in.</p>
           </div>
         </div>
 

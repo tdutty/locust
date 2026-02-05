@@ -45,12 +45,12 @@ IMAP_PORT=993
 GRASSHOPPER_API_URL=http://localhost:8080
 CRICKET_API_URL=http://localhost:8081
 JWT_SECRET=your-jwt-secret
+LOCUST_USERS=email:bcryptHash:name:role,email2:bcryptHash2:name2:role2
 ```
 
-## Login Credentials
+## Authentication
 
-- Email: admin@sweetlease.io
-- Password: locust2024
+Users are configured via the `LOCUST_USERS` environment variable. See Environment Variables section.
 
 ## Deployment
 
