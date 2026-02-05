@@ -1,23 +1,24 @@
 import { cn } from '@/lib/utils';
 
 const STATUS_STYLES: Record<string, string> = {
-  new: 'bg-blue-100 text-blue-700',
-  contacted: 'bg-yellow-100 text-yellow-700',
-  responded: 'bg-green-100 text-green-700',
-  qualified: 'bg-purple-100 text-purple-700',
-  closed: 'bg-emerald-100 text-emerald-700',
-  lost: 'bg-gray-100 text-gray-700',
+  new: 'border-black bg-white text-black',
+  contacted: 'border-black bg-black text-white',
+  responded: 'border-black bg-black text-white',
+  qualified: 'border-black bg-black text-white',
+  closed: 'border-black bg-black text-white',
+  lost: 'border-black bg-white text-black/50',
+  sent: 'border-black bg-black text-white',
   // Classification types
-  interested: 'bg-green-100 text-green-700',
-  objection: 'bg-yellow-100 text-yellow-700',
-  not_interested: 'bg-red-100 text-red-700',
-  question: 'bg-blue-100 text-blue-700',
-  spam: 'bg-gray-100 text-gray-700',
-  system: 'bg-purple-100 text-purple-700',
+  interested: 'border-black bg-black text-white',
+  objection: 'border-black bg-white text-black',
+  not_interested: 'border-black bg-white text-black/50',
+  question: 'border-black bg-white text-black',
+  spam: 'border-black bg-white text-black/30',
+  system: 'border-black bg-white text-black/50',
   // Pipeline stages
-  lead: 'bg-gray-100 text-gray-700',
-  proposal: 'bg-purple-100 text-purple-700',
-  negotiation: 'bg-orange-100 text-orange-700',
+  lead: 'border-black bg-white text-black',
+  proposal: 'border-black bg-black text-white',
+  negotiation: 'border-black bg-black text-white',
 };
 
 interface StatusBadgeProps {
@@ -28,8 +29,8 @@ interface StatusBadgeProps {
 export function StatusBadge({ status, className }: StatusBadgeProps) {
   return (
     <span className={cn(
-      'px-2 py-0.5 text-xs font-medium rounded-full',
-      STATUS_STYLES[status] || 'bg-gray-100 text-gray-700',
+      'inline-block px-2 py-0.5 text-xs font-medium uppercase tracking-wider border',
+      STATUS_STYLES[status] || 'border-black bg-white text-black',
       className
     )}>
       {status.replace(/_/g, ' ')}

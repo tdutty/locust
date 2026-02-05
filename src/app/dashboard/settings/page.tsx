@@ -157,7 +157,7 @@ export default function SettingsPage() {
       <PageHeader
         title="Settings"
         description="Manage your account and preferences"
-        icon={<Settings className="w-7 h-7 text-green-600" />}
+        icon={<Settings className="w-7 h-7" />}
       />
 
       <div className="flex gap-6">
@@ -167,10 +167,10 @@ export default function SettingsPage() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`w-full px-3 py-2 text-left rounded-lg flex items-center gap-2 text-sm font-medium transition-colors ${
+              className={`w-full px-3 py-2 text-left border-2 border-black flex items-center gap-2 text-sm font-medium transition-all duration-200 ${
                 activeTab === tab.id
-                  ? 'bg-green-100 text-green-700'
-                  : 'text-gray-600 hover:bg-gray-100'
+                  ? 'bg-black text-white'
+                  : 'bg-white text-black hover:bg-black hover:text-white'
               }`}
             >
               {tab.icon}
@@ -180,30 +180,30 @@ export default function SettingsPage() {
         </div>
 
         {/* Content */}
-        <div className="flex-1 bg-white rounded-xl border border-gray-200 p-6">
+        <div className="flex-1 card p-6">
           {activeTab === 'profile' && (
             <div className="space-y-6">
-              <h2 className="text-lg font-semibold text-gray-900">Profile Settings</h2>
+              <h2 className="text-lg font-semibold tracking-tight">Profile Settings</h2>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                  <input type="text" value={profile.name} onChange={(e) => setProfile({ ...profile, name: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500" />
+                  <label className="block text-sm font-medium mb-1">Full Name</label>
+                  <input type="text" value={profile.name} onChange={(e) => setProfile({ ...profile, name: e.target.value })} className="input-base" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                  <input type="email" value={profile.email} onChange={(e) => setProfile({ ...profile, email: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500" />
+                  <label className="block text-sm font-medium mb-1">Email</label>
+                  <input type="email" value={profile.email} onChange={(e) => setProfile({ ...profile, email: e.target.value })} className="input-base" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                  <input type="tel" value={profile.phone} onChange={(e) => setProfile({ ...profile, phone: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500" />
+                  <label className="block text-sm font-medium mb-1">Phone</label>
+                  <input type="tel" value={profile.phone} onChange={(e) => setProfile({ ...profile, phone: e.target.value })} className="input-base" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-                  <input type="text" value={profile.title} onChange={(e) => setProfile({ ...profile, title: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500" />
+                  <label className="block text-sm font-medium mb-1">Title</label>
+                  <input type="text" value={profile.title} onChange={(e) => setProfile({ ...profile, title: e.target.value })} className="input-base" />
                 </div>
                 <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Calendly Link</label>
-                  <input type="url" value={profile.calendlyLink} onChange={(e) => setProfile({ ...profile, calendlyLink: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500" />
+                  <label className="block text-sm font-medium mb-1">Calendly Link</label>
+                  <input type="url" value={profile.calendlyLink} onChange={(e) => setProfile({ ...profile, calendlyLink: e.target.value })} className="input-base" />
                 </div>
               </div>
             </div>
@@ -211,44 +211,44 @@ export default function SettingsPage() {
 
           {activeTab === 'email' && (
             <div className="space-y-6">
-              <h2 className="text-lg font-semibold text-gray-900">Email Settings</h2>
-              <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                <h3 className="text-sm font-medium text-gray-700 mb-2">SMTP/IMAP Configuration</h3>
-                <p className="text-sm text-gray-500 mb-3">Email credentials are managed via environment variables for security.</p>
+              <h2 className="text-lg font-semibold tracking-tight">Email Settings</h2>
+              <div className="border-2 border-black p-4 bg-[#FAF9F6]">
+                <h3 className="text-sm font-medium mb-2">SMTP/IMAP Configuration</h3>
+                <p className="text-sm text-black/50 mb-3">Email credentials are managed via environment variables for security.</p>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">SMTP</span>
+                    <span className="text-sm">SMTP</span>
                     {emailSettings.smtpConfigured ? (
-                      <span className="flex items-center gap-1 text-green-600 text-sm"><Wifi className="w-4 h-4" />Configured ({emailSettings.smtpUser})</span>
+                      <span className="flex items-center gap-1 text-sm"><Wifi className="w-4 h-4" />Configured ({emailSettings.smtpUser})</span>
                     ) : (
                       <span className="flex items-center gap-1 text-red-600 text-sm"><WifiOff className="w-4 h-4" />Not configured</span>
                     )}
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">IMAP</span>
+                    <span className="text-sm">IMAP</span>
                     {emailSettings.imapConfigured ? (
-                      <span className="flex items-center gap-1 text-green-600 text-sm"><Wifi className="w-4 h-4" />Configured</span>
+                      <span className="flex items-center gap-1 text-sm"><Wifi className="w-4 h-4" />Configured</span>
                     ) : (
                       <span className="flex items-center gap-1 text-red-600 text-sm"><WifiOff className="w-4 h-4" />Not configured</span>
                     )}
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Claude AI</span>
+                    <span className="text-sm">Claude AI</span>
                     {emailSettings.anthropicConfigured ? (
-                      <span className="flex items-center gap-1 text-green-600 text-sm"><Wifi className="w-4 h-4" />Configured</span>
+                      <span className="flex items-center gap-1 text-sm"><Wifi className="w-4 h-4" />Configured</span>
                     ) : (
-                      <span className="flex items-center gap-1 text-yellow-600 text-sm"><AlertCircle className="w-4 h-4" />Not set (using templates)</span>
+                      <span className="flex items-center gap-1 text-black/50 text-sm"><AlertCircle className="w-4 h-4" />Not set (using templates)</span>
                     )}
                   </div>
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email Signature</label>
+                <label className="block text-sm font-medium mb-1">Email Signature</label>
                 <textarea
                   value={emailSettings.signature}
                   onChange={(e) => setEmailSettings({ ...emailSettings, signature: e.target.value })}
                   rows={5}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 font-mono text-sm"
+                  className="input-base font-mono text-sm"
                 />
               </div>
             </div>
@@ -256,7 +256,7 @@ export default function SettingsPage() {
 
           {activeTab === 'notifications' && (
             <div className="space-y-6">
-              <h2 className="text-lg font-semibold text-gray-900">Notification Settings</h2>
+              <h2 className="text-lg font-semibold tracking-tight">Notification Settings</h2>
               <div className="space-y-4">
                 {[
                   { key: 'emailResponses', label: 'Email Responses', desc: 'Get notified when leads reply to your emails' },
@@ -264,16 +264,16 @@ export default function SettingsPage() {
                   { key: 'dailyDigest', label: 'Daily Digest', desc: 'Summary of daily outreach activity' },
                   { key: 'weeklyReport', label: 'Weekly Report', desc: 'Pipeline and performance summary' },
                 ].map((item) => (
-                  <label key={item.key} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg cursor-pointer">
+                  <label key={item.key} className="flex items-center justify-between p-4 border-2 border-black cursor-pointer hover:bg-black hover:text-white transition-all duration-200 group">
                     <div>
-                      <p className="font-medium text-gray-900">{item.label}</p>
-                      <p className="text-sm text-gray-500">{item.desc}</p>
+                      <p className="font-medium">{item.label}</p>
+                      <p className="text-sm text-black/50 group-hover:text-white/60">{item.desc}</p>
                     </div>
                     <input
                       type="checkbox"
                       checked={notifications[item.key as keyof typeof notifications]}
                       onChange={(e) => setNotifications({ ...notifications, [item.key]: e.target.checked })}
-                      className="w-5 h-5 text-green-600 rounded focus:ring-green-500"
+                      className="w-5 h-5 border-2 border-black accent-black"
                     />
                   </label>
                 ))}
@@ -283,67 +283,71 @@ export default function SettingsPage() {
 
           {activeTab === 'integrations' && (
             <div className="space-y-6">
-              <h2 className="text-lg font-semibold text-gray-900">Integrations</h2>
+              <h2 className="text-lg font-semibold tracking-tight">Integrations</h2>
               <div className="space-y-4">
                 {[
-                  { key: 'grasshopper', name: 'Grasshopper CRM', desc: 'Landlord database', icon: '🦗', color: 'bg-green-100', url: 'http://198.199.78.62:8080' },
-                  { key: 'cricket', name: 'Cricket CRM', desc: 'Employer database', icon: '🦗', color: 'bg-blue-100', url: 'http://198.199.78.62:8081' },
-                  { key: 'smtp', name: 'Porkbun Email', desc: 'SMTP & IMAP', iconEl: <Mail className="w-5 h-5 text-purple-600" />, color: 'bg-purple-100' },
+                  { key: 'grasshopper', name: 'Grasshopper CRM', desc: 'Landlord database', icon: '\uD83E\uDD97', url: 'http://198.199.78.62:8080' },
+                  { key: 'cricket', name: 'Cricket CRM', desc: 'Employer database', icon: '\uD83E\uDD97', url: 'http://198.199.78.62:8081' },
+                  { key: 'smtp', name: 'Porkbun Email', desc: 'SMTP & IMAP', iconEl: <Mail className="w-5 h-5" /> },
                 ].map((integration) => (
-                  <div key={integration.key} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-10 h-10 ${integration.color} rounded-lg flex items-center justify-center`}>
-                        {integration.iconEl || <span className="text-xl">{integration.icon}</span>}
+                  <div key={integration.key} className="border-2 border-black p-4 hover:bg-black hover:text-white transition-all duration-200 group">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 border-2 border-black flex items-center justify-center bg-white group-hover:bg-white group-hover:text-black">
+                          {integration.iconEl || <span className="text-xl">{integration.icon}</span>}
+                        </div>
+                        <div>
+                          <p className="font-medium">{integration.name}</p>
+                          <p className="text-sm text-black/50 group-hover:text-white/60">{integration.desc}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium text-gray-900">{integration.name}</p>
-                        <p className="text-sm text-gray-500">{integration.desc}</p>
+                      <div className="flex items-center gap-2">
+                        {connectionStatuses[integration.key] === 'checking' ? (
+                          <span className="border border-black px-2 py-0.5 text-xs uppercase tracking-wider bg-white text-black">Unknown</span>
+                        ) : connectionStatuses[integration.key] === 'connected' ? (
+                          <span className="border border-black px-2 py-0.5 text-xs uppercase tracking-wider bg-black text-white group-hover:bg-white group-hover:text-black">Connected</span>
+                        ) : (
+                          <span className="border border-black px-2 py-0.5 text-xs uppercase tracking-wider bg-white text-black group-hover:border-white">Disconnected</span>
+                        )}
+                        <button
+                          onClick={() => testConnection(integration.key)}
+                          className="p-2 text-black/40 hover:text-black group-hover:text-white/60 group-hover:hover:text-white"
+                          title="Test Connection"
+                        >
+                          <RefreshCw className="w-4 h-4" />
+                        </button>
+                        {integration.url && (
+                          <a href={integration.url} target="_blank" rel="noopener noreferrer" className="p-2 text-black/40 hover:text-black group-hover:text-white/60 group-hover:hover:text-white">
+                            <ExternalLink className="w-4 h-4" />
+                          </a>
+                        )}
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {connectionStatuses[integration.key] === 'checking' ? (
-                        <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">Unknown</span>
-                      ) : connectionStatuses[integration.key] === 'connected' ? (
-                        <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">Connected</span>
-                      ) : (
-                        <span className="px-2 py-1 bg-red-100 text-red-700 text-xs font-medium rounded-full">Disconnected</span>
-                      )}
-                      <button
-                        onClick={() => testConnection(integration.key)}
-                        className="p-2 text-gray-400 hover:text-gray-600"
-                        title="Test Connection"
-                      >
-                        <RefreshCw className={`w-4 h-4 ${connectionStatuses[integration.key] === 'checking' ? '' : ''}`} />
-                      </button>
-                      {integration.url && (
-                        <a href={integration.url} target="_blank" rel="noopener noreferrer" className="p-2 text-gray-400 hover:text-gray-600">
-                          <ExternalLink className="w-4 h-4" />
-                        </a>
-                      )}
                     </div>
                   </div>
                 ))}
 
-                <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-                      <span className="text-xl">🏠</span>
+                <div className="border-2 border-black p-4 hover:bg-black hover:text-white transition-all duration-200 group">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 border-2 border-black flex items-center justify-center bg-white group-hover:bg-white group-hover:text-black">
+                        <span className="text-xl">{'\uD83C\uDFE0'}</span>
+                      </div>
+                      <div>
+                        <p className="font-medium">SweetLease</p>
+                        <p className="text-sm text-black/50 group-hover:text-white/60">Main platform</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-medium text-gray-900">SweetLease</p>
-                      <p className="text-sm text-gray-500">Main platform</p>
-                    </div>
+                    <span className="border border-black px-2 py-0.5 text-xs uppercase tracking-wider bg-black text-white group-hover:bg-white group-hover:text-black">Connected</span>
                   </div>
-                  <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">Connected</span>
                 </div>
               </div>
             </div>
           )}
 
           {/* Save Button */}
-          <div className="mt-6 pt-6 border-t border-gray-200 flex items-center justify-end gap-3">
+          <div className="mt-6 pt-6 border-t-2 border-black flex items-center justify-end gap-3">
             {saveSuccess && (
-              <span className="text-green-600 flex items-center gap-1 text-sm">
+              <span className="flex items-center gap-1 text-sm font-medium">
                 <CheckCircle className="w-4 h-4" />
                 Settings saved!
               </span>
@@ -351,7 +355,7 @@ export default function SettingsPage() {
             <button
               onClick={handleSave}
               disabled={isSaving}
-              className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg flex items-center gap-2 transition-colors disabled:opacity-50"
+              className="btn-primary"
             >
               {isSaving ? (
                 <>Saving...</>

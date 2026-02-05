@@ -341,47 +341,47 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <PageHeader
-        title="Send Emails"
-        description="Generate and send personalized outreach emails"
-        icon={<Send className="w-7 h-7 text-green-600" />}
-        badge={
-          <span className={`ml-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 text-xs font-medium rounded-full ${
-            dataSource === 'Sample Data'
-              ? 'bg-gray-100 text-gray-600'
-              : dataSource === 'Grasshopper'
-                ? 'bg-emerald-100 text-emerald-700'
-                : 'bg-blue-100 text-blue-700'
-          }`}>
-            <Database className="w-3 h-3" />
-            {dataSource}
-          </span>
-        }
-      />
+      <div className="animate-fade-in-up opacity-0 stagger-1">
+        <PageHeader
+          title="Send Emails"
+          description="Generate and send personalized outreach emails"
+          icon={<Send className="w-7 h-7" />}
+          badge={
+            <span className={`ml-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 text-xs font-medium uppercase tracking-wider border-2 border-black ${
+              dataSource === 'Sample Data'
+                ? 'bg-white text-black/60'
+                : 'bg-black text-white'
+            }`}>
+              <Database className="w-3 h-3" />
+              {dataSource}
+            </span>
+          }
+        />
+      </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <StatCard icon={<Users className="w-6 h-6 text-blue-600" />} label="Total Leads" value={String(totalLeads)} />
-        <StatCard icon={<Send className="w-6 h-6 text-green-600" />} label="Emails Sent" value={String(recentlySent.length > 0 ? recentlySent.length + '+' : '0')} />
-        <StatCard icon={<Mail className="w-6 h-6 text-purple-600" />} label="Responses" value="--" subtext="Tracking enabled" />
-        <StatCard icon={<TrendingUp className="w-6 h-6 text-orange-600" />} label="Response Rate" value="--" subtext="Tracking enabled" />
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 animate-fade-in-up opacity-0 stagger-2">
+        <StatCard icon={<Users className="w-6 h-6" />} label="Total Leads" value={String(totalLeads)} />
+        <StatCard icon={<Send className="w-6 h-6" />} label="Emails Sent" value={String(recentlySent.length > 0 ? recentlySent.length + '+' : '0')} />
+        <StatCard icon={<Mail className="w-6 h-6" />} label="Responses" value="--" subtext="Tracking enabled" />
+        <StatCard icon={<TrendingUp className="w-6 h-6" />} label="Response Rate" value="--" subtext="Tracking enabled" />
       </div>
 
       {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in-up opacity-0 stagger-3">
         {/* Lead Selection */}
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+        <div className="card overflow-hidden">
+          <div className="p-4 border-b-2 border-black flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <h3 className="font-semibold text-gray-900">Select Lead</h3>
+              <h3 className="text-sm font-semibold uppercase tracking-widest text-black">Select Lead</h3>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-0">
               <button
                 onClick={() => { setLeadType('landlord'); setSelectedLead(null); setGeneratedEmail(null); setSendStatus('idle'); }}
-                className={`px-3 py-1.5 text-sm font-medium rounded-lg flex items-center gap-2 transition-colors ${
+                className={`px-3 py-1.5 text-xs font-medium uppercase tracking-wider flex items-center gap-2 transition-all duration-200 border-2 border-black active:translate-y-0.5 ${
                   leadType === 'landlord'
-                    ? 'bg-green-100 text-green-700'
-                    : 'text-gray-600 hover:bg-gray-100'
+                    ? 'bg-black text-white'
+                    : 'bg-white text-black hover:bg-black hover:text-white'
                 }`}
               >
                 <Home className="w-4 h-4" />
@@ -389,10 +389,10 @@ export default function DashboardPage() {
               </button>
               <button
                 onClick={() => { setLeadType('employer'); setSelectedLead(null); setGeneratedEmail(null); setSendStatus('idle'); }}
-                className={`px-3 py-1.5 text-sm font-medium rounded-lg flex items-center gap-2 transition-colors ${
+                className={`px-3 py-1.5 text-xs font-medium uppercase tracking-wider flex items-center gap-2 transition-all duration-200 border-2 border-black -ml-0.5 active:translate-y-0.5 ${
                   leadType === 'employer'
-                    ? 'bg-green-100 text-green-700'
-                    : 'text-gray-600 hover:bg-gray-100'
+                    ? 'bg-black text-white'
+                    : 'bg-white text-black hover:bg-black hover:text-white'
                 }`}
               >
                 <Building2 className="w-4 h-4" />
@@ -405,9 +405,9 @@ export default function DashboardPage() {
             {isLoadingLeads ? (
               <LoadingSkeleton rows={5} />
             ) : leads.length === 0 ? (
-              <div className="py-8 text-center text-gray-400">
+              <div className="py-8 text-center text-black/40">
                 <Users className="w-10 h-10 mx-auto mb-2 opacity-50" />
-                <p className="text-sm">No {leadType}s found</p>
+                <p className="text-xs uppercase tracking-wider">No {leadType}s found</p>
               </div>
             ) : (
               leads.map((lead) => (
@@ -418,23 +418,27 @@ export default function DashboardPage() {
                     setGeneratedEmail(null);
                     setSendStatus('idle');
                   }}
-                  className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                  className={`p-3 border-2 border-black cursor-pointer transition-all duration-200 ${
                     selectedLead?.id === lead.id
-                      ? 'border-green-500 bg-green-50'
-                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                      ? 'bg-black text-white'
+                      : 'bg-white text-black hover:bg-black hover:text-white'
                   }`}
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium text-gray-900">{lead.name}</p>
-                      <p className="text-sm text-gray-500">
+                      <p className="font-medium text-sm">{lead.name}</p>
+                      <p className={`text-xs ${
+                        selectedLead?.id === lead.id ? 'text-white/60' : 'text-black/60'
+                      }`}>
                         {lead.type === 'landlord'
                           ? `${lead.propertyCount ?? 0} properties in ${lead.city}${lead.state ? `, ${lead.state}` : ''}`
                           : `${lead.company} - ${lead.relocationCount ?? 0} relocations/yr`}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold text-green-600">{lead.score}</span>
+                      <span className={`text-sm font-semibold ${
+                        selectedLead?.id === lead.id ? 'text-white' : 'text-black'
+                      }`}>{lead.score}</span>
                       <StatusBadge status={lead.status} />
                     </div>
                   </div>
@@ -444,12 +448,12 @@ export default function DashboardPage() {
           </div>
 
           {selectedLead && (
-            <div className="p-4 border-t border-gray-200 bg-gray-50">
+            <div className="p-4 border-t-2 border-black bg-[#FAF9F6]">
               <div className="flex items-center gap-3">
                 <select
                   value={emailNumber}
                   onChange={(e) => setEmailNumber(Number(e.target.value))}
-                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  className="px-3 py-2 border-2 border-black text-sm bg-white text-black focus:outline-none focus:ring-2 focus:ring-black"
                 >
                   <option value={1}>Email #1 - Hook</option>
                   <option value={2}>Email #2 - Social Proof</option>
@@ -480,12 +484,12 @@ export default function DashboardPage() {
         </div>
 
         {/* Email Preview */}
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+        <div className="card overflow-hidden">
+          <div className="p-4 border-b-2 border-black flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <h3 className="font-semibold text-gray-900">Email Preview</h3>
+              <h3 className="text-sm font-semibold uppercase tracking-widest text-black">Email Preview</h3>
               {generatedEmail && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium text-gray-500 bg-gray-100 rounded-full">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium uppercase tracking-wider border-2 border-black bg-white text-black/60">
                   <FileText className="w-3 h-3" />
                   {emailWordCount} words
                 </span>
@@ -494,7 +498,7 @@ export default function DashboardPage() {
             {generatedEmail && (
               <button
                 onClick={() => setEditMode(!editMode)}
-                className="px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 flex items-center gap-2"
+                className="px-3 py-1.5 text-xs font-medium uppercase tracking-wider text-black/60 hover:text-black flex items-center gap-2 border-2 border-black bg-white hover:bg-black hover:text-white transition-all duration-200 active:translate-y-0.5"
               >
                 {editMode ? (
                   <>
@@ -514,46 +518,46 @@ export default function DashboardPage() {
           <div className="p-4">
             {!generatedEmail ? (
               <div className="h-[400px] flex items-center justify-center">
-                <div className="text-center text-gray-400">
+                <div className="text-center text-black/40">
                   <Mail className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                  <p>Select a lead and generate an email</p>
+                  <p className="text-xs uppercase tracking-wider">Select a lead and generate an email</p>
                 </div>
               </div>
             ) : (
               <div className="space-y-4">
                 {/* Headers */}
-                <div className="text-sm space-y-1 pb-3 border-b border-gray-100">
-                  <p><span className="text-gray-500">From:</span> tgilbert@sweetlease.io</p>
-                  <p><span className="text-gray-500">To:</span> {selectedLead?.email}</p>
+                <div className="text-sm space-y-1 pb-3 border-b-2 border-black">
+                  <p><span className="text-black/60 text-xs uppercase tracking-wider">From:</span> <span className="text-black/80">tgilbert@sweetlease.io</span></p>
+                  <p><span className="text-black/60 text-xs uppercase tracking-wider">To:</span> <span className="text-black/80">{selectedLead?.email}</span></p>
                 </div>
 
                 {/* Subject */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-500 mb-1">Subject</label>
+                  <label className="text-xs font-medium uppercase tracking-widest text-black/60 block mb-1">Subject</label>
                   {editMode ? (
                     <input
                       type="text"
                       value={editedSubject}
                       onChange={(e) => setEditedSubject(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                      className="w-full px-3 py-2 border-2 border-black bg-white text-black focus:outline-none focus:ring-2 focus:ring-black"
                     />
                   ) : (
-                    <p className="font-medium text-gray-900">{generatedEmail.subject}</p>
+                    <p className="font-medium text-black">{generatedEmail.subject}</p>
                   )}
                 </div>
 
                 {/* Body */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-500 mb-1">Message</label>
+                  <label className="text-xs font-medium uppercase tracking-widest text-black/60 block mb-1">Message</label>
                   {editMode ? (
                     <textarea
                       value={editedBody}
                       onChange={(e) => setEditedBody(e.target.value)}
                       rows={12}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 font-mono text-sm"
+                      className="w-full px-3 py-2 border-2 border-black bg-white text-black focus:outline-none focus:ring-2 focus:ring-black font-mono text-sm"
                     />
                   ) : (
-                    <div className="p-3 bg-gray-50 rounded-lg text-sm whitespace-pre-wrap max-h-[250px] overflow-y-auto">
+                    <div className="p-3 bg-[#FAF9F6] border-2 border-black text-sm whitespace-pre-wrap max-h-[250px] overflow-y-auto text-black/80">
                       {generatedEmail.body}
                     </div>
                   )}
@@ -562,14 +566,14 @@ export default function DashboardPage() {
                 {/* Send Button */}
                 <div className="pt-2">
                   {sendStatus === 'success' ? (
-                    <button className="w-full py-2.5 px-4 bg-green-600 text-white font-medium rounded-lg flex items-center justify-center gap-2" disabled>
+                    <button className="w-full py-2.5 px-4 bg-black text-white font-medium uppercase tracking-wider text-sm flex items-center justify-center gap-2 border-2 border-black" disabled>
                       <CheckCircle className="w-5 h-5" />
-                      Sent Successfully!
+                      Sent Successfully
                     </button>
                   ) : sendStatus === 'error' ? (
                     <button
                       onClick={sendEmail}
-                      className="w-full py-2.5 px-4 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg flex items-center justify-center gap-2 transition-colors"
+                      className="w-full py-2.5 px-4 bg-[#dc2626] text-white font-medium uppercase tracking-wider text-sm flex items-center justify-center gap-2 border-2 border-black hover:bg-black transition-all duration-200 active:translate-y-0.5"
                     >
                       <AlertCircle className="w-5 h-5" />
                       Failed - Retry
@@ -578,7 +582,7 @@ export default function DashboardPage() {
                     <button
                       onClick={sendEmail}
                       disabled={isSending}
-                      className="w-full py-2.5 px-4 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+                      className="w-full py-2.5 px-4 bg-black text-white font-medium uppercase tracking-wider text-sm flex items-center justify-center gap-2 border-2 border-black hover:bg-white hover:text-black transition-all duration-200 disabled:opacity-50 active:translate-y-0.5"
                     >
                       {isSending ? (
                         <>
@@ -602,32 +606,32 @@ export default function DashboardPage() {
 
       {/* Recently Sent Section */}
       {recentlySent.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+        <div className="card overflow-hidden animate-fade-in-up opacity-0 stagger-4">
+          <div className="p-4 border-b-2 border-black flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Clock className="w-5 h-5 text-gray-500" />
-              <h3 className="font-semibold text-gray-900">Recently Sent</h3>
+              <Clock className="w-5 h-5 text-black" />
+              <h3 className="text-sm font-semibold uppercase tracking-widest text-black">Recently Sent</h3>
             </div>
             <button
               onClick={fetchRecentlySent}
               disabled={isLoadingSent}
-              className="px-3 py-1.5 text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1.5 transition-colors"
+              className="px-3 py-1.5 text-xs uppercase tracking-wider text-black/60 hover:bg-black hover:text-white flex items-center gap-1.5 transition-all duration-200 border-2 border-black bg-white active:translate-y-0.5"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isLoadingSent ? 'animate-spin' : ''}`} />
               Refresh
             </button>
           </div>
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y-2 divide-black">
             {recentlySent.map((entry) => (
-              <div key={entry.id} className="px-4 py-3 flex items-center justify-between">
+              <div key={entry.id} className="px-4 py-3 flex items-center justify-between hover:bg-[#FAF9F6] transition-all duration-200">
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">{entry.subject}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">
+                  <p className="text-sm font-medium text-black truncate">{entry.subject}</p>
+                  <p className="text-xs text-black/60 mt-0.5 uppercase tracking-wider">
                     To: {entry.to} &middot; {entry.leadType}
                   </p>
                 </div>
                 <div className="flex items-center gap-3 ml-4 shrink-0">
-                  <span className="text-xs text-gray-400">
+                  <span className="text-xs text-black/40">
                     {new Date(entry.sentAt).toLocaleString(undefined, {
                       month: 'short',
                       day: 'numeric',

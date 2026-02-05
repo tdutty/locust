@@ -11,14 +11,14 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, description, icon, actions, badge, className }: PageHeaderProps) {
   return (
-    <div className={cn('flex items-center justify-between', className)}>
+    <div className={cn('flex items-start justify-between pb-6 border-b-2 border-black', className)}>
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          {icon}
-          {title}
+        <div className="flex items-center gap-3">
+          {icon && <span className="text-black">{icon}</span>}
+          <h1 className="text-2xl font-semibold tracking-tight text-black">{title}</h1>
           {badge}
-        </h1>
-        {description && <p className="text-gray-500">{description}</p>}
+        </div>
+        {description && <p className="text-sm text-black/60 mt-1">{description}</p>}
       </div>
       {actions && <div className="flex items-center gap-3">{actions}</div>}
     </div>

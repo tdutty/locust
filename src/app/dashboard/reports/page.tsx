@@ -3,11 +3,6 @@
 import { useState, useEffect } from 'react';
 import {
   BarChart3,
-  TrendingUp,
-  TrendingDown,
-  Mail,
-  Users,
-  Calendar,
   Download,
 } from 'lucide-react';
 import { LoadingState } from '@/components/ui/loading-state';
@@ -117,7 +112,7 @@ export default function ReportsPage() {
       <PageHeader
         title="Reports"
         description="Analytics and performance metrics"
-        icon={<BarChart3 className="w-7 h-7 text-green-600" />}
+        icon={<BarChart3 className="w-7 h-7" />}
         actions={
           <div className="flex items-center gap-3">
             <select
@@ -144,80 +139,76 @@ export default function ReportsPage() {
           value={emailsSent.toString()}
           change={emailChange}
           trend={emailChange >= 0 ? 'up' : 'down'}
-          icon={<Mail className="w-5 h-5 text-blue-600" />}
         />
         <MetricCard
           label="Responses"
           value={responseCount.toString()}
           change={0}
           trend="up"
-          icon={<Users className="w-5 h-5 text-green-600" />}
         />
         <MetricCard
           label="Response Rate"
           value={`${responseRate}%`}
           change={0}
           trend="up"
-          icon={<TrendingUp className="w-5 h-5 text-purple-600" />}
         />
         <MetricCard
           label="Meetings Booked"
           value={meetingsBooked.toString()}
           change={0}
           trend="up"
-          icon={<Calendar className="w-5 h-5 text-orange-600" />}
         />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Weekly Activity */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="font-semibold text-gray-900 mb-4">Weekly Activity</h3>
+        <div className="card p-6">
+          <h3 className="text-xs uppercase tracking-wider text-black/60 mb-4">Weekly Activity</h3>
           {emailsSent === 0 ? (
-            <div className="flex items-center justify-center h-40 text-gray-400 text-sm">
+            <div className="flex items-center justify-center h-40 text-black/40 text-sm">
               No email activity yet. Send emails to see data here.
             </div>
           ) : (
             <div className="space-y-3">
               {weeklyData.map((day) => (
                 <div key={day.day} className="flex items-center gap-4">
-                  <span className="w-8 text-sm text-gray-500">{day.day}</span>
+                  <span className="w-8 text-xs uppercase tracking-wider text-black/60">{day.day}</span>
                   <div className="flex-1 flex items-center gap-2">
-                    <div className="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
+                    <div className="flex-1 bg-black/10 h-2 overflow-hidden">
                       <div
-                        className="bg-blue-500 h-full rounded-full transition-all"
+                        className="bg-black h-full transition-all"
                         style={{ width: `${(day.sent / maxSent) * 100}%` }}
                       />
                     </div>
-                    <span className="text-sm text-gray-600 w-8">{day.sent}</span>
+                    <span className="text-sm text-black/60 w-8">{day.sent}</span>
                   </div>
                 </div>
               ))}
             </div>
           )}
-          <div className="flex items-center justify-center gap-6 mt-4 pt-4 border-t border-gray-100">
+          <div className="flex items-center justify-center gap-6 mt-4 pt-4 border-t-2 border-black">
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-blue-500 rounded-full" />
-              <span className="text-sm text-gray-600">Emails Sent</span>
+              <div className="w-3 h-3 bg-black" />
+              <span className="text-xs uppercase tracking-wider text-black/60">Emails Sent</span>
             </div>
           </div>
         </div>
 
         {/* Top Performing Subjects */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="font-semibold text-gray-900 mb-4">Top Performing Subject Lines</h3>
+        <div className="card p-6">
+          <h3 className="text-xs uppercase tracking-wider text-black/60 mb-4">Top Performing Subject Lines</h3>
           {stats?.topSubjects.length === 0 ? (
-            <div className="flex items-center justify-center h-40 text-gray-400 text-sm">
+            <div className="flex items-center justify-center h-40 text-black/40 text-sm">
               No subject line data yet.
             </div>
           ) : (
             <div className="space-y-3">
               {(stats?.topSubjects || []).map((item, i) => (
-                <div key={i} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
-                  <p className="text-sm text-gray-700 truncate flex-1 mr-4">{item.subject}</p>
+                <div key={i} className="flex items-center justify-between py-2 border-b-2 border-black/10 last:border-0">
+                  <p className="text-sm text-black truncate flex-1 mr-4">{item.subject}</p>
                   <div className="text-right">
-                    <p className="text-sm font-medium text-gray-900">{item.send_count}x</p>
-                    <p className="text-xs text-gray-500">Sent</p>
+                    <p className="text-sm font-medium text-black">{item.send_count}x</p>
+                    <p className="text-xs uppercase tracking-wider text-black/60">Sent</p>
                   </div>
                 </div>
               ))}
@@ -226,21 +217,21 @@ export default function ReportsPage() {
         </div>
 
         {/* Pipeline Breakdown */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6 lg:col-span-2">
-          <h3 className="font-semibold text-gray-900 mb-4">Pipeline Breakdown</h3>
+        <div className="card p-6 lg:col-span-2">
+          <h3 className="text-xs uppercase tracking-wider text-black/60 mb-4">Pipeline Breakdown</h3>
           <div className="grid grid-cols-6 gap-4">
             {pipelineBreakdown.map((stage) => (
               <div key={stage.stage} className="text-center">
-                <div className="h-32 bg-gray-100 rounded-lg flex items-end justify-center p-2 mb-2">
+                <div className="h-32 bg-black/10 flex items-end justify-center p-2 mb-2">
                   <div
-                    className="w-full bg-green-500 rounded transition-all"
+                    className="w-full bg-black transition-all"
                     style={{ height: `${Math.max((stage.count / maxPipelineCount) * 100, stage.count > 0 ? 10 : 0)}%` }}
                   />
                 </div>
-                <p className="text-sm font-medium text-gray-900 capitalize">{stage.stage}</p>
-                <p className="text-lg font-bold text-gray-900">{stage.count}</p>
+                <p className="text-xs uppercase tracking-wider text-black/60 capitalize">{stage.stage}</p>
+                <p className="text-lg font-light text-black">{stage.count}</p>
                 {stage.total_value > 0 && (
-                  <p className="text-xs text-gray-500">{formatCurrency(stage.total_value)}</p>
+                  <p className="text-xs text-black/60">{formatCurrency(stage.total_value)}</p>
                 )}
               </div>
             ))}
@@ -256,29 +247,23 @@ function MetricCard({
   value,
   change,
   trend,
-  icon,
 }: {
   label: string;
   value: string;
   change: number;
   trend: 'up' | 'down';
-  icon: React.ReactNode;
 }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4">
+    <div className="card p-4 hover:bg-black hover:text-white transition-colors group">
       <div className="flex items-center justify-between mb-2">
-        <div className="w-10 h-10 bg-gray-50 rounded-lg flex items-center justify-center">
-          {icon}
-        </div>
         {change !== 0 && (
-          <div className={`flex items-center gap-1 text-sm ${trend === 'up' ? 'text-green-600' : 'text-red-600'}`}>
-            {trend === 'up' ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-            {change > 0 ? '+' : ''}{change}
-          </div>
+          <span className={`text-sm ${trend === 'up' ? 'text-black group-hover:text-white' : 'text-accent'}`}>
+            {trend === 'up' ? '↑' : '↓'} {change > 0 ? '+' : ''}{change}
+          </span>
         )}
       </div>
-      <p className="text-2xl font-bold text-gray-900">{value}</p>
-      <p className="text-sm text-gray-500">{label}</p>
+      <p className="text-3xl font-light text-black group-hover:text-white">{value}</p>
+      <p className="text-xs uppercase tracking-wider text-black/60 group-hover:text-white/60 mt-1">{label}</p>
     </div>
   );
 }

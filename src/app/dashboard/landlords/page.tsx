@@ -178,9 +178,9 @@ export default function LandlordsPage() {
       <PageHeader
         title="Landlords"
         description="Manage landlord leads from Grasshopper CRM"
-        icon={<Home className="w-7 h-7 text-green-600" />}
+        icon={<Home className="w-7 h-7" />}
         badge={
-          <span className="ml-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-600">
+          <span className="border border-black px-2 py-0.5 text-xs uppercase tracking-wider inline-flex items-center gap-1.5">
             <Database className="w-3 h-3" />
             {dataSource}
           </span>
@@ -202,29 +202,29 @@ export default function LandlordsPage() {
         <StatCard
           label="Total Landlords"
           value={landlords.length.toString()}
-          icon={<Users className="w-5 h-5 text-blue-600" />}
+          icon={<Users className="w-5 h-5" />}
         />
         <StatCard
           label="Properties"
           value={totalProperties.toString()}
-          icon={<Home className="w-5 h-5 text-green-600" />}
+          icon={<Home className="w-5 h-5" />}
         />
         <StatCard
           label="Total Units"
           value={totalUnits.toLocaleString()}
-          icon={<Building2 className="w-5 h-5 text-purple-600" />}
+          icon={<Building2 className="w-5 h-5" />}
         />
         <StatCard
           label="Avg Score"
           value={avgScore}
-          icon={<TrendingUp className="w-5 h-5 text-orange-600" />}
+          icon={<TrendingUp className="w-5 h-5" />}
         />
       </div>
 
       {/* Filters */}
       <div className="flex items-center gap-4">
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-black/40" />
           <input
             type="text"
             placeholder="Search landlords..."
@@ -236,7 +236,7 @@ export default function LandlordsPage() {
         <select
           value={cityFilter}
           onChange={(e) => setCityFilter(e.target.value)}
-          className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+          className="input-base"
         >
           <option value="all">All Cities</option>
           {cities.map(city => (
@@ -246,7 +246,7 @@ export default function LandlordsPage() {
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+          className="input-base"
         >
           <option value="all">All Statuses</option>
           <option value="new">New</option>
@@ -258,72 +258,72 @@ export default function LandlordsPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div className="card overflow-hidden">
         {isLoading ? (
           <LoadingState message="Loading landlords..." />
         ) : (
           <>
             <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Landlord</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Location</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Properties</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Avg Rent</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Score</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+              <thead>
+                <tr className="bg-black text-white">
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Landlord</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Location</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Properties</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Avg Rent</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Score</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Status</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-black/10">
                 {filteredLandlords.map((landlord) => (
-                  <tr key={landlord.id} className="hover:bg-gray-50">
+                  <tr key={landlord.id} className="group hover:bg-black hover:text-white transition-all duration-200">
                     <td className="px-4 py-3">
                       <div>
-                        <p className="font-medium text-gray-900">{landlord.name}</p>
-                        <p className="text-sm text-gray-500">{landlord.email}</p>
+                        <p className="font-medium">{landlord.name}</p>
+                        <p className="text-sm text-black/50 group-hover:text-white/50">{landlord.email}</p>
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-1 text-gray-600">
+                      <div className="flex items-center gap-1">
                         <MapPin className="w-4 h-4" />
                         {landlord.city}, {landlord.state}
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="font-medium text-gray-900">{landlord.propertyCount}</span>
-                      <span className="text-gray-500 text-sm ml-1">({landlord.totalUnits} units)</span>
+                      <span className="font-medium">{landlord.propertyCount}</span>
+                      <span className="text-black/50 group-hover:text-white/50 text-sm ml-1">({landlord.totalUnits} units)</span>
                     </td>
-                    <td className="px-4 py-3 text-gray-900">
+                    <td className="px-4 py-3">
                       {landlord.avgRent ? `${formatCurrency(landlord.avgRent)}/mo` : '--'}
                     </td>
                     <td className="px-4 py-3">
-                      <span className="font-semibold text-green-600">{landlord.score}</span>
+                      <span className="font-semibold">{landlord.score}</span>
                     </td>
                     <td className="px-4 py-3">
                       <StatusBadge status={landlord.status} />
                       {landlord.lastContact && (
-                        <p className="text-xs text-gray-500 mt-1">{landlord.lastContact}</p>
+                        <p className="text-xs text-black/50 group-hover:text-white/50 mt-1">{landlord.lastContact}</p>
                       )}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => handleEmailClick(landlord.id)}
-                          className="p-1.5 text-gray-400 hover:text-green-600 transition-colors"
+                          className="border border-black group-hover:border-white p-1.5 hover:bg-black hover:text-white group-hover:hover:bg-white group-hover:hover:text-black transition-all duration-200"
                           title="Send Email"
                         >
                           <Mail className="w-4 h-4" />
                         </button>
                         <a
                           href={`tel:${landlord.phone}`}
-                          className="p-1.5 text-gray-400 hover:text-green-600 transition-colors"
+                          className="border border-black group-hover:border-white p-1.5 hover:bg-black hover:text-white group-hover:hover:bg-white group-hover:hover:text-black transition-all duration-200"
                           title="Call"
                         >
                           <Phone className="w-4 h-4" />
                         </a>
                         <button
-                          className="p-1.5 text-gray-400 hover:text-green-600 transition-colors"
+                          className="border border-black group-hover:border-white p-1.5 hover:bg-black hover:text-white group-hover:hover:bg-white group-hover:hover:text-black transition-all duration-200"
                           title="View in Grasshopper"
                         >
                           <ExternalLink className="w-4 h-4" />
@@ -334,7 +334,7 @@ export default function LandlordsPage() {
                 ))}
                 {filteredLandlords.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-4 py-12 text-center text-gray-500">
+                    <td colSpan={7} className="px-4 py-12 text-center text-black/50">
                       No landlords found matching your criteria.
                     </td>
                   </tr>
@@ -344,11 +344,11 @@ export default function LandlordsPage() {
 
             {/* Load More */}
             {hasMore && (
-              <div className="px-4 py-4 border-t border-gray-200 flex items-center justify-center">
+              <div className="px-4 py-4 border-t-2 border-black flex items-center justify-center">
                 <button
                   onClick={handleLoadMore}
                   disabled={isLoadingMore}
-                  className="px-6 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+                  className="btn-primary flex items-center gap-2"
                 >
                   {isLoadingMore ? (
                     <>
@@ -358,7 +358,7 @@ export default function LandlordsPage() {
                   ) : (
                     <>
                       Load More
-                      <span className="text-green-200 text-xs">
+                      <span className="text-white/60 text-xs">
                         ({landlords.length} of {total})
                       </span>
                     </>

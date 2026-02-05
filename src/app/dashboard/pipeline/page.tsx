@@ -48,12 +48,12 @@ interface Activity {
 }
 
 const STAGES = [
-  { id: 'lead', label: 'Lead', color: 'border-gray-300 bg-gray-50' },
-  { id: 'contacted', label: 'Contacted', color: 'border-blue-300 bg-blue-50' },
-  { id: 'qualified', label: 'Qualified', color: 'border-yellow-300 bg-yellow-50' },
-  { id: 'proposal', label: 'Proposal', color: 'border-purple-300 bg-purple-50' },
-  { id: 'negotiation', label: 'Negotiation', color: 'border-orange-300 bg-orange-50' },
-  { id: 'closed', label: 'Closed Won', color: 'border-green-300 bg-green-50' },
+  { id: 'lead', label: 'Lead' },
+  { id: 'contacted', label: 'Contacted' },
+  { id: 'qualified', label: 'Qualified' },
+  { id: 'proposal', label: 'Proposal' },
+  { id: 'negotiation', label: 'Negotiation' },
+  { id: 'closed', label: 'Closed Won' },
 ];
 
 const SAMPLE_DEALS: Deal[] = [
@@ -161,9 +161,9 @@ export default function PipelinePage() {
       <PageHeader
         title="Sales Pipeline"
         description="Track deals from lead to close"
-        icon={<BarChart3 className="w-7 h-7 text-green-600" />}
+        icon={<BarChart3 className="w-7 h-7" />}
         badge={dataSource === 'sample' ? (
-          <span className="ml-2 px-2 py-0.5 bg-yellow-100 text-yellow-700 text-xs font-medium rounded-full">Sample Data</span>
+          <span className="ml-2 px-2 py-0.5 border-2 border-black bg-white text-black text-xs font-medium uppercase tracking-wider">Sample Data</span>
         ) : undefined}
         actions={
           <button
@@ -181,25 +181,25 @@ export default function PipelinePage() {
         <StatCard
           label="Total Deals"
           value={deals.length.toString()}
-          icon={<Users className="w-5 h-5 text-blue-600" />}
+          icon={<Users className="w-5 h-5" />}
           subtext={`${landlordDeals} landlords, ${employerDeals} employers`}
         />
         <StatCard
           label="Weighted Pipeline"
           value={formatCurrency(totalValue)}
-          icon={<DollarSign className="w-5 h-5 text-green-600" />}
+          icon={<DollarSign className="w-5 h-5" />}
           subtext="Expected revenue"
         />
         <StatCard
           label="Avg Deal Size"
           value={landlordDeals > 0 ? formatCurrency(Math.round(totalValue / landlordDeals)) : '$0'}
-          icon={<TrendingUp className="w-5 h-5 text-purple-600" />}
+          icon={<TrendingUp className="w-5 h-5" />}
           subtext="Landlord fees"
         />
         <StatCard
           label="Conversion Rate"
           value={deals.length > 0 ? `${Math.round((deals.filter(d => d.stage === 'closed').length / deals.length) * 100)}%` : '0%'}
-          icon={<BarChart3 className="w-5 h-5 text-orange-600" />}
+          icon={<BarChart3 className="w-5 h-5" />}
           subtext="Lead to closed"
         />
       </div>
@@ -208,21 +208,22 @@ export default function PipelinePage() {
       <div className="flex gap-4 overflow-x-auto pb-4">
         {STAGES.map((stage) => {
           const stageDeals = getDealsByStage(stage.id);
-          const [borderColor, bgColor] = stage.color.split(' ');
           return (
             <div key={stage.id} className="flex-shrink-0 w-72">
-              <div className={`rounded-t-xl border-t-4 ${borderColor} bg-white`}>
-                <div className="p-3 border-b border-gray-200">
+              {/* Column header */}
+              <div className="border-2 border-black border-t-[3px] bg-white">
+                <div className="p-3 border-b-2 border-black">
                   <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-gray-900">{stage.label}</h3>
-                    <span className="px-2 py-0.5 bg-gray-100 text-gray-700 text-xs font-medium rounded-full">
+                    <h3 className="font-medium text-black uppercase tracking-wider text-sm">{stage.label}</h3>
+                    <span className="px-2 py-0.5 border-2 border-black bg-white text-black text-xs font-medium">
                       {stageDeals.length}
                     </span>
                   </div>
                 </div>
-                <div className={`p-2 min-h-[400px] ${bgColor} rounded-b-xl`}>
+                {/* Column body */}
+                <div className="p-2 min-h-[400px] bg-beige">
                   {stageDeals.length === 0 ? (
-                    <div className="flex items-center justify-center h-20 text-gray-400 text-sm">
+                    <div className="flex items-center justify-center h-20 text-black/40 text-sm uppercase tracking-wider">
                       No deals
                     </div>
                   ) : (
@@ -231,36 +232,36 @@ export default function PipelinePage() {
                         <div
                           key={deal.id}
                           onClick={() => setSelectedDeal(deal)}
-                          className={`p-3 bg-white rounded-lg border border-gray-200 cursor-pointer hover:shadow-md transition-shadow ${
-                            selectedDeal?.id === deal.id ? 'ring-2 ring-green-500' : ''
+                          className={`p-3 bg-white border-2 border-black cursor-pointer hover:bg-black hover:text-white transition-all duration-200 group ${
+                            selectedDeal?.id === deal.id ? 'border-[3px] border-black' : ''
                           }`}
                         >
                           <div className="flex items-start justify-between">
                             <div className="flex items-center gap-2">
                               {deal.type === 'landlord' ? (
-                                <Home className="w-4 h-4 text-green-600" />
+                                <Home className="w-4 h-4 text-black group-hover:text-white transition-colors duration-200" />
                               ) : (
-                                <Building2 className="w-4 h-4 text-blue-600" />
+                                <Building2 className="w-4 h-4 text-black group-hover:text-white transition-colors duration-200" />
                               )}
-                              <span className="font-medium text-gray-900 text-sm">
+                              <span className="font-medium text-sm">
                                 {deal.company || deal.name}
                               </span>
                             </div>
                           </div>
                           {deal.type === 'landlord' && deal.value > 0 && (
-                            <p className="text-sm text-gray-500 mt-1">
+                            <p className="text-sm text-black/50 group-hover:text-white/60 mt-1 transition-colors duration-200">
                               {formatCurrency(deal.value)} potential
                             </p>
                           )}
                           <div className="flex items-center justify-between mt-2">
-                            <span className="text-xs text-gray-500">
+                            <span className="text-xs text-black/50 group-hover:text-white/50 transition-colors duration-200">
                               {deal.updated_at ? formatRelativeTime(deal.updated_at) : ''}
                             </span>
-                            <span className="text-xs font-medium text-green-600">{deal.probability}%</span>
+                            <span className="text-xs font-medium text-black group-hover:text-white transition-colors duration-200">{deal.probability}%</span>
                           </div>
                           {deal.next_action && (
-                            <div className="mt-2 pt-2 border-t border-gray-100">
-                              <p className="text-xs text-gray-600 flex items-center gap-1">
+                            <div className="mt-2 pt-2 border-t-2 border-black/10 group-hover:border-white/20 transition-colors duration-200">
+                              <p className="text-xs text-black/60 group-hover:text-white/70 flex items-center gap-1 transition-colors duration-200">
                                 <ArrowRight className="w-3 h-3" />
                                 {deal.next_action}
                               </p>
@@ -279,12 +280,12 @@ export default function PipelinePage() {
 
       {/* Deal Detail Panel */}
       {selectedDeal && (
-        <div className="fixed inset-y-0 right-0 w-96 bg-white border-l border-gray-200 shadow-xl p-6 overflow-y-auto z-50">
+        <div className="fixed inset-y-0 right-0 w-96 bg-white border-l-2 border-black p-6 overflow-y-auto z-50">
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold text-gray-900">Deal Details</h3>
+            <h3 className="text-lg font-medium text-black uppercase tracking-wider">Deal Details</h3>
             <button
               onClick={() => setSelectedDeal(null)}
-              className="p-1 text-gray-400 hover:text-gray-600 rounded"
+              className="p-1 text-black/40 hover:text-black transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
@@ -293,46 +294,46 @@ export default function PipelinePage() {
           <div className="space-y-4">
             <div className="flex items-center gap-3">
               {selectedDeal.type === 'landlord' ? (
-                <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                  <Home className="w-6 h-6 text-green-600" />
+                <div className="w-12 h-12 border-2 border-black bg-white flex items-center justify-center">
+                  <Home className="w-6 h-6 text-black" />
                 </div>
               ) : (
-                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                  <Building2 className="w-6 h-6 text-blue-600" />
+                <div className="w-12 h-12 border-2 border-black bg-black flex items-center justify-center">
+                  <Building2 className="w-6 h-6 text-white" />
                 </div>
               )}
               <div>
-                <p className="font-semibold text-gray-900">{selectedDeal.company || selectedDeal.name}</p>
-                <p className="text-sm text-gray-500 capitalize">{selectedDeal.type}</p>
+                <p className="font-medium text-black">{selectedDeal.company || selectedDeal.name}</p>
+                <p className="text-sm text-black/50 uppercase tracking-wider text-xs">{selectedDeal.type}</p>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div className="p-3 bg-gray-50 rounded-lg">
-                <p className="text-xs text-gray-500">Stage</p>
-                <p className="font-medium text-gray-900 capitalize">{selectedDeal.stage}</p>
+              <div className="border-2 border-black p-3">
+                <p className="text-xs text-black/50 uppercase tracking-wider">Stage</p>
+                <p className="font-medium text-black capitalize">{selectedDeal.stage}</p>
               </div>
-              <div className="p-3 bg-gray-50 rounded-lg">
-                <p className="text-xs text-gray-500">Probability</p>
-                <p className="font-medium text-green-600">{selectedDeal.probability}%</p>
+              <div className="border-2 border-black p-3">
+                <p className="text-xs text-black/50 uppercase tracking-wider">Probability</p>
+                <p className="font-medium text-black">{selectedDeal.probability}%</p>
               </div>
               {selectedDeal.type === 'landlord' && (
-                <div className="p-3 bg-gray-50 rounded-lg">
-                  <p className="text-xs text-gray-500">Deal Value</p>
-                  <p className="font-medium text-gray-900">{formatCurrency(selectedDeal.value)}</p>
+                <div className="border-2 border-black p-3">
+                  <p className="text-xs text-black/50 uppercase tracking-wider">Deal Value</p>
+                  <p className="font-medium text-black">{formatCurrency(selectedDeal.value)}</p>
                 </div>
               )}
-              <div className="p-3 bg-gray-50 rounded-lg">
-                <p className="text-xs text-gray-500">Days in Stage</p>
-                <p className="font-medium text-gray-900">{selectedDeal.days_in_stage || 0} days</p>
+              <div className="border-2 border-black p-3">
+                <p className="text-xs text-black/50 uppercase tracking-wider">Days in Stage</p>
+                <p className="font-medium text-black">{selectedDeal.days_in_stage || 0} days</p>
               </div>
             </div>
 
             {selectedDeal.next_action && (
               <div>
-                <p className="text-sm font-medium text-gray-700 mb-2">Next Action</p>
-                <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                  <p className="text-sm text-yellow-800">{selectedDeal.next_action}</p>
+                <p className="text-sm font-medium text-black mb-2 uppercase tracking-wider text-xs">Next Action</p>
+                <div className="border-2 border-black p-3">
+                  <p className="text-sm text-black">{selectedDeal.next_action}</p>
                 </div>
               </div>
             )}
@@ -341,23 +342,23 @@ export default function PipelinePage() {
             {nextStage && (
               <button
                 onClick={() => moveDeal(selectedDeal.id, nextStage.id)}
-                className="w-full py-2 px-4 bg-green-50 border border-green-200 text-green-700 font-medium rounded-lg flex items-center justify-center gap-2 hover:bg-green-100 transition-colors"
+                className="btn-secondary w-full justify-center"
               >
                 <ChevronRight className="w-4 h-4" />
                 Move to {nextStage.label}
               </button>
             )}
 
-            <div className="pt-4 border-t border-gray-200 space-y-2">
-              <button className="w-full py-2 px-4 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg flex items-center justify-center gap-2 transition-colors">
+            <div className="pt-4 border-t-2 border-black space-y-2">
+              <button className="btn-primary w-full">
                 <Mail className="w-4 h-4" />
                 Send Email
               </button>
-              <button className="w-full py-2 px-4 border border-gray-300 text-gray-700 font-medium rounded-lg flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors">
+              <button className="btn-secondary w-full">
                 <Phone className="w-4 h-4" />
                 Log Call
               </button>
-              <button className="w-full py-2 px-4 border border-gray-300 text-gray-700 font-medium rounded-lg flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors">
+              <button className="btn-secondary w-full">
                 <Calendar className="w-4 h-4" />
                 Schedule Meeting
               </button>
@@ -365,22 +366,22 @@ export default function PipelinePage() {
 
             {/* Activity Timeline */}
             {selectedDeal.created_at && (
-              <div className="pt-4 border-t border-gray-200">
-                <p className="text-sm font-medium text-gray-700 mb-3">Activity</p>
+              <div className="pt-4 border-t-2 border-black">
+                <p className="text-xs font-medium text-black uppercase tracking-wider mb-3">Activity</p>
                 <div className="space-y-3">
                   <div className="flex gap-3">
-                    <div className="w-2 h-2 mt-2 bg-green-500 rounded-full" />
+                    <div className="w-2 h-2 mt-2 bg-black" />
                     <div>
-                      <p className="text-sm text-gray-700">Deal created</p>
-                      <p className="text-xs text-gray-500">{formatRelativeTime(selectedDeal.created_at)}</p>
+                      <p className="text-sm text-black">Deal created</p>
+                      <p className="text-xs text-black/50">{formatRelativeTime(selectedDeal.created_at)}</p>
                     </div>
                   </div>
                   {selectedDeal.stage !== 'lead' && (
                     <div className="flex gap-3">
-                      <div className="w-2 h-2 mt-2 bg-blue-500 rounded-full" />
+                      <div className="w-2 h-2 mt-2 bg-black" />
                       <div>
-                        <p className="text-sm text-gray-700">Moved to {selectedDeal.stage}</p>
-                        <p className="text-xs text-gray-500">{formatRelativeTime(selectedDeal.updated_at)}</p>
+                        <p className="text-sm text-black">Moved to {selectedDeal.stage}</p>
+                        <p className="text-xs text-black/50">{formatRelativeTime(selectedDeal.updated_at)}</p>
                       </div>
                     </div>
                   )}
@@ -394,52 +395,52 @@ export default function PipelinePage() {
       {/* Create Deal Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+          <div className="bg-white border-2 border-black w-full max-w-md p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Create Deal</h3>
-              <button onClick={() => setShowCreateModal(false)} className="text-gray-400 hover:text-gray-600">
+              <h3 className="text-lg font-medium text-black uppercase tracking-wider">Create Deal</h3>
+              <button onClick={() => setShowCreateModal(false)} className="text-black/40 hover:text-black transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                <label className="block text-xs font-medium text-black uppercase tracking-wider mb-1">Name</label>
                 <input
                   type="text"
                   value={newDeal.name}
                   onChange={(e) => setNewDeal({ ...newDeal, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  className="input-base"
                   placeholder="Contact or company name"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Company (optional)</label>
+                <label className="block text-xs font-medium text-black uppercase tracking-wider mb-1">Company (optional)</label>
                 <input
                   type="text"
                   value={newDeal.company}
                   onChange={(e) => setNewDeal({ ...newDeal, company: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  className="input-base"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                  <label className="block text-xs font-medium text-black uppercase tracking-wider mb-1">Type</label>
                   <select
                     value={newDeal.type}
                     onChange={(e) => setNewDeal({ ...newDeal, type: e.target.value as 'landlord' | 'employer' })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                    className="input-base"
                   >
                     <option value="landlord">Landlord</option>
                     <option value="employer">Employer</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Stage</label>
+                  <label className="block text-xs font-medium text-black uppercase tracking-wider mb-1">Stage</label>
                   <select
                     value={newDeal.stage}
                     onChange={(e) => setNewDeal({ ...newDeal, stage: e.target.value as Deal['stage'] })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                    className="input-base"
                   >
                     {STAGES.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
                   </select>
@@ -447,46 +448,46 @@ export default function PipelinePage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Value ($)</label>
+                  <label className="block text-xs font-medium text-black uppercase tracking-wider mb-1">Value ($)</label>
                   <input
                     type="number"
                     value={newDeal.value}
                     onChange={(e) => setNewDeal({ ...newDeal, value: Number(e.target.value) })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                    className="input-base"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Probability (%)</label>
+                  <label className="block text-xs font-medium text-black uppercase tracking-wider mb-1">Probability (%)</label>
                   <input
                     type="number"
                     value={newDeal.probability}
                     onChange={(e) => setNewDeal({ ...newDeal, probability: Number(e.target.value) })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                    className="input-base"
                     min={0} max={100}
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Next Action</label>
+                <label className="block text-xs font-medium text-black uppercase tracking-wider mb-1">Next Action</label>
                 <input
                   type="text"
                   value={newDeal.next_action}
                   onChange={(e) => setNewDeal({ ...newDeal, next_action: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  className="input-base"
                   placeholder="e.g., Send intro email"
                 />
               </div>
               <div className="flex gap-3 pt-2">
                 <button
                   onClick={() => setShowCreateModal(false)}
-                  className="flex-1 py-2 px-4 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
+                  className="btn-secondary flex-1"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={createDeal}
                   disabled={!newDeal.name}
-                  className="flex-1 py-2 px-4 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50"
+                  className="btn-primary flex-1"
                 >
                   Create Deal
                 </button>

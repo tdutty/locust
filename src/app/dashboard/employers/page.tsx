@@ -17,7 +17,6 @@ import {
 } from 'lucide-react';
 import { StatCard } from '@/components/ui/stat-card';
 import { StatusBadge } from '@/components/ui/status-badge';
-import { LoadingState } from '@/components/ui/loading-state';
 import { PageHeader } from '@/components/layout/page-header';
 
 interface Employer {
@@ -159,56 +158,56 @@ export default function EmployersPage() {
         <PageHeader
           title="Employers"
           description="Manage employer leads from Cricket CRM"
-          icon={<Building2 className="w-7 h-7 text-green-600" />}
+          icon={<Building2 className="w-7 h-7" />}
         />
         {/* Stat card skeletons */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="bg-white rounded-xl border border-gray-200 p-4 animate-pulse">
+            <div key={i} className="card p-5 animate-pulse">
               <div className="flex items-center justify-between">
                 <div className="space-y-2">
-                  <div className="h-4 bg-gray-200 rounded w-24" />
-                  <div className="h-7 bg-gray-200 rounded w-16" />
+                  <div className="h-4 bg-black/10 w-24" />
+                  <div className="h-7 bg-black/10 w-16" />
                 </div>
-                <div className="w-12 h-12 bg-gray-100 rounded-xl" />
+                <div className="w-10 h-10 bg-black/10 border-2 border-black/20" />
               </div>
             </div>
           ))}
         </div>
         {/* Filter skeleton */}
         <div className="flex items-center gap-4 animate-pulse">
-          <div className="h-10 bg-gray-200 rounded-lg flex-1 max-w-md" />
-          <div className="h-10 bg-gray-200 rounded-lg w-40" />
-          <div className="h-10 bg-gray-200 rounded-lg w-36" />
+          <div className="h-10 bg-black/10 flex-1 max-w-md border-2 border-black/20" />
+          <div className="h-10 bg-black/10 w-40 border-2 border-black/20" />
+          <div className="h-10 bg-black/10 w-36 border-2 border-black/20" />
         </div>
         {/* Table skeleton */}
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <div className="bg-gray-50 border-b border-gray-200 px-4 py-3">
+        <div className="card overflow-hidden">
+          <div className="bg-black px-4 py-3">
             <div className="flex gap-16 animate-pulse">
               {Array.from({ length: 7 }).map((_, i) => (
-                <div key={i} className="h-3 bg-gray-200 rounded w-20" />
+                <div key={i} className="h-3 bg-white/20 w-20" />
               ))}
             </div>
           </div>
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-black/10">
             {Array.from({ length: 6 }).map((_, i) => (
               <div key={i} className="px-4 py-3 flex items-center gap-8 animate-pulse">
                 <div className="space-y-2 flex-1">
-                  <div className="h-4 bg-gray-200 rounded w-32" />
-                  <div className="h-3 bg-gray-200 rounded w-20" />
+                  <div className="h-4 bg-black/10 w-32" />
+                  <div className="h-3 bg-black/10 w-20" />
                 </div>
                 <div className="space-y-2 flex-1">
-                  <div className="h-4 bg-gray-200 rounded w-28" />
-                  <div className="h-3 bg-gray-200 rounded w-24" />
+                  <div className="h-4 bg-black/10 w-28" />
+                  <div className="h-3 bg-black/10 w-24" />
                 </div>
-                <div className="h-4 bg-gray-200 rounded w-24" />
-                <div className="h-4 bg-gray-200 rounded w-12" />
-                <div className="h-4 bg-gray-200 rounded w-10" />
-                <div className="h-5 bg-gray-200 rounded-full w-16" />
+                <div className="h-4 bg-black/10 w-24" />
+                <div className="h-4 bg-black/10 w-12" />
+                <div className="h-4 bg-black/10 w-10" />
+                <div className="h-5 bg-black/10 w-16" />
                 <div className="flex gap-2">
-                  <div className="h-7 w-7 bg-gray-200 rounded" />
-                  <div className="h-7 w-7 bg-gray-200 rounded" />
-                  <div className="h-7 w-7 bg-gray-200 rounded" />
+                  <div className="h-7 w-7 bg-black/10" />
+                  <div className="h-7 w-7 bg-black/10" />
+                  <div className="h-7 w-7 bg-black/10" />
                 </div>
               </div>
             ))}
@@ -224,9 +223,9 @@ export default function EmployersPage() {
       <PageHeader
         title="Employers"
         description="Manage employer leads from Cricket CRM"
-        icon={<Building2 className="w-7 h-7 text-green-600" />}
+        icon={<Building2 className="w-7 h-7" />}
         badge={
-          <span className="ml-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-600">
+          <span className="ml-2 inline-flex items-center gap-1.5 border border-black px-2 py-0.5 text-xs uppercase tracking-wider">
             <Database className="w-3 h-3" />
             {dataSource}
           </span>
@@ -245,16 +244,16 @@ export default function EmployersPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <StatCard label="Total Employers" value={employers.length.toString()} icon={<Building2 className="w-5 h-5 text-blue-600" />} />
-        <StatCard label="Annual Relocations" value={totalRelocations.toLocaleString()} icon={<Users className="w-5 h-5 text-green-600" />} />
-        <StatCard label="Industries" value={industries.length.toString()} icon={<Briefcase className="w-5 h-5 text-purple-600" />} />
-        <StatCard label="Avg Score" value={avgScore} icon={<TrendingUp className="w-5 h-5 text-orange-600" />} />
+        <StatCard label="Total Employers" value={employers.length.toString()} icon={<Building2 className="w-5 h-5" />} />
+        <StatCard label="Annual Relocations" value={totalRelocations.toLocaleString()} icon={<Users className="w-5 h-5" />} />
+        <StatCard label="Industries" value={industries.length.toString()} icon={<Briefcase className="w-5 h-5" />} />
+        <StatCard label="Avg Score" value={avgScore} icon={<TrendingUp className="w-5 h-5" />} />
       </div>
 
       {/* Filters */}
       <div className="flex items-center gap-4">
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-black/40" />
           <input
             type="text"
             placeholder="Search employers..."
@@ -266,7 +265,7 @@ export default function EmployersPage() {
         <select
           value={industryFilter}
           onChange={(e) => setIndustryFilter(e.target.value)}
-          className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+          className="input-base w-auto"
         >
           <option value="all">All Industries</option>
           {industries.map(industry => (
@@ -276,7 +275,7 @@ export default function EmployersPage() {
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+          className="input-base w-auto"
         >
           <option value="all">All Statuses</option>
           <option value="new">New</option>
@@ -288,45 +287,45 @@ export default function EmployersPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+      <div className="card overflow-hidden">
         <table className="w-full">
-          <thead className="bg-gray-50 border-b border-gray-200">
+          <thead className="bg-black text-white border-b-2 border-black">
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Company</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Contact</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Location</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Relocations/yr</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Score</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Company</th>
+              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Contact</th>
+              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Location</th>
+              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Relocations/yr</th>
+              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Score</th>
+              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Status</th>
+              <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-black/10">
             {filteredEmployers.map((employer) => (
-              <tr key={employer.id} className="hover:bg-gray-50">
+              <tr key={employer.id} className="group hover:bg-black hover:text-white transition-all duration-200">
                 <td className="px-4 py-3">
                   <div>
-                    <p className="font-medium text-gray-900">{employer.company}</p>
-                    <p className="text-sm text-gray-500">{employer.industry}</p>
+                    <p className="font-medium text-black group-hover:text-white transition-colors duration-200">{employer.company}</p>
+                    <p className="text-sm text-black/50 group-hover:text-white/50 transition-colors duration-200">{employer.industry}</p>
                   </div>
                 </td>
                 <td className="px-4 py-3">
                   <div>
-                    <p className="text-gray-900">{employer.contact_name}</p>
-                    <p className="text-sm text-gray-500">{employer.contact_title}</p>
+                    <p className="text-black group-hover:text-white transition-colors duration-200">{employer.contact_name}</p>
+                    <p className="text-sm text-black/50 group-hover:text-white/50 transition-colors duration-200">{employer.contact_title}</p>
                   </div>
                 </td>
                 <td className="px-4 py-3">
-                  <div className="flex items-center gap-1 text-gray-600">
+                  <div className="flex items-center gap-1 text-black/60 group-hover:text-white/60 transition-colors duration-200">
                     <MapPin className="w-4 h-4" />
                     {employer.city}, {employer.state}
                   </div>
                 </td>
                 <td className="px-4 py-3">
-                  <span className="font-medium text-gray-900">{employer.relocation_count.toLocaleString()}</span>
+                  <span className="font-medium text-black group-hover:text-white transition-colors duration-200">{employer.relocation_count.toLocaleString()}</span>
                 </td>
                 <td className="px-4 py-3">
-                  <span className="font-semibold text-green-600">{employer.score}</span>
+                  <span className="font-medium text-black group-hover:text-white transition-colors duration-200">{employer.score}</span>
                 </td>
                 <td className="px-4 py-3">
                   <StatusBadge status={employer.status} />
@@ -335,15 +334,21 @@ export default function EmployersPage() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => handleEmailClick(employer.id)}
-                      className="p-1.5 text-gray-400 hover:text-green-600 transition-colors"
+                      className="border border-black p-1.5 hover:bg-black hover:text-white transition-all duration-200 group-hover:border-white group-hover:text-white group-hover:hover:bg-white group-hover:hover:text-black"
                       title="Send Email"
                     >
                       <Mail className="w-4 h-4" />
                     </button>
-                    <button className="p-1.5 text-gray-400 hover:text-green-600 transition-colors" title="Call">
+                    <button
+                      className="border border-black p-1.5 hover:bg-black hover:text-white transition-all duration-200 group-hover:border-white group-hover:text-white group-hover:hover:bg-white group-hover:hover:text-black"
+                      title="Call"
+                    >
                       <Phone className="w-4 h-4" />
                     </button>
-                    <button className="p-1.5 text-gray-400 hover:text-green-600 transition-colors" title="View in Cricket">
+                    <button
+                      className="border border-black p-1.5 hover:bg-black hover:text-white transition-all duration-200 group-hover:border-white group-hover:text-white group-hover:hover:bg-white group-hover:hover:text-black"
+                      title="View in Cricket"
+                    >
                       <ExternalLink className="w-4 h-4" />
                     </button>
                   </div>
@@ -352,7 +357,7 @@ export default function EmployersPage() {
             ))}
             {filteredEmployers.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-12 text-center text-gray-500">
+                <td colSpan={7} className="px-4 py-12 text-center text-black/50">
                   No employers match your filters.
                 </td>
               </tr>
@@ -367,7 +372,7 @@ export default function EmployersPage() {
           <button
             onClick={handleLoadMore}
             disabled={isLoadingMore}
-            className="px-6 py-2.5 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors disabled:opacity-50"
+            className="btn-primary disabled:opacity-50"
           >
             {isLoadingMore ? (
               <>
@@ -377,7 +382,7 @@ export default function EmployersPage() {
             ) : (
               <>
                 Load More
-                <span className="text-gray-400">
+                <span className="text-white/50">
                   ({employers.length} of {totalCount})
                 </span>
               </>
