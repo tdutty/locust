@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
 
     // Log to database
     try {
-      const db = getDb();
+      const db = await getDb();
       db.prepare(`
         INSERT INTO email_log (to_email, subject, body, lead_id, lead_type, message_id)
         VALUES (?, ?, ?, ?, ?, ?)

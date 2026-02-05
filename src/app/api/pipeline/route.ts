@@ -3,7 +3,7 @@ import { getDb } from '@/lib/db';
 
 export async function GET() {
   try {
-    const db = getDb();
+    const db = await getDb();
     const deals = db.prepare(`
       SELECT d.*,
         CAST((julianday('now') - julianday(d.updated_at)) AS INTEGER) as days_in_stage
@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Name and type are required' }, { status: 400 });
     }
 
-    const db = getDb();
+    const db = await getDb();
     const result = db.prepare(`
       INSERT INTO pipeline_deals (name, company, type, stage, value, probability, notes, next_action)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -65,7 +65,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Deal ID is required' }, { status: 400 });
     }
 
-    const db = getDb();
+    const db = await getDb();
     const existing = db.prepare('SELECT * FROM pipeline_deals WHERE id = ?').get(id) as any;
     if (!existing) {
       return NextResponse.json({ error: 'Deal not found' }, { status: 404 });

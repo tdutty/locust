@@ -3,7 +3,7 @@ import { getDb } from '@/lib/db';
 
 export async function GET() {
   try {
-    const db = getDb();
+    const db = await getDb();
     const rows = db.prepare('SELECT key, value FROM settings').all() as { key: string; value: string }[];
 
     const settings: Record<string, string> = {};
@@ -33,21 +33,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Settings object is required' }, { status: 400 });
     }
 
-    const db = getDb();
-    const upsert = db.prepare(`
-      INSERT INTO settings (key, value, updated_at) VALUES (?, ?, datetime('now'))
-      ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')
-    `);
+    const db = await getDb();
 
-    const upsertMany = db.transaction((entries: [string, string][]) => {
-      for (const [key, value] of entries) {
-        // Don't allow writing system keys
-        if (key.startsWith('_')) continue;
-        upsert.run(key, value);
-      }
-    });
-
-    upsertMany(Object.entries(settings));
+    for (const [key, value] of Object.entries(settings) as [string, string][]) {
+      // Don't allow writing system keys
+      if (key.startsWith('_')) continue;
+      db.prepare(`
+        INSERT INTO settings (key, value, updated_at) VALUES (?, ?, datetime('now'))
+        ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')
+      `).run(key, value);
+    }
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

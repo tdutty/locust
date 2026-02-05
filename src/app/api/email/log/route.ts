@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get('offset') || '0');
     const leadType = searchParams.get('lead_type');
 
-    const db = getDb();
+    const db = await getDb();
     let query = 'SELECT * FROM email_log';
     const params: any[] = [];
 
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'To and subject are required' }, { status: 400 });
     }
 
-    const db = getDb();
+    const db = await getDb();
     const result = db.prepare(`
       INSERT INTO email_log (to_email, subject, body, lead_id, lead_type, message_id)
       VALUES (?, ?, ?, ?, ?, ?)

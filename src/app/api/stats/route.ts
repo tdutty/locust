@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     const daysMap: Record<string, number> = { '7d': 7, '30d': 30, '90d': 90 };
     const days = daysMap[range] || 7;
 
-    const db = getDb();
+    const db = await getDb();
 
     // Email stats
     const emailsSent = db.prepare(`
