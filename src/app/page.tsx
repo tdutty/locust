@@ -26,8 +26,6 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (res.ok) {
-        // Store token and redirect
-        localStorage.setItem('locust_token', data.token);
         router.push('/dashboard');
       } else {
         setError(data.error || 'Invalid credentials');

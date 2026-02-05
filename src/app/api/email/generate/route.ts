@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import Anthropic from '@anthropic-ai/sdk';
 
 interface GenerateEmailRequest {
   leadType: 'landlord' | 'employer';
@@ -14,6 +15,29 @@ interface GenerateEmailRequest {
   };
   emailNumber: number;
 }
+
+const SYSTEM_PROMPT = `You are Locust, the AI Account Executive for SweetLease. Your job is to write cold outreach emails to landlords and employers about SweetLease's corporate housing platform.
+
+SweetLease connects independent landlords with relocating corporate employees. Key value props:
+- For landlords: Fill vacancies 3x faster (7-14 days vs 30-45 days), pre-screened tenants with employer-backed lease guarantees, zero marketing spend
+- For employers: Employees pay $99.99 one-time fee, get $100-300/month rent savings, pre-verified landlords, move-in coordination, zero cost to employer
+
+Email sequence strategy (5 emails):
+1. Hook - Grab attention with a specific insight about their business
+2. Social Proof - Reference similar companies/landlords using the service
+3. ROI - Hard numbers on cost savings and time savings
+4. Urgency - Limited onboarding spots, seasonal demand
+5. Breakup - Last email, ask if they want to be removed
+
+Rules:
+- Keep emails under 200 words
+- Use the lead's first name
+- Reference specific details (city, property count, company, relocations)
+- End with a CTA to Calendly: https://calendly.com/sweetlease/intro (landlords) or https://calendly.com/sweetlease/employer-intro (employers)
+- Sign off as Terrell Gilbert, SweetLease
+- Be conversational, not salesy
+- Never use exclamation marks excessively
+- Vary subject lines - make them specific and personal`;
 
 const LANDLORD_SEQUENCES = [
   {
@@ -221,6 +245,40 @@ SweetLease`,
   },
 ];
 
+async function generateWithAI(lead: GenerateEmailRequest['lead'], leadType: string, emailNumber: number): Promise<{ subject: string; body: string } | null> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return null;
+
+  try {
+    const client = new Anthropic({ apiKey });
+    const sequenceNames = ['Hook', 'Social Proof', 'ROI', 'Urgency', 'Breakup'];
+
+    const leadContext = leadType === 'landlord'
+      ? `Landlord: ${lead.name}, manages ${lead.properties || 'multiple'} properties in ${lead.city || 'the area'}, ${lead.units || 'many'} total units`
+      : `Employer: ${lead.name} at ${lead.company || 'their company'}, relocates ${lead.relocationsPerYear || 'many'} employees/year to ${lead.city || 'various locations'}, ${lead.industry || 'various'} industry`;
+
+    const message = await client.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1024,
+      system: SYSTEM_PROMPT,
+      messages: [{
+        role: 'user',
+        content: `Write email #${emailNumber} (${sequenceNames[emailNumber - 1]}) for this ${leadType}:\n\n${leadContext}\n\nRespond in JSON format: {"subject": "...", "body": "..."}`
+      }],
+    });
+
+    const text = message.content[0].type === 'text' ? message.content[0].text : '';
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0]);
+    }
+    return null;
+  } catch (err) {
+    console.error('Claude AI generation failed, using template:', err);
+    return null;
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body: GenerateEmailRequest = await request.json();
@@ -230,11 +288,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    // Try AI generation first
+    const aiResult = await generateWithAI(lead, leadType, emailNumber);
+    if (aiResult) {
+      return NextResponse.json({
+        to: lead.email,
+        subject: aiResult.subject,
+        body: aiResult.body,
+        emailNumber,
+        leadType,
+        source: 'ai',
+        lead: { name: lead.name, email: lead.email },
+      });
+    }
+
+    // Fallback to templates
     const sequences = leadType === 'landlord' ? LANDLORD_SEQUENCES : EMPLOYER_SEQUENCES;
     const index = Math.min(emailNumber - 1, sequences.length - 1);
     const template = sequences[index];
 
-    // Replace placeholders
     let subject = template.subject
       .replace('{{company}}', lead.company || lead.name)
       .replace('${city}', lead.city || 'your area')
@@ -248,10 +320,8 @@ export async function POST(request: NextRequest) {
       body: emailBody,
       emailNumber,
       leadType,
-      lead: {
-        name: lead.name,
-        email: lead.email,
-      },
+      source: 'template',
+      lead: { name: lead.name, email: lead.email },
     });
   } catch (error) {
     console.error('Error generating email:', error);

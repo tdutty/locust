@@ -1,15 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Imap from 'imap';
 import { simpleParser, ParsedMail } from 'mailparser';
+import Anthropic from '@anthropic-ai/sdk';
 
-const IMAP_CONFIG = {
-  user: process.env.SMTP_USER || 'tgilbert@sweetlease.io',
-  password: process.env.SMTP_PASSWORD || 'fotma2-pastaZ-jimwip',
-  host: process.env.IMAP_HOST || 'imap.porkbun.com',
-  port: parseInt(process.env.IMAP_PORT || '993'),
-  tls: true,
-  tlsOptions: { rejectUnauthorized: false },
-};
+export const dynamic = 'force-dynamic';
+
+function getImapConfig() {
+  const user = process.env.SMTP_USER;
+  const password = process.env.SMTP_PASSWORD;
+  if (!user || !password) {
+    throw new Error('SMTP_USER and SMTP_PASSWORD environment variables are required');
+  }
+  return {
+    user,
+    password,
+    host: process.env.IMAP_HOST || 'imap.porkbun.com',
+    port: parseInt(process.env.IMAP_PORT || '993'),
+    tls: true,
+    tlsOptions: { rejectUnauthorized: false },
+  };
+}
 
 interface Email {
   id: string;
@@ -66,7 +76,7 @@ function classifyEmail(subject: string, body: string): { classification: Email['
 
 async function fetchEmails(folder: string = 'INBOX', limit: number = 50): Promise<Email[]> {
   return new Promise((resolve, reject) => {
-    const imap = new Imap(IMAP_CONFIG);
+    const imap = new Imap(getImapConfig());
     const emails: Email[] = [];
 
     imap.once('ready', () => {
@@ -147,13 +157,54 @@ async function fetchEmails(folder: string = 'INBOX', limit: number = 50): Promis
   });
 }
 
+async function classifyWithAI(emails: Email[]): Promise<Email[]> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey || emails.length === 0) return emails;
+
+  try {
+    const client = new Anthropic({ apiKey });
+    const emailSummaries = emails.slice(0, 20).map((e, i) => `[${i}] From: ${e.from} | Subject: ${e.subject} | Preview: ${e.preview.substring(0, 100)}`).join('\n');
+
+    const message = await client.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1024,
+      messages: [{
+        role: 'user',
+        content: `Classify these sales response emails. For each, return classification (interested/objection/not_interested/question/spam/system) and priority (high/medium/low).
+
+${emailSummaries}
+
+Return JSON array: [{"index": 0, "classification": "...", "priority": "..."}]`
+      }],
+    });
+
+    const text = message.content[0].type === 'text' ? message.content[0].text : '';
+    const jsonMatch = text.match(/\[[\s\S]*\]/);
+    if (jsonMatch) {
+      const results = JSON.parse(jsonMatch[0]);
+      for (const r of results) {
+        if (emails[r.index]) {
+          emails[r.index].classification = r.classification;
+          emails[r.index].priority = r.priority;
+        }
+      }
+    }
+  } catch (err) {
+    console.error('AI classification failed, keeping keyword results:', err);
+  }
+  return emails;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const folder = searchParams.get('folder') || 'INBOX';
     const limit = parseInt(searchParams.get('limit') || '50');
 
-    const emails = await fetchEmails(folder, limit);
+    let emails = await fetchEmails(folder, limit);
+
+    // Post-process with AI classification
+    emails = await classifyWithAI(emails);
 
     return NextResponse.json({
       emails,

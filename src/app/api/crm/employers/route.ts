@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+
 const CRICKET_API_URL = process.env.CRICKET_API_URL || 'http://198.199.78.62:8081';
 
 export async function GET(request: NextRequest) {

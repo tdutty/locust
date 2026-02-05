@@ -82,3 +82,8 @@ export function verifyToken(token: string): TokenPayload | null {
 export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 10);
 }
+
+export function getAuthFromRequest(cookieValue: string | undefined): TokenPayload | null {
+  if (!cookieValue) return null;
+  return verifyToken(cookieValue);
+}

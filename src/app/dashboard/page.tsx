@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Send,
   Sparkles,
@@ -15,7 +15,12 @@ import {
   Users,
   TrendingUp,
   Clock,
+  Database,
+  FileText,
 } from 'lucide-react';
+import { StatCard } from '@/components/ui/stat-card';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { LoadingSkeleton } from '@/components/ui/loading-state';
 
 // Types
 interface Lead {
@@ -25,8 +30,11 @@ interface Lead {
   type: 'landlord' | 'employer';
   company?: string;
   propertyCount?: number;
+  units?: number;
   relocationCount?: number;
+  industry?: string;
   city: string;
+  state?: string;
   score: number;
   status: 'new' | 'contacted' | 'responded' | 'qualified' | 'closed';
 }
@@ -36,7 +44,18 @@ interface GeneratedEmail {
   body: string;
 }
 
-// Sample data from Grasshopper/Cricket
+interface SentEmailLog {
+  id: string;
+  to: string;
+  subject: string;
+  leadType: string;
+  sentAt: string;
+  status: string;
+}
+
+type DataSource = 'Grasshopper' | 'Cricket' | 'Sample Data';
+
+// Fallback sample data
 const SAMPLE_LANDLORDS: Lead[] = [
   { id: 'l1', name: 'Alexander Phillips', email: 'a.phillips@example.com', type: 'landlord', propertyCount: 58, city: 'Austin', score: 92, status: 'new' },
   { id: 'l2', name: 'Kevin Lee', email: 'k.lee@example.com', type: 'landlord', propertyCount: 56, city: 'Charleston', score: 88, status: 'new' },
@@ -52,6 +71,10 @@ const SAMPLE_EMPLOYERS: Lead[] = [
   { id: 'e4', name: 'David Kim', email: 'd.kim@bofa.com', type: 'employer', company: 'Bank of America', relocationCount: 450, city: 'Charlotte', score: 85, status: 'new' },
 ];
 
+function getWordCount(text: string): number {
+  return text.trim().split(/\s+/).filter(Boolean).length;
+}
+
 export default function DashboardPage() {
   const [leadType, setLeadType] = useState<'landlord' | 'employer'>('landlord');
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
@@ -64,78 +87,213 @@ export default function DashboardPage() {
   const [editedBody, setEditedBody] = useState('');
   const [sendStatus, setSendStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
-  const leads = leadType === 'landlord' ? SAMPLE_LANDLORDS : SAMPLE_EMPLOYERS;
+  // API-driven state
+  const [landlords, setLandlords] = useState<Lead[]>([]);
+  const [employers, setEmployers] = useState<Lead[]>([]);
+  const [isLoadingLeads, setIsLoadingLeads] = useState(true);
+  const [dataSource, setDataSource] = useState<DataSource>('Sample Data');
+  const [recentlySent, setRecentlySent] = useState<SentEmailLog[]>([]);
+  const [isLoadingSent, setIsLoadingSent] = useState(false);
+
+  // Fetch leads on mount
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchLeads() {
+      setIsLoadingLeads(true);
+      let landlordSource: DataSource = 'Sample Data';
+      let employerSource: DataSource = 'Sample Data';
+      let fetchedLandlords: Lead[] = [];
+      let fetchedEmployers: Lead[] = [];
+
+      // Fetch landlords
+      try {
+        const res = await fetch('/api/crm/landlords');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.landlords && Array.isArray(data.landlords)) {
+            fetchedLandlords = data.landlords.map((l: {
+              id: string;
+              name: string;
+              email: string;
+              phone?: string;
+              property_count?: number;
+              city: string;
+              state?: string;
+              score: number;
+              status: string;
+            }) => ({
+              id: l.id,
+              name: l.name,
+              email: l.email,
+              type: 'landlord' as const,
+              propertyCount: l.property_count,
+              city: l.city,
+              state: l.state,
+              score: l.score,
+              status: l.status as Lead['status'],
+            }));
+            landlordSource = data.source === 'cricket' ? 'Cricket' : 'Grasshopper';
+          }
+        }
+      } catch {
+        // Fall through to sample data
+      }
+
+      // Fetch employers
+      try {
+        const res = await fetch('/api/crm/employers');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.employers && Array.isArray(data.employers)) {
+            fetchedEmployers = data.employers.map((e: {
+              id: string;
+              company: string;
+              contact_name: string;
+              contact_email: string;
+              phone?: string;
+              relocation_count?: number;
+              city: string;
+              state?: string;
+              industry?: string;
+              score: number;
+              status: string;
+            }) => ({
+              id: e.id,
+              name: e.contact_name,
+              email: e.contact_email,
+              type: 'employer' as const,
+              company: e.company,
+              relocationCount: e.relocation_count,
+              industry: e.industry,
+              city: e.city,
+              state: e.state,
+              score: e.score,
+              status: e.status as Lead['status'],
+            }));
+            employerSource = data.source === 'cricket' ? 'Cricket' : 'Grasshopper';
+          }
+        }
+      } catch {
+        // Fall through to sample data
+      }
+
+      if (cancelled) return;
+
+      // Use fetched data or fall back to samples
+      if (fetchedLandlords.length > 0) {
+        setLandlords(fetchedLandlords);
+      } else {
+        setLandlords(SAMPLE_LANDLORDS);
+        landlordSource = 'Sample Data';
+      }
+
+      if (fetchedEmployers.length > 0) {
+        setEmployers(fetchedEmployers);
+      } else {
+        setEmployers(SAMPLE_EMPLOYERS);
+        employerSource = 'Sample Data';
+      }
+
+      // Set data source based on whichever is currently active, preferring non-sample
+      if (landlordSource !== 'Sample Data' || employerSource !== 'Sample Data') {
+        setDataSource(landlordSource !== 'Sample Data' ? landlordSource : employerSource);
+      } else {
+        setDataSource('Sample Data');
+      }
+
+      setIsLoadingLeads(false);
+    }
+
+    fetchLeads();
+
+    return () => { cancelled = true; };
+  }, []);
+
+  // Update data source indicator when lead type changes
+  useEffect(() => {
+    if (isLoadingLeads) return;
+    const isUsingLiveLandlords = landlords.length > 0 && landlords[0]?.id !== 'l1';
+    const isUsingLiveEmployers = employers.length > 0 && employers[0]?.id !== 'e1';
+
+    if (leadType === 'landlord') {
+      setDataSource(isUsingLiveLandlords ? (dataSource === 'Cricket' ? 'Cricket' : 'Grasshopper') : 'Sample Data');
+    } else {
+      setDataSource(isUsingLiveEmployers ? (dataSource === 'Cricket' ? 'Cricket' : 'Grasshopper') : 'Sample Data');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leadType, isLoadingLeads]);
+
+  // Fetch recently sent emails
+  const fetchRecentlySent = useCallback(async () => {
+    setIsLoadingSent(true);
+    try {
+      const res = await fetch('/api/email/log?limit=5');
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.emails)) {
+          setRecentlySent(data.emails);
+        } else if (Array.isArray(data)) {
+          setRecentlySent(data);
+        }
+      }
+    } catch {
+      // Silently fail - recently sent is not critical
+    }
+    setIsLoadingSent(false);
+  }, []);
+
+  // Fetch recently sent on mount
+  useEffect(() => {
+    fetchRecentlySent();
+  }, [fetchRecentlySent]);
+
+  const leads = leadType === 'landlord' ? landlords : employers;
+
+  const totalLeads = landlords.length + employers.length;
 
   const generateEmail = async () => {
     if (!selectedLead) return;
     setIsGenerating(true);
     setSendStatus('idle');
 
-    // Simulate API call - in production, call /api/email/generate
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    try {
+      const response = await fetch('/api/email/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          leadType: selectedLead.type,
+          lead: {
+            name: selectedLead.name,
+            email: selectedLead.email,
+            company: selectedLead.company,
+            city: selectedLead.city,
+            properties: selectedLead.propertyCount,
+            units: selectedLead.units,
+            relocationsPerYear: selectedLead.relocationCount,
+            industry: selectedLead.industry,
+          },
+          emailNumber,
+        }),
+      });
 
-    const firstName = selectedLead.name.split(' ')[0];
-    let email: GeneratedEmail;
-
-    if (selectedLead.type === 'landlord') {
-      email = {
-        subject: `${firstName}, quick question about your ${selectedLead.propertyCount} ${selectedLead.city} properties`,
-        body: `Hi ${firstName},
-
-I noticed you manage ${selectedLead.propertyCount} properties in the ${selectedLead.city} area.
-
-Quick question: How do you compete with corporate landlords who have dedicated marketing teams and direct relationships with major employers?
-
-Here's the thing - major employers relocate hundreds of employees to ${selectedLead.city} every year. Right now, most of those tenants go to big property management companies who have the resources to build those pipelines.
-
-We level that playing field.
-
-SweetLease gives independent landlords like you access to the same corporate tenant pipeline that the big guys have. Pre-screened relocations who need housing NOW - sent directly to your properties.
-
-The result? 7-10 days to fill vs. 30-45 days. Zero marketing spend. Tenants with employer-backed lease guarantees.
-
-Worth a 10-minute call to see if this fits your portfolio?
-
-Best,
-Terrell Gilbert
-SweetLease | Batch Fulfillment for Landlords
-https://calendly.com/sweetlease/intro`
-      };
-    } else {
-      email = {
-        subject: `${selectedLead.company} relocations - a better way`,
-        body: `Hi ${firstName},
-
-I noticed ${selectedLead.company} relocates approximately ${selectedLead.relocationCount} employees to ${selectedLead.city} each year.
-
-Quick question: How much time does your team spend helping new hires find housing?
-
-I ask because we work with similar companies to take housing completely off their plate.
-
-Here's how it works:
-
-1. Employee pays $99.99 (one-time fee)
-2. We negotiate lower rents on their behalf ($100-300/month savings)
-3. Pre-screened, verified landlords - no scams or bad situations
-4. Move-in coordination - we handle everything
-
-Cost to ${selectedLead.company}: $0
-
-Your employees get better housing at lower rates. You get happier new hires who hit the ground running.
-
-Worth 10 minutes to explore?
-
-https://calendly.com/sweetlease/intro
-
-Best,
-Terrell Gilbert
-SweetLease | Corporate Housing Solutions`
-      };
+      if (response.ok) {
+        const data = await response.json();
+        const email: GeneratedEmail = {
+          subject: data.subject,
+          body: data.body,
+        };
+        setGeneratedEmail(email);
+        setEditedSubject(email.subject);
+        setEditedBody(email.body);
+      } else {
+        // API failed - show error state
+        setSendStatus('error');
+      }
+    } catch {
+      setSendStatus('error');
     }
 
-    setGeneratedEmail(email);
-    setEditedSubject(email.subject);
-    setEditedBody(email.body);
     setIsGenerating(false);
   };
 
@@ -158,6 +316,8 @@ SweetLease | Corporate Housing Solutions`
 
       if (response.ok) {
         setSendStatus('success');
+        // Refresh recently sent list
+        fetchRecentlySent();
         setTimeout(() => {
           setSendStatus('idle');
           setSelectedLead(null);
@@ -173,29 +333,18 @@ SweetLease | Corporate Housing Solutions`
     setIsSending(false);
   };
 
-  const getStatusBadge = (status: string) => {
-    const colors: Record<string, string> = {
-      new: 'bg-blue-100 text-blue-700',
-      contacted: 'bg-yellow-100 text-yellow-700',
-      responded: 'bg-green-100 text-green-700',
-      qualified: 'bg-purple-100 text-purple-700',
-      closed: 'bg-gray-100 text-gray-700',
-    };
-    return (
-      <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${colors[status]}`}>
-        {status}
-      </span>
-    );
-  };
+  const currentSubject = editMode ? editedSubject : generatedEmail?.subject || '';
+  const currentBody = editMode ? editedBody : generatedEmail?.body || '';
+  const emailWordCount = generatedEmail ? getWordCount(currentSubject + ' ' + currentBody) : 0;
 
   return (
     <div className="space-y-6">
       {/* Stats */}
       <div className="grid grid-cols-4 gap-4">
-        <StatCard icon={<Users className="w-6 h-6 text-blue-600" />} label="Total Leads" value="9" />
-        <StatCard icon={<Send className="w-6 h-6 text-green-600" />} label="Emails Sent" value="24" />
-        <StatCard icon={<Mail className="w-6 h-6 text-purple-600" />} label="Responses" value="6" />
-        <StatCard icon={<TrendingUp className="w-6 h-6 text-orange-600" />} label="Response Rate" value="25%" />
+        <StatCard icon={<Users className="w-6 h-6 text-blue-600" />} label="Total Leads" value={String(totalLeads)} />
+        <StatCard icon={<Send className="w-6 h-6 text-green-600" />} label="Emails Sent" value={String(recentlySent.length > 0 ? recentlySent.length + '+' : '0')} />
+        <StatCard icon={<Mail className="w-6 h-6 text-purple-600" />} label="Responses" value="--" subtext="Tracking enabled" />
+        <StatCard icon={<TrendingUp className="w-6 h-6 text-orange-600" />} label="Response Rate" value="--" subtext="Tracking enabled" />
       </div>
 
       {/* Main Content */}
@@ -203,10 +352,22 @@ SweetLease | Corporate Housing Solutions`
         {/* Lead Selection */}
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-            <h3 className="font-semibold text-gray-900">Select Lead</h3>
+            <div className="flex items-center gap-3">
+              <h3 className="font-semibold text-gray-900">Select Lead</h3>
+              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full ${
+                dataSource === 'Sample Data'
+                  ? 'bg-gray-100 text-gray-600'
+                  : dataSource === 'Grasshopper'
+                    ? 'bg-emerald-100 text-emerald-700'
+                    : 'bg-blue-100 text-blue-700'
+              }`}>
+                <Database className="w-3 h-3" />
+                {dataSource}
+              </span>
+            </div>
             <div className="flex gap-2">
               <button
-                onClick={() => setLeadType('landlord')}
+                onClick={() => { setLeadType('landlord'); setSelectedLead(null); setGeneratedEmail(null); setSendStatus('idle'); }}
                 className={`px-3 py-1.5 text-sm font-medium rounded-lg flex items-center gap-2 transition-colors ${
                   leadType === 'landlord'
                     ? 'bg-green-100 text-green-700'
@@ -217,7 +378,7 @@ SweetLease | Corporate Housing Solutions`
                 Landlords
               </button>
               <button
-                onClick={() => setLeadType('employer')}
+                onClick={() => { setLeadType('employer'); setSelectedLead(null); setGeneratedEmail(null); setSendStatus('idle'); }}
                 className={`px-3 py-1.5 text-sm font-medium rounded-lg flex items-center gap-2 transition-colors ${
                   leadType === 'employer'
                     ? 'bg-green-100 text-green-700'
@@ -231,36 +392,45 @@ SweetLease | Corporate Housing Solutions`
           </div>
 
           <div className="p-4 max-h-[400px] overflow-y-auto space-y-2">
-            {leads.map((lead) => (
-              <div
-                key={lead.id}
-                onClick={() => {
-                  setSelectedLead(lead);
-                  setGeneratedEmail(null);
-                  setSendStatus('idle');
-                }}
-                className={`p-3 rounded-lg border cursor-pointer transition-all ${
-                  selectedLead?.id === lead.id
-                    ? 'border-green-500 bg-green-50'
-                    : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-gray-900">{lead.name}</p>
-                    <p className="text-sm text-gray-500">
-                      {lead.type === 'landlord'
-                        ? `${lead.propertyCount} properties in ${lead.city}`
-                        : `${lead.company} - ${lead.relocationCount} relocations/yr`}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-green-600">{lead.score}</span>
-                    {getStatusBadge(lead.status)}
+            {isLoadingLeads ? (
+              <LoadingSkeleton rows={5} />
+            ) : leads.length === 0 ? (
+              <div className="py-8 text-center text-gray-400">
+                <Users className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">No {leadType}s found</p>
+              </div>
+            ) : (
+              leads.map((lead) => (
+                <div
+                  key={lead.id}
+                  onClick={() => {
+                    setSelectedLead(lead);
+                    setGeneratedEmail(null);
+                    setSendStatus('idle');
+                  }}
+                  className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                    selectedLead?.id === lead.id
+                      ? 'border-green-500 bg-green-50'
+                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-gray-900">{lead.name}</p>
+                      <p className="text-sm text-gray-500">
+                        {lead.type === 'landlord'
+                          ? `${lead.propertyCount ?? 0} properties in ${lead.city}${lead.state ? `, ${lead.state}` : ''}`
+                          : `${lead.company} - ${lead.relocationCount ?? 0} relocations/yr`}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-green-600">{lead.score}</span>
+                      <StatusBadge status={lead.status} />
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
 
           {selectedLead && (
@@ -302,7 +472,15 @@ SweetLease | Corporate Housing Solutions`
         {/* Email Preview */}
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
           <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-            <h3 className="font-semibold text-gray-900">Email Preview</h3>
+            <div className="flex items-center gap-3">
+              <h3 className="font-semibold text-gray-900">Email Preview</h3>
+              {generatedEmail && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium text-gray-500 bg-gray-100 rounded-full">
+                  <FileText className="w-3 h-3" />
+                  {emailWordCount} words
+                </span>
+              )}
+            </div>
             {generatedEmail && (
               <button
                 onClick={() => setEditMode(!editMode)}
@@ -411,22 +589,49 @@ SweetLease | Corporate Housing Solutions`
           </div>
         </div>
       </div>
-    </div>
-  );
-}
 
-function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
-  return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm text-gray-500">{label}</p>
-          <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
+      {/* Recently Sent Section */}
+      {recentlySent.length > 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+          <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Clock className="w-5 h-5 text-gray-500" />
+              <h3 className="font-semibold text-gray-900">Recently Sent</h3>
+            </div>
+            <button
+              onClick={fetchRecentlySent}
+              disabled={isLoadingSent}
+              className="px-3 py-1.5 text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1.5 transition-colors"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoadingSent ? 'animate-spin' : ''}`} />
+              Refresh
+            </button>
+          </div>
+          <div className="divide-y divide-gray-100">
+            {recentlySent.map((entry) => (
+              <div key={entry.id} className="px-4 py-3 flex items-center justify-between">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900 truncate">{entry.subject}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    To: {entry.to} &middot; {entry.leadType}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3 ml-4 shrink-0">
+                  <span className="text-xs text-gray-400">
+                    {new Date(entry.sentAt).toLocaleString(undefined, {
+                      month: 'short',
+                      day: 'numeric',
+                      hour: 'numeric',
+                      minute: '2-digit',
+                    })}
+                  </span>
+                  <StatusBadge status={entry.status || 'sent'} />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="w-12 h-12 bg-gray-50 rounded-xl flex items-center justify-center">
-          {icon}
-        </div>
-      </div>
+      )}
     </div>
   );
 }

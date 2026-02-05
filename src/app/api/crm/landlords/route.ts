@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+
 const GRASSHOPPER_API_URL = process.env.GRASSHOPPER_API_URL || 'http://198.199.78.62:8080';
 
 export async function GET(request: NextRequest) {

@@ -1,16 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
+import { getDb } from '@/lib/db';
 
-// Porkbun email configuration
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.porkbun.com',
-  port: parseInt(process.env.SMTP_PORT || '587'),
-  secure: false,
-  auth: {
-    user: process.env.SMTP_USER || 'tgilbert@sweetlease.io',
-    pass: process.env.SMTP_PASSWORD || 'fotma2-pastaZ-jimwip',
-  },
-});
+function getTransporter() {
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASSWORD;
+  if (!user || !pass) {
+    throw new Error('SMTP_USER and SMTP_PASSWORD environment variables are required');
+  }
+  return nodemailer.createTransport({
+    host: process.env.SMTP_HOST || 'smtp.porkbun.com',
+    port: parseInt(process.env.SMTP_PORT || '587'),
+    secure: false,
+    auth: { user, pass },
+  });
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,7 +28,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify connection
+    const transporter = getTransporter();
     await transporter.verify();
 
     // Create HTML version
@@ -50,21 +54,23 @@ export async function POST(request: NextRequest) {
 
     // Send email
     const info = await transporter.sendMail({
-      from: `"Terrell Gilbert" <${process.env.SMTP_USER || 'tgilbert@sweetlease.io'}>`,
+      from: `"Terrell Gilbert" <${process.env.SMTP_USER}>`,
       to,
       subject,
       text: emailBody,
       html: htmlBody,
     });
 
-    console.log('Email sent:', {
-      messageId: info.messageId,
-      to,
-      subject,
-      leadId,
-      leadType,
-      timestamp: new Date().toISOString(),
-    });
+    // Log to database
+    try {
+      const db = getDb();
+      db.prepare(`
+        INSERT INTO email_log (to_email, subject, body, lead_id, lead_type, message_id)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run(to, subject, emailBody, leadId || null, leadType || null, info.messageId);
+    } catch (dbErr) {
+      console.error('Failed to log email to database:', dbErr);
+    }
 
     return NextResponse.json({
       success: true,
