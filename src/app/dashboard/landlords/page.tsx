@@ -94,6 +94,7 @@ export default function LandlordsPage() {
   const [offset, setOffset] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [cityFilter, setCityFilter] = useState<string>('all');
+  const [stateFilter, setStateFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -136,6 +137,7 @@ export default function LandlordsPage() {
   }, [fetchLandlords]);
 
   const cities = [...new Set(landlords.map(l => l.city))].sort();
+  const states = [...new Set(landlords.map(l => l.state))].sort();
 
   const filteredLandlords = landlords.filter(landlord => {
     const matchesSearch = !searchQuery ||
@@ -143,8 +145,9 @@ export default function LandlordsPage() {
       landlord.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
       landlord.city.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCity = cityFilter === 'all' || landlord.city === cityFilter;
+    const matchesState = stateFilter === 'all' || landlord.state === stateFilter;
     const matchesStatus = statusFilter === 'all' || landlord.status === statusFilter;
-    return matchesSearch && matchesCity && matchesStatus;
+    return matchesSearch && matchesCity && matchesState && matchesStatus;
   });
 
   const totalProperties = landlords.reduce((sum, l) => sum + l.propertyCount, 0);
@@ -241,6 +244,16 @@ export default function LandlordsPage() {
           <option value="all">All Cities</option>
           {cities.map(city => (
             <option key={city} value={city}>{city}</option>
+          ))}
+        </select>
+        <select
+          value={stateFilter}
+          onChange={(e) => setStateFilter(e.target.value)}
+          className="input-base"
+        >
+          <option value="all">All States</option>
+          {states.map(state => (
+            <option key={state} value={state}>{state}</option>
           ))}
         </select>
         <select

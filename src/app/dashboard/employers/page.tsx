@@ -56,6 +56,7 @@ export default function EmployersPage() {
   const [offset, setOffset] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [industryFilter, setIndustryFilter] = useState<string>('all');
+  const [stateFilter, setStateFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -115,6 +116,7 @@ export default function EmployersPage() {
   }, [fetchEmployers]);
 
   const industries = [...new Set(employers.map(e => e.industry))];
+  const states = [...new Set(employers.map(e => e.state))].sort();
 
   const filteredEmployers = employers.filter(employer => {
     const matchesSearch = !searchQuery ||
@@ -122,8 +124,9 @@ export default function EmployersPage() {
       employer.contact_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       employer.city.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesIndustry = industryFilter === 'all' || employer.industry === industryFilter;
+    const matchesState = stateFilter === 'all' || employer.state === stateFilter;
     const matchesStatus = statusFilter === 'all' || employer.status === statusFilter;
-    return matchesSearch && matchesIndustry && matchesStatus;
+    return matchesSearch && matchesIndustry && matchesState && matchesStatus;
   });
 
   const totalRelocations = employers.reduce((sum, e) => sum + e.relocation_count, 0);
@@ -270,6 +273,16 @@ export default function EmployersPage() {
           <option value="all">All Industries</option>
           {industries.map(industry => (
             <option key={industry} value={industry}>{industry}</option>
+          ))}
+        </select>
+        <select
+          value={stateFilter}
+          onChange={(e) => setStateFilter(e.target.value)}
+          className="input-base w-auto"
+        >
+          <option value="all">All States</option>
+          {states.map(state => (
+            <option key={state} value={state}>{state}</option>
           ))}
         </select>
         <select
