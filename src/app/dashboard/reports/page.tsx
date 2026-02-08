@@ -255,15 +255,13 @@ function MetricCard({
 }) {
   return (
     <div className="card p-4 hover:shadow-md transition-shadow">
-      <div className="flex items-center justify-between mb-2">
-        {change !== 0 && (
-          <span className={`text-sm ${trend === 'up' ? 'text-emerald-600' : 'text-red-500'}`}>
-            {trend === 'up' ? '↑' : '↓'} {change > 0 ? '+' : ''}{change}
-          </span>
-        )}
-      </div>
-      <p className="text-3xl font-light text-slate-900">{value}</p>
-      <p className="text-xs text-slate-600 mt-1">{label}</p>
+      <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">{label}</p>
+      <p className="text-2xl font-semibold tracking-tight text-slate-900">{value}</p>
+      {change !== 0 && (
+        <span className={`text-xs font-medium mt-1 inline-block ${trend === 'up' ? 'text-emerald-600' : 'text-red-500'}`}>
+          {trend === 'up' ? '↑' : '↓'} {change > 0 ? '+' : ''}{change} vs prev
+        </span>
+      )}
     </div>
   );
 }

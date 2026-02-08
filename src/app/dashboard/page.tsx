@@ -9,6 +9,7 @@ import {
   AlertCircle,
   Home,
   Building2,
+  GraduationCap,
   Eye,
   Edit,
   Mail,
@@ -19,6 +20,7 @@ import {
   FileText,
 } from 'lucide-react';
 import { StatCard } from '@/components/ui/stat-card';
+import { AvatarCircle } from '@/components/ui/avatar-circle';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { LoadingSkeleton } from '@/components/ui/loading-state';
 import { PageHeader } from '@/components/layout/page-header';
@@ -28,7 +30,7 @@ interface Lead {
   id: string;
   name: string;
   email: string;
-  type: 'landlord' | 'employer';
+  type: 'landlord' | 'employer' | 'university';
   company?: string;
   propertyCount?: number;
   units?: number;
@@ -38,6 +40,13 @@ interface Lead {
   state?: string;
   score: number;
   status: 'new' | 'contacted' | 'responded' | 'qualified' | 'closed';
+  university?: string;
+  enrollment?: number;
+  offCampusPercent?: number;
+  avgRent?: number;
+  contactRole?: string;
+  contactDepartment?: string;
+  partnershipType?: string;
 }
 
 interface GeneratedEmail {
@@ -54,7 +63,7 @@ interface SentEmailLog {
   status: string;
 }
 
-type DataSource = 'Grasshopper' | 'Cricket' | 'Sample Data';
+type DataSource = 'Grasshopper' | 'Cricket' | 'Playbook' | 'Sample Data';
 
 // Fallback sample data
 const SAMPLE_LANDLORDS: Lead[] = [
@@ -77,7 +86,7 @@ function getWordCount(text: string): number {
 }
 
 export default function DashboardPage() {
-  const [leadType, setLeadType] = useState<'landlord' | 'employer'>('landlord');
+  const [leadType, setLeadType] = useState<'landlord' | 'employer' | 'university'>('landlord');
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [emailNumber, setEmailNumber] = useState(1);
   const [generatedEmail, setGeneratedEmail] = useState<GeneratedEmail | null>(null);
@@ -91,6 +100,7 @@ export default function DashboardPage() {
   // API-driven state
   const [landlords, setLandlords] = useState<Lead[]>([]);
   const [employers, setEmployers] = useState<Lead[]>([]);
+  const [universities, setUniversities] = useState<Lead[]>([]);
   const [isLoadingLeads, setIsLoadingLeads] = useState(true);
   const [dataSource, setDataSource] = useState<DataSource>('Sample Data');
   const [recentlySent, setRecentlySent] = useState<SentEmailLog[]>([]);
@@ -179,6 +189,51 @@ export default function DashboardPage() {
         // Fall through to sample data
       }
 
+      // Fetch universities
+      let fetchedUniversities: Lead[] = [];
+      try {
+        const res = await fetch('/api/crm/universities');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.universities && Array.isArray(data.universities)) {
+            fetchedUniversities = data.universities.map((u: {
+              id: string;
+              university: string;
+              contactName: string;
+              contactEmail: string;
+              contactRole?: string;
+              contactDepartment?: string;
+              city: string;
+              state?: string;
+              enrollment?: number;
+              offCampusPercent?: number;
+              avgRent?: number;
+              score: number;
+              status: string;
+              partnershipType?: string;
+            }) => ({
+              id: u.id,
+              name: u.contactName,
+              email: u.contactEmail,
+              type: 'university' as const,
+              university: u.university,
+              contactRole: u.contactRole,
+              contactDepartment: u.contactDepartment,
+              city: u.city,
+              state: u.state,
+              enrollment: u.enrollment,
+              offCampusPercent: u.offCampusPercent,
+              avgRent: u.avgRent,
+              score: u.score,
+              status: u.status as Lead['status'],
+              partnershipType: u.partnershipType,
+            }));
+          }
+        }
+      } catch {
+        // Fall through - universities are optional
+      }
+
       if (cancelled) return;
 
       // Use fetched data or fall back to samples
@@ -195,6 +250,8 @@ export default function DashboardPage() {
         setEmployers(SAMPLE_EMPLOYERS);
         employerSource = 'Sample Data';
       }
+
+      setUniversities(fetchedUniversities);
 
       // Set data source based on whichever is currently active, preferring non-sample
       if (landlordSource !== 'Sample Data' || employerSource !== 'Sample Data') {
@@ -219,6 +276,8 @@ export default function DashboardPage() {
 
     if (leadType === 'landlord') {
       setDataSource(isUsingLiveLandlords ? (dataSource === 'Cricket' ? 'Cricket' : 'Grasshopper') : 'Sample Data');
+    } else if (leadType === 'university') {
+      setDataSource(universities.length > 0 ? 'Playbook' : 'Sample Data');
     } else {
       setDataSource(isUsingLiveEmployers ? (dataSource === 'Cricket' ? 'Cricket' : 'Grasshopper') : 'Sample Data');
     }
@@ -249,9 +308,9 @@ export default function DashboardPage() {
     fetchRecentlySent();
   }, [fetchRecentlySent]);
 
-  const leads = leadType === 'landlord' ? landlords : employers;
+  const leads = leadType === 'landlord' ? landlords : leadType === 'university' ? universities : employers;
 
-  const totalLeads = landlords.length + employers.length;
+  const totalLeads = landlords.length + employers.length + universities.length;
 
   const generateEmail = async () => {
     if (!selectedLead) return;
@@ -273,6 +332,13 @@ export default function DashboardPage() {
             units: selectedLead.units,
             relocationsPerYear: selectedLead.relocationCount,
             industry: selectedLead.industry,
+            university: selectedLead.university,
+            enrollment: selectedLead.enrollment,
+            offCampusPercent: selectedLead.offCampusPercent,
+            avgRent: selectedLead.avgRent,
+            contactRole: selectedLead.contactRole,
+            contactDepartment: selectedLead.contactDepartment,
+            partnershipType: selectedLead.partnershipType,
           },
           emailNumber,
         }),
@@ -398,6 +464,17 @@ export default function DashboardPage() {
                 <Building2 className="w-4 h-4" />
                 Employers
               </button>
+              <button
+                onClick={() => { setLeadType('university'); setSelectedLead(null); setGeneratedEmail(null); setSendStatus('idle'); }}
+                className={`px-3 py-1.5 text-xs font-medium flex items-center gap-2 transition-all duration-200 rounded-md ${
+                  leadType === 'university'
+                    ? 'bg-primary text-white'
+                    : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-100'
+                }`}
+              >
+                <GraduationCap className="w-4 h-4" />
+                Universities
+              </button>
             </div>
           </div>
 
@@ -425,17 +502,22 @@ export default function DashboardPage() {
                   }`}
                 >
                   <div className="flex items-center justify-between">
-                    <div>
-                      <p className={`font-medium text-sm ${
-                        selectedLead?.id === lead.id ? 'text-primary-900' : 'text-slate-900'
-                      }`}>{lead.name}</p>
-                      <p className={`text-xs ${
-                        selectedLead?.id === lead.id ? 'text-primary-600' : 'text-slate-500'
-                      }`}>
-                        {lead.type === 'landlord'
-                          ? `${lead.propertyCount ?? 0} properties in ${lead.city}${lead.state ? `, ${lead.state}` : ''}`
-                          : `${lead.company} - ${lead.relocationCount ?? 0} relocations/yr`}
-                      </p>
+                    <div className="flex items-center gap-3">
+                      <AvatarCircle name={lead.name} size="sm" />
+                      <div>
+                        <p className={`font-medium text-sm ${
+                          selectedLead?.id === lead.id ? 'text-primary-900' : 'text-slate-900'
+                        }`}>{lead.name}</p>
+                        <p className={`text-xs ${
+                          selectedLead?.id === lead.id ? 'text-primary-600' : 'text-slate-500'
+                        }`}>
+                          {lead.type === 'landlord'
+                            ? `${lead.propertyCount ?? 0} properties in ${lead.city}${lead.state ? `, ${lead.state}` : ''}`
+                            : lead.type === 'university'
+                            ? `${lead.university} - ${lead.enrollment?.toLocaleString() ?? '?'} students, ${lead.offCampusPercent ?? '?'}% off-campus`
+                            : `${lead.company} - ${lead.relocationCount ?? 0} relocations/yr`}
+                        </p>
+                      </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className={`text-sm font-semibold ${
@@ -457,11 +539,23 @@ export default function DashboardPage() {
                   onChange={(e) => setEmailNumber(Number(e.target.value))}
                   className="px-3 py-2 border border-slate-200 rounded-md text-sm bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                 >
-                  <option value={1}>Email #1 - Hook</option>
-                  <option value={2}>Email #2 - Social Proof</option>
-                  <option value={3}>Email #3 - ROI</option>
-                  <option value={4}>Email #4 - Urgency</option>
-                  <option value={5}>Email #5 - Breakup</option>
+                  {selectedLead?.type === 'university' ? (
+                    <>
+                      <option value={1}>Email #1 - Housing Office Intro</option>
+                      <option value={2}>Email #2 - Follow-Up with Data</option>
+                      <option value={3}>Email #3 - International Students</option>
+                      <option value={4}>Email #4 - Graduate Association</option>
+                      <option value={5}>Email #5 - Housing Fair Booth</option>
+                    </>
+                  ) : (
+                    <>
+                      <option value={1}>Email #1 - Hook</option>
+                      <option value={2}>Email #2 - Social Proof</option>
+                      <option value={3}>Email #3 - ROI</option>
+                      <option value={4}>Email #4 - Urgency</option>
+                      <option value={5}>Email #5 - Breakup</option>
+                    </>
+                  )}
                 </select>
                 <button
                   onClick={generateEmail}

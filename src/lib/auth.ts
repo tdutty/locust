@@ -10,14 +10,15 @@ function getJwtSecret(): string {
 }
 
 // Users configured via environment variables
-// Format: LOCUST_USERS=email:hashedPassword:name:role,email2:hashedPassword2:name2:role2
+// Format: LOCUST_USERS=email|password|name|role,email2|password2|name2|role2
+// Password can be plaintext or bcrypt hash (starting with $2)
 function loadUsers() {
   const usersEnv = process.env.LOCUST_USERS;
   if (!usersEnv) {
     return [];
   }
   return usersEnv.split(',').map((entry, idx) => {
-    const [email, password, name, role] = entry.split(':');
+    const [email, password, name, role] = entry.split('|');
     return { id: String(idx + 1), email, password, name, role: role || 'ae' };
   });
 }
@@ -44,7 +45,13 @@ export async function authenticateUser(email: string, password: string): Promise
     return null;
   }
 
-  const isValid = await bcrypt.compare(password, user.password);
+  // Support both plaintext and bcrypt hashed passwords
+  let isValid = false;
+  if (user.password.startsWith('$2')) {
+    isValid = await bcrypt.compare(password, user.password);
+  } else {
+    isValid = password === user.password;
+  }
 
   if (!isValid) {
     return null;

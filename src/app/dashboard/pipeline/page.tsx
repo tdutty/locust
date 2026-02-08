@@ -12,6 +12,7 @@ import {
   Phone,
   Building2,
   Home,
+  GraduationCap,
   Plus,
   X,
   ChevronRight,
@@ -19,6 +20,7 @@ import {
 } from 'lucide-react';
 import { StatCard } from '@/components/ui/stat-card';
 import { StatusBadge } from '@/components/ui/status-badge';
+import { AvatarCircle } from '@/components/ui/avatar-circle';
 import { LoadingState } from '@/components/ui/loading-state';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PageHeader } from '@/components/layout/page-header';
@@ -28,7 +30,7 @@ interface Deal {
   id: number;
   name: string;
   company?: string;
-  type: 'landlord' | 'employer';
+  type: 'landlord' | 'employer' | 'university';
   stage: 'lead' | 'contacted' | 'qualified' | 'proposal' | 'negotiation' | 'closed';
   value: number;
   probability: number;
@@ -74,7 +76,7 @@ export default function PipelinePage() {
 
   // Create form
   const [newDeal, setNewDeal] = useState({
-    name: '', company: '', type: 'landlord' as 'landlord' | 'employer', stage: 'lead' as Deal['stage'],
+    name: '', company: '', type: 'landlord' as 'landlord' | 'employer' | 'university', stage: 'lead' as Deal['stage'],
     value: 0, probability: 10, notes: '', next_action: '',
   });
 
@@ -147,6 +149,7 @@ export default function PipelinePage() {
 
   const landlordDeals = deals.filter(d => d.type === 'landlord').length;
   const employerDeals = deals.filter(d => d.type === 'employer').length;
+  const universityDeals = deals.filter(d => d.type === 'university').length;
 
   if (isLoading) {
     return <LoadingState message="Loading pipeline..." />;
@@ -186,7 +189,7 @@ export default function PipelinePage() {
           label="Total Deals"
           value={deals.length.toString()}
           icon={<Users className="w-5 h-5" />}
-          subtext={`${landlordDeals} landlords, ${employerDeals} employers`}
+          subtext={`${landlordDeals} landlords, ${employerDeals} employers, ${universityDeals} universities`}
         />
         <StatCard
           label="Weighted Pipeline"
@@ -216,6 +219,7 @@ export default function PipelinePage() {
             <div key={stage.id} className="flex-shrink-0 w-72">
               {/* Column header */}
               <div className="border border-slate-200 rounded-lg bg-white overflow-hidden">
+                <div className={`h-0.5 ${stage.color}`} />
                 <div className="p-3 border-b border-slate-200">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -245,11 +249,7 @@ export default function PipelinePage() {
                         >
                           <div className="flex items-start justify-between">
                             <div className="flex items-center gap-2">
-                              {deal.type === 'landlord' ? (
-                                <Home className="w-4 h-4 text-slate-500" />
-                              ) : (
-                                <Building2 className="w-4 h-4 text-slate-500" />
-                              )}
+                              <AvatarCircle name={deal.company || deal.name} size="sm" />
                               <span className="font-medium text-sm text-slate-900">
                                 {deal.company || deal.name}
                               </span>
@@ -303,6 +303,10 @@ export default function PipelinePage() {
               {selectedDeal.type === 'landlord' ? (
                 <div className="w-12 h-12 border border-slate-200 rounded-lg bg-white flex items-center justify-center">
                   <Home className="w-6 h-6 text-slate-600" />
+                </div>
+              ) : selectedDeal.type === 'university' ? (
+                <div className="w-12 h-12 border border-slate-200 rounded-lg bg-emerald-500 flex items-center justify-center">
+                  <GraduationCap className="w-6 h-6 text-white" />
                 </div>
               ) : (
                 <div className="w-12 h-12 border border-slate-200 rounded-lg bg-primary flex items-center justify-center">
@@ -438,11 +442,12 @@ export default function PipelinePage() {
                   <label className="block text-sm font-medium text-slate-700 mb-1">Type</label>
                   <select
                     value={newDeal.type}
-                    onChange={(e) => setNewDeal({ ...newDeal, type: e.target.value as 'landlord' | 'employer' })}
+                    onChange={(e) => setNewDeal({ ...newDeal, type: e.target.value as 'landlord' | 'employer' | 'university' })}
                     className="input-base"
                   >
                     <option value="landlord">Landlord</option>
                     <option value="employer">Employer</option>
+                    <option value="university">University</option>
                   </select>
                 </div>
                 <div>

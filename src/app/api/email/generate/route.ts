@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 
 interface GenerateEmailRequest {
-  leadType: 'landlord' | 'employer';
+  leadType: 'landlord' | 'employer' | 'university';
   lead: {
     name: string;
     email: string;
@@ -12,28 +12,43 @@ interface GenerateEmailRequest {
     units?: number;
     relocationsPerYear?: number;
     industry?: string;
+    university?: string;
+    enrollment?: number;
+    offCampusPercent?: number;
+    avgRent?: number;
+    contactRole?: string;
+    contactDepartment?: string;
+    partnershipType?: string;
   };
   emailNumber: number;
 }
 
-const SYSTEM_PROMPT = `You are Locust, the AI Account Executive for SweetLease. Your job is to write cold outreach emails to landlords and employers about SweetLease's corporate housing platform.
+const SYSTEM_PROMPT = `You are Locust, the AI Account Executive for SweetLease. Your job is to write cold outreach emails to landlords, employers, and university housing partners about SweetLease's corporate housing platform.
 
 SweetLease connects independent landlords with relocating corporate employees. Key value props:
 - For landlords: Fill vacancies 3x faster (7-14 days vs 30-45 days), pre-screened tenants with employer-backed lease guarantees, zero marketing spend
 - For employers: Employees pay $99.99 one-time fee, get $100-300/month rent savings, pre-verified landlords, move-in coordination, zero cost to employer
+- For universities: Help students find quality off-campus housing, reduce housing insecurity, free housing resource for student services, partnership opportunities (workshops, ambassador programs, co-branded housing fairs)
 
-Email sequence strategy (5 emails):
+Email sequence strategy for landlords/employers (5 emails):
 1. Hook - Grab attention with a specific insight about their business
 2. Social Proof - Reference similar companies/landlords using the service
 3. ROI - Hard numbers on cost savings and time savings
 4. Urgency - Limited onboarding spots, seasonal demand
 5. Breakup - Last email, ask if they want to be removed
 
+Email sequence strategy for universities (5 emails):
+1. Housing Office Introduction - Introduce SweetLease as a free housing resource for students
+2. Follow-Up with Data - Share housing data specific to their market (avg rent, off-campus stats)
+3. International Student Office - Target international student housing needs
+4. Graduate Student Association - Partnership for grad/professional student housing
+5. Housing Fair Booth Request - Ask for presence at upcoming housing fairs/orientation
+
 Rules:
 - Keep emails under 200 words
 - Use the lead's first name
-- Reference specific details (city, property count, company, relocations)
-- End with a CTA to Calendly: https://calendly.com/sweetlease/intro (landlords) or https://calendly.com/sweetlease/employer-intro (employers)
+- Reference specific details (city, property count, company, relocations, enrollment, off-campus %)
+- End with a CTA to Calendly: https://calendly.com/sweetlease/intro (landlords), https://calendly.com/sweetlease/employer-intro (employers), or https://calendly.com/sweetlease/university-partnership (universities)
 - Sign off as Terrell Gilbert, SweetLease
 - Be conversational, not salesy
 - Never use exclamation marks excessively
@@ -245,16 +260,129 @@ SweetLease`,
   },
 ];
 
+const UNIVERSITY_SEQUENCES = [
+  {
+    subject: 'Free housing resource for {{university}} students',
+    body: (lead: GenerateEmailRequest['lead']) => `Hi ${lead.name?.split(' ')[0] || 'there'},
+
+I'm reaching out because I know ${lead.university || 'your university'} has ${lead.enrollment ? lead.enrollment.toLocaleString() : 'thousands of'} students, and finding quality off-campus housing is one of the biggest challenges they face.
+
+SweetLease is a free platform that helps students find pre-vetted, competitively priced off-campus housing. We work directly with local landlords to ensure quality and fair pricing.
+
+For ${lead.university || 'your university'} students specifically:
+- ${lead.offCampusPercent || '40'}% of students live off-campus and need housing support
+- Average rent in ${lead.city || 'your area'} is $${lead.avgRent || '1,200'}/month - we help students find options $100-300 below market
+- Pre-vetted landlords with quality guarantees
+
+There's zero cost to the university. We simply want to be a resource your ${lead.contactDepartment || 'housing office'} can recommend to students.
+
+Would you be open to a 15-minute call to explore how this could benefit your students?
+
+https://calendly.com/sweetlease/university-partnership
+
+Best,
+Terrell Gilbert
+SweetLease | Student Housing Solutions`,
+  },
+  {
+    subject: 'Housing data for ${city} - {{university}} students',
+    body: (lead: GenerateEmailRequest['lead']) => `Hi ${lead.name?.split(' ')[0] || 'there'},
+
+Following up on my previous note about SweetLease as a housing resource for ${lead.university || 'your'} students.
+
+I wanted to share some data we've gathered about the ${lead.city || 'local'} rental market that might be useful:
+
+The average off-campus rent in ${lead.city || 'your area'} has increased 12% year-over-year. For students at ${lead.university || 'your university'}, that means finding affordable housing is harder than ever.
+
+SweetLease currently has ${Math.floor(Math.random() * 50 + 30)} verified listings within 5 miles of campus, with average rents 15-20% below market rate.
+
+We'd love to share a full market report for ${lead.city || 'your area'} with your team - no strings attached.
+
+Worth a quick chat? https://calendly.com/sweetlease/university-partnership
+
+Best,
+Terrell Gilbert
+SweetLease`,
+  },
+  {
+    subject: 'Housing support for {{university}} international students',
+    body: (lead: GenerateEmailRequest['lead']) => `Hi ${lead.name?.split(' ')[0] || 'there'},
+
+International students face unique housing challenges: no U.S. credit history, unfamiliarity with local rental markets, and tight timelines between arrival and semester start.
+
+SweetLease addresses all three:
+- No credit history required - we use alternative verification
+- Curated listings near ${lead.university || 'campus'} with clear terms
+- Move-in coordination so students arrive to ready housing
+
+We're already supporting international students at several universities and would love to extend this to ${lead.university || 'your institution'}.
+
+This could be a great resource for your international student orientation packets and pre-arrival communications.
+
+Could we schedule 15 minutes to discuss? https://calendly.com/sweetlease/university-partnership
+
+Best,
+Terrell Gilbert
+SweetLease`,
+  },
+  {
+    subject: 'Graduate student housing partnership - {{university}}',
+    body: (lead: GenerateEmailRequest['lead']) => `Hi ${lead.name?.split(' ')[0] || 'there'},
+
+Graduate and professional students often have different housing needs than undergrads: they want quiet neighborhoods, longer lease terms, and proximity to specific facilities.
+
+SweetLease curates housing options specifically for grad students, with filters for these exact preferences.
+
+We'd love to explore a partnership with ${lead.university || 'your'} graduate student association:
+- Co-branded housing guide for incoming grad students
+- Featured in orientation materials
+- Dedicated landing page for ${lead.university || 'your'} grad students
+
+This is completely free and designed to make your students' transition easier.
+
+Interested in learning more? https://calendly.com/sweetlease/university-partnership
+
+Best,
+Terrell Gilbert
+SweetLease`,
+  },
+  {
+    subject: 'Housing fair booth request - {{university}}',
+    body: (lead: GenerateEmailRequest['lead']) => `Hi ${lead.name?.split(' ')[0] || 'there'},
+
+I know ${lead.university || 'your university'} hosts housing fairs and orientation events for incoming students. We'd love to participate.
+
+SweetLease would provide:
+- Free housing search assistance for students at the event
+- Local rental market guides and pricing data for ${lead.city || 'your area'}
+- A dedicated ${lead.university || 'university'} landing page for students who want to explore listings
+
+We're flexible on format - whether that's a booth at a housing fair, a 20-minute presentation during orientation, or simply being listed as a recommended resource.
+
+Would it be possible to discuss getting involved in your next student housing event?
+
+https://calendly.com/sweetlease/university-partnership
+
+Best,
+Terrell Gilbert
+SweetLease`,
+  },
+];
+
 async function generateWithAI(lead: GenerateEmailRequest['lead'], leadType: string, emailNumber: number): Promise<{ subject: string; body: string } | null> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return null;
 
   try {
     const client = new Anthropic({ apiKey });
-    const sequenceNames = ['Hook', 'Social Proof', 'ROI', 'Urgency', 'Breakup'];
+    const sequenceNames = leadType === 'university'
+      ? ['Housing Office Intro', 'Follow-Up with Data', 'International Student Office', 'Graduate Association', 'Housing Fair Booth']
+      : ['Hook', 'Social Proof', 'ROI', 'Urgency', 'Breakup'];
 
     const leadContext = leadType === 'landlord'
       ? `Landlord: ${lead.name}, manages ${lead.properties || 'multiple'} properties in ${lead.city || 'the area'}, ${lead.units || 'many'} total units`
+      : leadType === 'university'
+      ? `University Contact: ${lead.name}, ${lead.contactRole || 'Housing Director'} at ${lead.university || 'the university'} in ${lead.city || 'the area'}. Enrollment: ${lead.enrollment || 'unknown'}. Off-campus: ${lead.offCampusPercent || 'unknown'}%. Avg rent: $${lead.avgRent || 'unknown'}. Department: ${lead.contactDepartment || 'Housing'}. Partnership type: ${lead.partnershipType || 'housing_resource'}`
       : `Employer: ${lead.name} at ${lead.company || 'their company'}, relocates ${lead.relocationsPerYear || 'many'} employees/year to ${lead.city || 'various locations'}, ${lead.industry || 'various'} industry`;
 
     const message = await client.messages.create({
@@ -303,12 +431,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Fallback to templates
-    const sequences = leadType === 'landlord' ? LANDLORD_SEQUENCES : EMPLOYER_SEQUENCES;
+    const sequences = leadType === 'landlord' ? LANDLORD_SEQUENCES : leadType === 'university' ? UNIVERSITY_SEQUENCES : EMPLOYER_SEQUENCES;
     const index = Math.min(emailNumber - 1, sequences.length - 1);
     const template = sequences[index];
 
     let subject = template.subject
       .replace('{{company}}', lead.company || lead.name)
+      .replace('{{university}}', lead.university || lead.name)
       .replace('${city}', lead.city || 'your area')
       .replace('${company}', lead.company || 'your company');
 

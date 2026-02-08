@@ -1,23 +1,23 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Building2,
-  Search,
   MapPin,
   Phone,
   Mail,
   ExternalLink,
   RefreshCw,
-  TrendingUp,
-  Users,
-  Briefcase,
   Database,
 } from 'lucide-react';
-import { StatCard } from '@/components/ui/stat-card';
+import { FilterPanel, FilterSection } from '@/components/ui/filter-panel';
+import { MetricsBar } from '@/components/ui/metrics-bar';
+import { SortableTable, Column } from '@/components/ui/sortable-table';
+import { AvatarCircle } from '@/components/ui/avatar-circle';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { PageHeader } from '@/components/layout/page-header';
+import { formatCurrency } from '@/lib/utils';
 
 interface Employer {
   id: string;
@@ -54,14 +54,23 @@ export default function EmployersPage() {
   const [employers, setEmployers] = useState<Employer[]>([]);
   const [totalCount, setTotalCount] = useState(0);
   const [offset, setOffset] = useState(0);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [industryFilter, setIndustryFilter] = useState<string>('all');
-  const [stateFilter, setStateFilter] = useState<string>('all');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [dataSource, setDataSource] = useState<'Cricket' | 'Sample Data'>('Sample Data');
+
+  // Filter state
+  const [statusFilter, setStatusFilter] = useState<string[]>([]);
+  const [industryFilter, setIndustryFilter] = useState<string[]>([]);
+  const [stateFilter, setStateFilter] = useState<string[]>([]);
+
+  // Sorting state
+  const [sortKey, setSortKey] = useState<string>('company');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [activeTab, setActiveTab] = useState<string>('total');
 
   const fetchEmployers = useCallback(async (currentOffset: number, append: boolean = false) => {
     try {
@@ -115,24 +124,76 @@ export default function EmployersPage() {
     load();
   }, [fetchEmployers]);
 
-  const industries = [...new Set(employers.map(e => e.industry))];
-  const states = [...new Set(employers.map(e => e.state))].sort();
+  // Extract unique values for filters
+  const industries = useMemo(() => [...new Set(employers.map(e => e.industry))].sort(), [employers]);
+  const states = useMemo(() => [...new Set(employers.map(e => e.state))].sort(), [employers]);
+  const statuses = ['new', 'contacted', 'responded', 'qualified', 'closed'];
 
-  const filteredEmployers = employers.filter(employer => {
-    const matchesSearch = !searchQuery ||
-      employer.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      employer.contact_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      employer.city.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesIndustry = industryFilter === 'all' || employer.industry === industryFilter;
-    const matchesState = stateFilter === 'all' || employer.state === stateFilter;
-    const matchesStatus = statusFilter === 'all' || employer.status === statusFilter;
-    return matchesSearch && matchesIndustry && matchesState && matchesStatus;
-  });
+  // Apply filters
+  const filteredEmployers = useMemo(() => {
+    return employers.filter(employer => {
+      const statusMatch = statusFilter.length === 0 || statusFilter.includes(employer.status);
+      const industryMatch = industryFilter.length === 0 || industryFilter.includes(employer.industry);
+      const stateMatch = stateFilter.length === 0 || stateFilter.includes(employer.state);
+      return statusMatch && industryMatch && stateMatch;
+    });
+  }, [employers, statusFilter, industryFilter, stateFilter]);
 
-  const totalRelocations = employers.reduce((sum, e) => sum + e.relocation_count, 0);
-  const avgScore = employers.length > 0
-    ? (employers.reduce((sum, e) => sum + e.score, 0) / employers.length).toFixed(0)
-    : '0';
+  // Tab filtering
+  const getFilteredByTab = () => {
+    switch (activeTab) {
+      case 'new':
+        return filteredEmployers.filter(e => e.status === 'new');
+      case 'contacted':
+        return filteredEmployers.filter(e => e.status === 'contacted');
+      case 'qualified':
+        return filteredEmployers.filter(e => e.status === 'qualified');
+      default:
+        return filteredEmployers;
+    }
+  };
+
+  const tabFiltered = getFilteredByTab();
+
+  // Apply sorting
+  const sortedEmployers = useMemo(() => {
+    const sorted = [...tabFiltered].sort((a, b) => {
+      let aVal: any = a[sortKey as keyof Employer];
+      let bVal: any = b[sortKey as keyof Employer];
+
+      if (typeof aVal === 'number' && typeof bVal === 'number') {
+        return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+      }
+
+      const aStr = String(aVal).toLowerCase();
+      const bStr = String(bVal).toLowerCase();
+      return sortDirection === 'asc' ? aStr.localeCompare(bStr) : bStr.localeCompare(aStr);
+    });
+    return sorted;
+  }, [tabFiltered, sortKey, sortDirection]);
+
+  // Pagination
+  const itemsPerPage = 20;
+  const paginatedEmployers = useMemo(() => {
+    const start = (page - 1) * itemsPerPage;
+    return sortedEmployers.slice(start, start + itemsPerPage);
+  }, [sortedEmployers, page]);
+
+  const totalPages = Math.ceil(sortedEmployers.length / itemsPerPage);
+
+  // Calculate counts for tabs
+  const newCount = filteredEmployers.filter(e => e.status === 'new').length;
+  const contactedCount = filteredEmployers.filter(e => e.status === 'contacted').length;
+  const qualifiedCount = filteredEmployers.filter(e => e.status === 'qualified').length;
+
+  const handleSort = (key: string) => {
+    if (sortKey === key) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortKey(key);
+      setSortDirection('asc');
+    }
+  };
 
   const handleSync = async () => {
     setIsSyncing(true);
@@ -153,7 +214,140 @@ export default function EmployersPage() {
     router.push(`/dashboard?lead=${employerId}&type=employer`);
   };
 
-  const hasMore = employers.length < totalCount;
+  const activeFilterCount = statusFilter.length + industryFilter.length + stateFilter.length;
+
+  const handleClearAllFilters = () => {
+    setStatusFilter([]);
+    setIndustryFilter([]);
+    setStateFilter([]);
+    setPage(1);
+  };
+
+  const filterSections: FilterSection[] = [
+    {
+      id: 'status',
+      title: 'Status',
+      type: 'checkbox',
+      options: statuses.map(status => ({
+        label: status.charAt(0).toUpperCase() + status.slice(1),
+        value: status,
+        count: filteredEmployers.filter(e => e.status === status).length,
+      })),
+      activeValues: statusFilter,
+      onChange: setStatusFilter,
+    },
+    {
+      id: 'industry',
+      title: 'Industry',
+      type: 'checkbox',
+      options: industries.map(industry => ({
+        label: industry,
+        value: industry,
+        count: filteredEmployers.filter(e => e.industry === industry).length,
+      })),
+      activeValues: industryFilter,
+      onChange: setIndustryFilter,
+    },
+    {
+      id: 'state',
+      title: 'State',
+      type: 'checkbox',
+      options: states.map(state => ({
+        label: state,
+        value: state,
+        count: filteredEmployers.filter(e => e.state === state).length,
+      })),
+      activeValues: stateFilter,
+      onChange: setStateFilter,
+    },
+  ];
+
+  const tableColumns: Column<Employer>[] = [
+    {
+      key: 'company',
+      label: 'Company',
+      sortable: true,
+      render: (employer) => (
+        <div className="flex items-center gap-3">
+          <AvatarCircle name={employer.company} />
+          <div className="min-w-0">
+            <p className="font-semibold text-slate-900 truncate">{employer.company}</p>
+            <p className="text-xs text-slate-500 truncate">{employer.industry}</p>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'contact_name',
+      label: 'Contact',
+      render: (employer) => (
+        <div className="min-w-0">
+          <p className="text-slate-900">{employer.contact_name}</p>
+          <p className="text-xs text-slate-500">{employer.contact_title}</p>
+        </div>
+      ),
+    },
+    {
+      key: 'city',
+      label: 'Location',
+      render: (employer) => (
+        <div className="flex items-center gap-1.5 text-slate-600">
+          <MapPin className="w-4 h-4 flex-shrink-0" />
+          <span className="truncate">{employer.city}, {employer.state}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'relocation_count',
+      label: 'Relocations/yr',
+      sortable: true,
+      render: (employer) => (
+        <p className="font-semibold text-slate-900">{employer.relocation_count.toLocaleString()}</p>
+      ),
+    },
+    {
+      key: 'score',
+      label: 'Score',
+      sortable: true,
+      render: (employer) => (
+        <p className="font-semibold text-slate-900">{employer.score}</p>
+      ),
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      render: (employer) => (
+        <StatusBadge status={employer.status} />
+      ),
+    },
+    {
+      key: 'actions',
+      label: '',
+      render: (employer) => (
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => handleEmailClick(employer.id)}
+            className="p-1.5 hover:bg-blue-50 rounded-md text-slate-600 hover:text-blue-600 transition-all duration-200"
+            title="Send Email"
+          >
+            <Mail className="w-4 h-4" />
+          </button>
+          <button
+            className="p-1.5 hover:bg-blue-50 rounded-md text-slate-600 hover:text-blue-600 transition-all duration-200"
+            title="Call"
+          >
+            <Phone className="w-4 h-4" />
+          </button>
+          <button
+            className="p-1.5 hover:bg-blue-50 rounded-md text-slate-600 hover:text-blue-600 transition-all duration-200"
+            title="View in Cricket"
+          >
+            <ExternalLink className="w-4 h-4" />
+          </button>
+        </div>
+      ),
+    },
+  ];
 
   if (isLoading) {
     return (
@@ -163,246 +357,64 @@ export default function EmployersPage() {
           description="Manage employer leads from Cricket CRM"
           icon={<Building2 className="w-7 h-7" />}
         />
-        {/* Stat card skeletons */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="card p-5 animate-pulse">
-              <div className="flex items-center justify-between">
-                <div className="space-y-2">
-                  <div className="h-4 bg-slate-200 rounded animate-pulse w-24" />
-                  <div className="h-7 bg-slate-200 rounded animate-pulse w-16" />
-                </div>
-                <div className="w-10 h-10 bg-slate-200 rounded animate-pulse border border-slate-200 rounded-lg" />
-              </div>
-            </div>
-          ))}
-        </div>
-        {/* Filter skeleton */}
-        <div className="flex items-center gap-4 animate-pulse">
-          <div className="h-10 bg-slate-200 rounded animate-pulse flex-1 max-w-md border border-slate-200 rounded-lg" />
-          <div className="h-10 bg-slate-200 rounded animate-pulse w-40 border border-slate-200 rounded-lg" />
-          <div className="h-10 bg-slate-200 rounded animate-pulse w-36 border border-slate-200 rounded-lg" />
-        </div>
-        {/* Table skeleton */}
-        <div className="card overflow-hidden">
-          <div className="bg-slate-50 px-4 py-3">
-            <div className="flex gap-16 animate-pulse">
-              {Array.from({ length: 7 }).map((_, i) => (
-                <div key={i} className="h-3 bg-slate-200 rounded animate-pulse w-20" />
-              ))}
-            </div>
-          </div>
-          <div className="divide-y divide-slate-200">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="px-4 py-3 flex items-center gap-8 animate-pulse">
-                <div className="space-y-2 flex-1">
-                  <div className="h-4 bg-slate-200 rounded animate-pulse w-32" />
-                  <div className="h-3 bg-slate-200 rounded animate-pulse w-20" />
-                </div>
-                <div className="space-y-2 flex-1">
-                  <div className="h-4 bg-slate-200 rounded animate-pulse w-28" />
-                  <div className="h-3 bg-slate-200 rounded animate-pulse w-24" />
-                </div>
-                <div className="h-4 bg-slate-200 rounded animate-pulse w-24" />
-                <div className="h-4 bg-slate-200 rounded animate-pulse w-12" />
-                <div className="h-4 bg-slate-200 rounded animate-pulse w-10" />
-                <div className="h-5 bg-slate-200 rounded animate-pulse w-16" />
-                <div className="flex gap-2">
-                  <div className="h-7 w-7 bg-slate-200 rounded animate-pulse" />
-                  <div className="h-7 w-7 bg-slate-200 rounded animate-pulse" />
-                  <div className="h-7 w-7 bg-slate-200 rounded animate-pulse" />
-                </div>
-              </div>
-            ))}
-          </div>
+        <div className="animate-pulse space-y-4">
+          <div className="h-32 bg-slate-200 rounded-lg" />
+          <div className="h-96 bg-slate-200 rounded-lg" />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <PageHeader
-        title="Employers"
-        description="Manage employer leads from Cricket CRM"
-        icon={<Building2 className="w-7 h-7" />}
-        badge={
-          <span className="ml-2 inline-flex items-center gap-1.5 border border-slate-200 rounded-lg px-2 py-0.5 text-xs">
-            <Database className="w-3 h-3" />
-            {dataSource}
-          </span>
-        }
-        actions={
-          <button
-            onClick={handleSync}
-            disabled={isSyncing}
-            className="btn-secondary"
-          >
-            <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
-            Sync from Cricket
-          </button>
-        }
+    <div className="flex h-[calc(100vh-48px)] bg-slate-50">
+      {/* Left Sidebar - Filters */}
+      <FilterPanel
+        sections={filterSections}
+        onClearAll={handleClearAllFilters}
+        activeFilterCount={activeFilterCount}
+        isOpen={true}
       />
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <StatCard label="Total Employers" value={employers.length.toString()} icon={<Building2 className="w-5 h-5" />} />
-        <StatCard label="Annual Relocations" value={totalRelocations.toLocaleString()} icon={<Users className="w-5 h-5" />} />
-        <StatCard label="Industries" value={industries.length.toString()} icon={<Briefcase className="w-5 h-5" />} />
-        <StatCard label="Avg Score" value={avgScore} icon={<TrendingUp className="w-5 h-5" />} />
-      </div>
-
-      {/* Filters */}
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Search employers..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="input-base pl-10"
+      {/* Right Content - Main Area */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Header */}
+        <div className="border-b border-slate-200 bg-white">
+          <PageHeader
+            title="Employers"
+            description="Manage employer leads from Cricket CRM"
+            icon={<Building2 className="w-7 h-7" />}
           />
         </div>
-        <select
-          value={industryFilter}
-          onChange={(e) => setIndustryFilter(e.target.value)}
-          className="input-base w-auto"
-        >
-          <option value="all">All Industries</option>
-          {industries.map(industry => (
-            <option key={industry} value={industry}>{industry}</option>
-          ))}
-        </select>
-        <select
-          value={stateFilter}
-          onChange={(e) => setStateFilter(e.target.value)}
-          className="input-base w-auto"
-        >
-          <option value="all">All States</option>
-          {states.map(state => (
-            <option key={state} value={state}>{state}</option>
-          ))}
-        </select>
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="input-base w-auto"
-        >
-          <option value="all">All Statuses</option>
-          <option value="new">New</option>
-          <option value="contacted">Contacted</option>
-          <option value="responded">Responded</option>
-          <option value="qualified">Qualified</option>
-          <option value="closed">Closed</option>
-        </select>
-      </div>
 
-      {/* Table */}
-      <div className="card overflow-hidden">
-        <table className="w-full">
-          <thead className="bg-slate-50 text-slate-600 font-medium border-b border-slate-200">
-            <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium">Company</th>
-              <th className="px-4 py-3 text-left text-xs font-medium">Contact</th>
-              <th className="px-4 py-3 text-left text-xs font-medium">Location</th>
-              <th className="px-4 py-3 text-left text-xs font-medium">Relocations/yr</th>
-              <th className="px-4 py-3 text-left text-xs font-medium">Score</th>
-              <th className="px-4 py-3 text-left text-xs font-medium">Status</th>
-              <th className="px-4 py-3 text-left text-xs font-medium">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-200">
-            {filteredEmployers.map((employer) => (
-              <tr key={employer.id} className="hover:bg-slate-50 transition-all duration-200">
-                <td className="px-4 py-3">
-                  <div>
-                    <p className="font-medium text-slate-900">{employer.company}</p>
-                    <p className="text-sm text-slate-400">{employer.industry}</p>
-                  </div>
-                </td>
-                <td className="px-4 py-3">
-                  <div>
-                    <p className="text-slate-900">{employer.contact_name}</p>
-                    <p className="text-sm text-slate-400">{employer.contact_title}</p>
-                  </div>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-1 text-slate-600">
-                    <MapPin className="w-4 h-4" />
-                    {employer.city}, {employer.state}
-                  </div>
-                </td>
-                <td className="px-4 py-3">
-                  <span className="font-medium text-slate-900">{employer.relocation_count.toLocaleString()}</span>
-                </td>
-                <td className="px-4 py-3">
-                  <span className="font-medium text-slate-900">{employer.score}</span>
-                </td>
-                <td className="px-4 py-3">
-                  <StatusBadge status={employer.status} />
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => handleEmailClick(employer.id)}
-                      className="border border-slate-200 p-1.5 hover:bg-slate-100 rounded-md text-slate-600 transition-all duration-200"
-                      title="Send Email"
-                    >
-                      <Mail className="w-4 h-4" />
-                    </button>
-                    <button
-                      className="border border-slate-200 p-1.5 hover:bg-slate-100 rounded-md text-slate-600 transition-all duration-200"
-                      title="Call"
-                    >
-                      <Phone className="w-4 h-4" />
-                    </button>
-                    <button
-                      className="border border-slate-200 p-1.5 hover:bg-slate-100 rounded-md text-slate-600 transition-all duration-200"
-                      title="View in Cricket"
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-            {filteredEmployers.length === 0 && (
-              <tr>
-                <td colSpan={7} className="px-4 py-12 text-center text-slate-400">
-                  No employers match your filters.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+        {/* Metrics Bar */}
+        <MetricsBar
+          tabs={[
+            { id: 'total', label: 'Total', count: filteredEmployers.length },
+            { id: 'new', label: 'New', count: newCount },
+            { id: 'contacted', label: 'Contacted', count: contactedCount },
+            { id: 'qualified', label: 'Qualified', count: qualifiedCount },
+          ]}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+        />
 
-      {/* Load More */}
-      {hasMore && (
-        <div className="flex justify-center">
-          <button
-            onClick={handleLoadMore}
-            disabled={isLoadingMore}
-            className="btn-primary disabled:opacity-50"
-          >
-            {isLoadingMore ? (
-              <>
-                <RefreshCw className="w-4 h-4 animate-spin" />
-                Loading...
-              </>
-            ) : (
-              <>
-                Load More
-                <span className="text-white/50">
-                  ({employers.length} of {totalCount})
-                </span>
-              </>
-            )}
-          </button>
+        {/* Table Container */}
+        <div className="flex-1 overflow-auto p-4">
+          <SortableTable
+            columns={tableColumns}
+            data={sortedEmployers}
+            keyExtractor={(employer: Employer) => employer.id}
+            sortKey={sortKey}
+            sortDirection={sortDirection}
+            onSort={handleSort}
+            page={page}
+            pageSize={20}
+            totalItems={sortedEmployers.length}
+            onPageChange={setPage}
+            emptyMessage="No employers match your filters."
+          />
         </div>
-      )}
+      </div>
     </div>
   );
 }

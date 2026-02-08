@@ -25,6 +25,7 @@ import { StatusBadge } from '@/components/ui/status-badge';
 import { LoadingState } from '@/components/ui/loading-state';
 import { EmptyState } from '@/components/ui/empty-state';
 import { PageHeader } from '@/components/layout/page-header';
+import { AvatarCircle } from '@/components/ui/avatar-circle';
 import { formatRelativeTime } from '@/lib/utils';
 
 interface Email {
@@ -405,6 +406,7 @@ export default function InboxPage() {
                         <StarOff className="w-4 h-4 text-slate-300 hover:text-amber-400" />
                       )}
                     </button>
+                    <AvatarCircle name={email.from} size="sm" className="mt-0.5" />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2">
                         <span

@@ -10,6 +10,7 @@ const STATUS_STYLES: Record<string, string> = {
   qualified: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
   interested: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
   closed: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+  renewed: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
   // Pending / warning states
   new: 'bg-amber-50 text-amber-700 border border-amber-200',
   pending: 'bg-amber-50 text-amber-700 border border-amber-200',
@@ -18,11 +19,14 @@ const STATUS_STYLES: Record<string, string> = {
   lead: 'bg-amber-50 text-amber-700 border border-amber-200',
   question: 'bg-amber-50 text-amber-700 border border-amber-200',
   objection: 'bg-amber-50 text-amber-700 border border-amber-200',
+  prospect: 'bg-amber-50 text-amber-700 border border-amber-200',
   // In-progress / informational states
   processing: 'bg-blue-50 text-blue-700 border border-blue-200',
   in_progress: 'bg-blue-50 text-blue-700 border border-blue-200',
   proposal: 'bg-blue-50 text-blue-700 border border-blue-200',
   negotiation: 'bg-blue-50 text-blue-700 border border-blue-200',
+  meeting_scheduled: 'bg-blue-50 text-blue-700 border border-blue-200',
+  terms_proposed: 'bg-indigo-50 text-indigo-700 border border-indigo-200',
   // Error / negative states
   failed: 'bg-red-50 text-red-700 border border-red-200',
   error: 'bg-red-50 text-red-700 border border-red-200',

@@ -1,21 +1,20 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Home,
-  Search,
   MapPin,
-  Building2,
   Phone,
   Mail,
   ExternalLink,
   RefreshCw,
-  TrendingUp,
-  Users,
   Database,
 } from 'lucide-react';
-import { StatCard } from '@/components/ui/stat-card';
+import { FilterPanel, FilterSection } from '@/components/ui/filter-panel';
+import { MetricsBar, MetricsTab } from '@/components/ui/metrics-bar';
+import { SortableTable, Column } from '@/components/ui/sortable-table';
+import { AvatarCircle } from '@/components/ui/avatar-circle';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { LoadingState } from '@/components/ui/loading-state';
 import { PageHeader } from '@/components/layout/page-header';
@@ -93,13 +92,17 @@ export default function LandlordsPage() {
   const [total, setTotal] = useState(0);
   const [offset, setOffset] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
-  const [cityFilter, setCityFilter] = useState<string>('all');
-  const [stateFilter, setStateFilter] = useState<string>('all');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilters, setStatusFilters] = useState<string[]>([]);
+  const [cityFilters, setCityFilters] = useState<string[]>([]);
+  const [stateFilters, setStateFilters] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [dataSource, setDataSource] = useState<'Grasshopper' | 'Sample Data'>('Grasshopper');
+  const [sortKey, setSortKey] = useState<string>('score');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [page, setPage] = useState(1);
+  const [activeMetricTab, setActiveMetricTab] = useState('total');
 
   const fetchLandlords = useCallback(async (currentOffset: number, append: boolean = false) => {
     try {
@@ -136,25 +139,77 @@ export default function LandlordsPage() {
     load();
   }, [fetchLandlords]);
 
-  const cities = [...new Set(landlords.map(l => l.city))].sort();
-  const states = [...new Set(landlords.map(l => l.state))].sort();
+  // Extract unique cities and states from all landlords
+  const cities = useMemo(() => {
+    return [...new Set(landlords.map(l => l.city))].sort();
+  }, [landlords]);
 
-  const filteredLandlords = landlords.filter(landlord => {
-    const matchesSearch = !searchQuery ||
-      landlord.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      landlord.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      landlord.city.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCity = cityFilter === 'all' || landlord.city === cityFilter;
-    const matchesState = stateFilter === 'all' || landlord.state === stateFilter;
-    const matchesStatus = statusFilter === 'all' || landlord.status === statusFilter;
-    return matchesSearch && matchesCity && matchesState && matchesStatus;
-  });
+  const states = useMemo(() => {
+    return [...new Set(landlords.map(l => l.state))].sort();
+  }, [landlords]);
 
-  const totalProperties = landlords.reduce((sum, l) => sum + l.propertyCount, 0);
-  const totalUnits = landlords.reduce((sum, l) => sum + (l.totalUnits || 0), 0);
-  const avgScore = landlords.length > 0
-    ? (landlords.reduce((sum, l) => sum + l.score, 0) / landlords.length).toFixed(0)
-    : '0';
+  // Apply all filters including sort
+  const filteredAndSortedLandlords = useMemo(() => {
+    let filtered = landlords.filter(landlord => {
+      const matchesSearch = !searchQuery ||
+        landlord.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        landlord.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        landlord.city.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesStatus = statusFilters.length === 0 || statusFilters.includes(landlord.status);
+      const matchesCity = cityFilters.length === 0 || cityFilters.includes(landlord.city);
+      const matchesState = stateFilters.length === 0 || stateFilters.includes(landlord.state);
+      return matchesSearch && matchesStatus && matchesCity && matchesState;
+    });
+
+    // Apply metric tab filter
+    if (activeMetricTab !== 'total') {
+      switch (activeMetricTab) {
+        case 'new':
+          filtered = filtered.filter(l => l.status === 'new');
+          break;
+        case 'contacted':
+          filtered = filtered.filter(l => l.status === 'contacted');
+          break;
+        case 'qualified':
+          filtered = filtered.filter(l => l.status === 'qualified');
+          break;
+      }
+    }
+
+    // Apply sorting
+    const sorted = [...filtered].sort((a, b) => {
+      let aVal: any = a[sortKey as keyof Landlord];
+      let bVal: any = b[sortKey as keyof Landlord];
+
+      if (aVal === undefined || aVal === null) aVal = '';
+      if (bVal === undefined || bVal === null) bVal = '';
+
+      if (typeof aVal === 'string') {
+        aVal = aVal.toLowerCase();
+        bVal = (bVal as string).toLowerCase();
+      }
+
+      if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    return sorted;
+  }, [landlords, searchQuery, statusFilters, cityFilters, stateFilters, activeMetricTab, sortKey, sortDirection]);
+
+  // Calculate metrics for all landlords
+  const metrics = useMemo(() => {
+    const newCount = landlords.filter(l => l.status === 'new').length;
+    const contactedCount = landlords.filter(l => l.status === 'contacted').length;
+    const qualifiedCount = landlords.filter(l => l.status === 'qualified').length;
+
+    return {
+      total: landlords.length,
+      new: newCount,
+      contacted: contactedCount,
+      qualified: qualifiedCount,
+    };
+  }, [landlords]);
 
   const handleSync = async () => {
     setIsSyncing(true);
@@ -175,193 +230,239 @@ export default function LandlordsPage() {
     router.push(`/dashboard?lead=${landlordId}&type=landlord`);
   };
 
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <PageHeader
-        title="Landlords"
-        description="Manage landlord leads from Grasshopper CRM"
-        icon={<Home className="w-7 h-7" />}
-        badge={
-          <span className="border border-slate-200 rounded-lg px-2 py-0.5 text-xs inline-flex items-center gap-1.5">
-            <Database className="w-3 h-3" />
-            {dataSource}
-          </span>
-        }
-        actions={
-          <button
-            onClick={handleSync}
-            disabled={isSyncing}
-            className="btn-secondary"
-          >
-            <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
-            Sync from Grasshopper
-          </button>
-        }
-      />
+  const handleSort = (columnKey: string) => {
+    if (sortKey === columnKey) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortKey(columnKey);
+      setSortDirection('desc');
+    }
+    setPage(1);
+  };
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <StatCard
-          label="Total Landlords"
-          value={landlords.length.toString()}
-          icon={<Users className="w-5 h-5" />}
-        />
-        <StatCard
-          label="Properties"
-          value={totalProperties.toString()}
-          icon={<Home className="w-5 h-5" />}
-        />
-        <StatCard
-          label="Total Units"
-          value={totalUnits.toLocaleString()}
-          icon={<Building2 className="w-5 h-5" />}
-        />
-        <StatCard
-          label="Avg Score"
-          value={avgScore}
-          icon={<TrendingUp className="w-5 h-5" />}
-        />
-      </div>
+  const handleClearAllFilters = () => {
+    setSearchQuery('');
+    setStatusFilters([]);
+    setCityFilters([]);
+    setStateFilters([]);
+    setPage(1);
+  };
 
-      {/* Filters */}
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Search landlords..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="input-base pl-10"
-          />
+  const activeFilterCount = searchQuery.length + statusFilters.length + cityFilters.length + stateFilters.length;
+
+  // Filter panel sections
+  const filterSections: FilterSection[] = [
+    {
+      id: 'status',
+      title: 'Status',
+      type: 'checkbox',
+      options: [
+        { label: 'New', value: 'new', count: metrics.new },
+        { label: 'Contacted', value: 'contacted', count: metrics.contacted },
+        { label: 'Responded', value: 'responded', count: landlords.filter(l => l.status === 'responded').length },
+        { label: 'Qualified', value: 'qualified', count: metrics.qualified },
+        { label: 'Closed', value: 'closed', count: landlords.filter(l => l.status === 'closed').length },
+      ],
+      activeValues: statusFilters,
+      onChange: (values) => {
+        setStatusFilters(values);
+        setPage(1);
+      },
+    },
+    {
+      id: 'state',
+      title: 'State',
+      type: 'checkbox',
+      options: states.map(state => ({
+        label: state,
+        value: state,
+        count: landlords.filter(l => l.state === state).length,
+      })),
+      activeValues: stateFilters,
+      onChange: (values) => {
+        setStateFilters(values);
+        setPage(1);
+      },
+    },
+    {
+      id: 'city',
+      title: 'City',
+      type: 'checkbox',
+      options: cities.map(city => ({
+        label: city,
+        value: city,
+        count: landlords.filter(l => l.city === city).length,
+      })),
+      activeValues: cityFilters,
+      onChange: (values) => {
+        setCityFilters(values);
+        setPage(1);
+      },
+    },
+  ];
+
+  // Metrics tabs
+  const metricsTabs: MetricsTab[] = [
+    { id: 'total', label: 'Total', count: metrics.total },
+    { id: 'new', label: 'New', count: metrics.new },
+    { id: 'contacted', label: 'Contacted', count: metrics.contacted },
+    { id: 'qualified', label: 'Qualified', count: metrics.qualified },
+  ];
+
+  // Table columns
+  const columns: Column<Landlord>[] = [
+    {
+      key: 'name',
+      label: 'Landlord',
+      sortable: true,
+      render: (landlord) => (
+        <div className="flex items-center gap-3">
+          <AvatarCircle name={landlord.name} size="md" />
+          <div className="min-w-0">
+            <p className="font-medium text-slate-900 truncate">{landlord.name}</p>
+            <p className="text-sm text-slate-500 truncate">{landlord.email}</p>
+          </div>
         </div>
-        <select
-          value={cityFilter}
-          onChange={(e) => setCityFilter(e.target.value)}
-          className="input-base"
-        >
-          <option value="all">All Cities</option>
-          {cities.map(city => (
-            <option key={city} value={city}>{city}</option>
-          ))}
-        </select>
-        <select
-          value={stateFilter}
-          onChange={(e) => setStateFilter(e.target.value)}
-          className="input-base"
-        >
-          <option value="all">All States</option>
-          {states.map(state => (
-            <option key={state} value={state}>{state}</option>
-          ))}
-        </select>
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="input-base"
-        >
-          <option value="all">All Statuses</option>
-          <option value="new">New</option>
-          <option value="contacted">Contacted</option>
-          <option value="responded">Responded</option>
-          <option value="qualified">Qualified</option>
-          <option value="closed">Closed</option>
-        </select>
+      ),
+    },
+    {
+      key: 'location',
+      label: 'Location',
+      render: (landlord) => (
+        <div className="flex items-center gap-2 text-slate-600">
+          <MapPin className="w-4 h-4 flex-shrink-0" />
+          <span>{landlord.city}, {landlord.state}</span>
+        </div>
+      ),
+    },
+    {
+      key: 'propertyCount',
+      label: 'Properties',
+      sortable: true,
+      render: (landlord) => (
+        <div>
+          <p className="font-semibold text-slate-900">{landlord.propertyCount}</p>
+          <p className="text-xs text-slate-500">({landlord.totalUnits} units)</p>
+        </div>
+      ),
+    },
+    {
+      key: 'avgRent',
+      label: 'Avg Rent',
+      sortable: true,
+      render: (landlord) => (
+        <span className="text-slate-900">
+          {landlord.avgRent ? `${formatCurrency(landlord.avgRent)}/mo` : '--'}
+        </span>
+      ),
+    },
+    {
+      key: 'score',
+      label: 'Score',
+      sortable: true,
+      render: (landlord) => (
+        <span className="font-semibold text-slate-900">{landlord.score}</span>
+      ),
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      render: (landlord) => (
+        <div>
+          <StatusBadge status={landlord.status} />
+          {landlord.lastContact && (
+            <p className="text-xs text-slate-400 mt-1">{landlord.lastContact}</p>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: 'actions',
+      label: '',
+      render: (landlord) => (
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => handleEmailClick(landlord.id)}
+            className="border border-slate-200 p-1.5 hover:bg-slate-100 rounded-md text-slate-600 transition-all duration-200"
+            title="Send Email"
+          >
+            <Mail className="w-4 h-4" />
+          </button>
+          <a
+            href={`tel:${landlord.phone}`}
+            className="border border-slate-200 p-1.5 hover:bg-slate-100 rounded-md text-slate-600 transition-all duration-200"
+            title="Call"
+          >
+            <Phone className="w-4 h-4" />
+          </a>
+          <button
+            className="border border-slate-200 p-1.5 hover:bg-slate-100 rounded-md text-slate-600 transition-all duration-200"
+            title="View in Grasshopper"
+          >
+            <ExternalLink className="w-4 h-4" />
+          </button>
+        </div>
+      ),
+    },
+  ];
+
+  if (isLoading) {
+    return <LoadingState message="Loading landlords..." />;
+  }
+
+  return (
+    <div className="flex flex-col h-screen bg-slate-50">
+      {/* Page Header */}
+      <div className="bg-white border-b border-slate-200 px-6 py-4">
+        <PageHeader
+          title="Landlords"
+          description="Manage landlord leads from Grasshopper CRM"
+          icon={<Home className="w-7 h-7" />}
+          badge={
+            <span className="border border-slate-200 rounded-lg px-2 py-0.5 text-xs inline-flex items-center gap-1.5">
+              <Database className="w-3 h-3" />
+              {dataSource}
+            </span>
+          }
+          actions={
+            <button
+              onClick={handleSync}
+              disabled={isSyncing}
+              className="btn-secondary"
+            >
+              <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
+              Sync from Grasshopper
+            </button>
+          }
+        />
       </div>
 
-      {/* Table */}
-      <div className="card overflow-hidden">
-        {isLoading ? (
-          <LoadingState message="Loading landlords..." />
-        ) : (
-          <>
-            <table className="w-full">
-              <thead>
-                <tr className="bg-slate-50 text-slate-600 font-medium">
-                  <th className="px-4 py-3 text-left text-xs font-medium">Landlord</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium">Location</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium">Properties</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium">Avg Rent</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium">Score</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium">Status</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200">
-                {filteredLandlords.map((landlord) => (
-                  <tr key={landlord.id} className="hover:bg-slate-50 transition-all duration-200">
-                    <td className="px-4 py-3">
-                      <div>
-                        <p className="font-medium text-slate-900">{landlord.name}</p>
-                        <p className="text-sm text-slate-400">{landlord.email}</p>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1 text-slate-600">
-                        <MapPin className="w-4 h-4" />
-                        {landlord.city}, {landlord.state}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="font-medium text-slate-900">{landlord.propertyCount}</span>
-                      <span className="text-slate-400 text-sm ml-1">({landlord.totalUnits} units)</span>
-                    </td>
-                    <td className="px-4 py-3 text-slate-900">
-                      {landlord.avgRent ? `${formatCurrency(landlord.avgRent)}/mo` : '--'}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="font-semibold text-slate-900">{landlord.score}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <StatusBadge status={landlord.status} />
-                      {landlord.lastContact && (
-                        <p className="text-xs text-slate-400 mt-1">{landlord.lastContact}</p>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleEmailClick(landlord.id)}
-                          className="border border-slate-200 p-1.5 hover:bg-slate-100 rounded-md text-slate-600 transition-all duration-200"
-                          title="Send Email"
-                        >
-                          <Mail className="w-4 h-4" />
-                        </button>
-                        <a
-                          href={`tel:${landlord.phone}`}
-                          className="border border-slate-200 p-1.5 hover:bg-slate-100 rounded-md text-slate-600 transition-all duration-200"
-                          title="Call"
-                        >
-                          <Phone className="w-4 h-4" />
-                        </a>
-                        <button
-                          className="border border-slate-200 p-1.5 hover:bg-slate-100 rounded-md text-slate-600 transition-all duration-200"
-                          title="View in Grasshopper"
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-                {filteredLandlords.length === 0 && (
-                  <tr>
-                    <td colSpan={7} className="px-4 py-12 text-center text-slate-400">
-                      No landlords found matching your criteria.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+      {/* Main Content */}
+      <div className="flex flex-1 min-w-0 overflow-hidden">
+        {/* Left: Filter Panel */}
+        <FilterPanel
+          sections={filterSections}
+          onClearAll={handleClearAllFilters}
+          activeFilterCount={activeFilterCount}
+          isOpen={true}
+        />
 
-            {/* Load More */}
-            {hasMore && (
-              <div className="px-4 py-4 border-t border-slate-200 flex items-center justify-center">
+        {/* Right: Main Content Area */}
+        <div className="flex-1 flex flex-col min-w-0 bg-slate-50">
+          {/* Metrics Bar */}
+          <MetricsBar
+            tabs={metricsTabs}
+            activeTab={activeMetricTab}
+            onTabChange={setActiveMetricTab}
+            searchValue={searchQuery}
+            onSearchChange={setSearchQuery}
+            searchPlaceholder="Search landlords..."
+            actions={
+              hasMore && (
                 <button
                   onClick={handleLoadMore}
                   disabled={isLoadingMore}
-                  className="btn-primary flex items-center gap-2"
+                  className="btn-secondary"
                 >
                   {isLoadingMore ? (
                     <>
@@ -371,16 +472,33 @@ export default function LandlordsPage() {
                   ) : (
                     <>
                       Load More
-                      <span className="text-white/60 text-xs">
+                      <span className="text-slate-600 text-xs">
                         ({landlords.length} of {total})
                       </span>
                     </>
                   )}
                 </button>
-              </div>
-            )}
-          </>
-        )}
+              )
+            }
+          />
+
+          {/* Table */}
+          <div className="flex-1 overflow-auto p-4 min-w-0">
+            <SortableTable
+              columns={columns}
+              data={filteredAndSortedLandlords}
+              keyExtractor={(landlord) => landlord.id}
+              sortKey={sortKey}
+              sortDirection={sortDirection}
+              onSort={handleSort}
+              page={page}
+              pageSize={20}
+              totalItems={filteredAndSortedLandlords.length}
+              onPageChange={setPage}
+              emptyMessage="No landlords found matching your criteria."
+            />
+          </div>
+        </div>
       </div>
     </div>
   );

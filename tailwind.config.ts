@@ -30,6 +30,15 @@ const config: Config = {
           DEFAULT: '#ef4444',
           light: 'rgba(239, 68, 68, 0.10)',
         },
+        sidebar: {
+          DEFAULT: '#1e1e2d',
+          hover: '#2a2a3e',
+          active: '#32324a',
+          text: '#a0a3b1',
+          'text-active': '#ffffff',
+          border: '#2f2f42',
+          muted: '#6b7280',
+        },
       },
       borderRadius: {
         none: '0px',
@@ -57,6 +66,12 @@ const config: Config = {
         lg: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)',
         xl: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
         '2xl': '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+        'card': '0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.06)',
+        'card-hover': '0 4px 12px -2px rgba(0, 0, 0, 0.08), 0 2px 6px -2px rgba(0, 0, 0, 0.04)',
+      },
+      fontSize: {
+        'xxs': ['0.65rem', { lineHeight: '1rem' }],
+        'table': ['0.8125rem', { lineHeight: '1.25rem' }],
       },
       keyframes: {
         'fade-in-up': {
