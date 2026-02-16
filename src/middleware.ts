@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const PROTECTED_API_PATHS = ['/api/email/', '/api/inbox', '/api/crm/', '/api/pipeline', '/api/stats', '/api/settings'];
+const PROTECTED_API_PATHS = ['/api/email/', '/api/inbox', '/api/crm/', '/api/pipeline', '/api/stats', '/api/settings', '/api/apollo', '/api/contacts'];
 const PROTECTED_PAGE_PATHS = ['/dashboard'];
 
 function isProtectedAPI(pathname: string): boolean {
@@ -55,5 +55,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/api/email/:path*', '/api/inbox/:path*', '/api/crm/:path*', '/api/pipeline/:path*', '/api/stats/:path*', '/api/settings/:path*'],
+  matcher: ['/dashboard/:path*', '/api/email/:path*', '/api/inbox/:path*', '/api/crm/:path*', '/api/pipeline/:path*', '/api/stats/:path*', '/api/settings/:path*', '/api/apollo/:path*', '/api/contacts/:path*'],
 };

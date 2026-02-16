@@ -152,6 +152,35 @@ function initTables(db: DatabaseWrapper) {
     )
   `);
   db.exec(`
+    CREATE TABLE IF NOT EXISTS contacts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      apollo_id TEXT UNIQUE,
+      first_name TEXT,
+      last_name TEXT,
+      name TEXT NOT NULL,
+      title TEXT,
+      email TEXT,
+      email_status TEXT,
+      phone TEXT,
+      linkedin_url TEXT,
+      city TEXT,
+      state TEXT,
+      country TEXT,
+      org_name TEXT,
+      org_website TEXT,
+      org_industry TEXT,
+      org_employee_count INTEGER,
+      org_city TEXT,
+      org_state TEXT,
+      source_template TEXT,
+      tags TEXT,
+      notes TEXT,
+      status TEXT NOT NULL DEFAULT 'new' CHECK(status IN ('new', 'contacted', 'replied', 'qualified', 'disqualified')),
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `);
+  db.exec(`
     CREATE TABLE IF NOT EXISTS inbox_cache (
       id TEXT PRIMARY KEY,
       from_name TEXT,

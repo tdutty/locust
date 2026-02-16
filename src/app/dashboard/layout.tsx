@@ -19,6 +19,7 @@ import {
   ChevronDown,
   Search,
   Bell,
+  SearchCheck,
 } from 'lucide-react';
 
 interface User {
@@ -35,6 +36,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/dashboard/universities': 'Universities',
   '/dashboard/pipeline': 'Pipeline',
   '/dashboard/reports': 'Reports',
+  '/dashboard/contacts': 'Contacts',
   '/dashboard/settings': 'Settings',
 };
 
@@ -182,6 +184,7 @@ export default function DashboardLayout({
             <NavLink href="/dashboard/landlords" icon={<Home className="w-4 h-4" />} label="Landlords" pathname={pathname} />
             <NavLink href="/dashboard/employers" icon={<Building2 className="w-4 h-4" />} label="Employers" pathname={pathname} />
             <NavLink href="/dashboard/universities" icon={<GraduationCap className="w-4 h-4" />} label="Universities" pathname={pathname} />
+            <NavLink href="/dashboard/contacts" icon={<SearchCheck className="w-4 h-4" />} label="Contacts" pathname={pathname} />
           </SidebarSection>
 
           {/* Analytics Section */}

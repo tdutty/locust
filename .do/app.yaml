@@ -1,50 +1,73 @@
 name: locust
 services:
-- name: locust-web
-  dockerfile_path: Dockerfile
-  source_dir: /
-  github:
-    repo: tdutty/locust
-    branch: main
-    deploy_on_push: true
-  instance_size_slug: basic-xs
-  instance_count: 1
-  http_port: 3002
-  health_check:
-    http_path: /
-  envs:
-  - key: NODE_ENV
-    value: production
-    scope: RUN_AND_BUILD_TIME
-  - key: JWT_SECRET
-    value: ${JWT_SECRET}
-    type: SECRET
-    scope: RUN_AND_BUILD_TIME
-  - key: SMTP_HOST
-    value: smtp.porkbun.com
-    scope: RUN_AND_BUILD_TIME
-  - key: SMTP_PORT
-    value: "587"
-    scope: RUN_AND_BUILD_TIME
-  - key: SMTP_USER
-    value: tgilbert@sweetlease.io
-    scope: RUN_AND_BUILD_TIME
-  - key: SMTP_PASSWORD
-    value: ${SMTP_PASSWORD}
-    type: SECRET
-    scope: RUN_AND_BUILD_TIME
-  - key: IMAP_HOST
-    value: imap.porkbun.com
-    scope: RUN_AND_BUILD_TIME
-  - key: IMAP_PORT
-    value: "993"
-    scope: RUN_AND_BUILD_TIME
-  - key: GRASSHOPPER_API_URL
-    value: http://198.199.78.62:8080
-    scope: RUN_AND_BUILD_TIME
-  - key: CRICKET_API_URL
-    value: http://198.199.78.62:8081
-    scope: RUN_AND_BUILD_TIME
-  - key: NEXT_PUBLIC_APP_URL
-    value: ${APP_URL}
-    scope: RUN_AND_BUILD_TIME
+  - name: locust-web
+    dockerfile_path: Dockerfile
+    source_dir: /
+    github:
+      repo: tdutty/locust
+      branch: main
+      deploy_on_push: true
+    instance_size_slug: basic-xs
+    instance_count: 1
+    http_port: 3002
+    health_check:
+      http_path: /
+    envs:
+      - key: JWT_SECRET
+        value: ${JWT_SECRET}
+        type: SECRET
+        scope: RUN_AND_BUILD_TIME
+      - key: SMTP_HOST
+        value: smtp.porkbun.com
+        scope: RUN_AND_BUILD_TIME
+      - key: SMTP_PORT
+        value: "587"
+        scope: RUN_AND_BUILD_TIME
+      - key: SMTP_USER
+        value: tgilbert@sweetlease.io
+        scope: RUN_AND_BUILD_TIME
+      - key: SMTP_PASSWORD
+        value: ${SMTP_PASSWORD}
+        type: SECRET
+        scope: RUN_AND_BUILD_TIME
+      - key: IMAP_HOST
+        value: imap.porkbun.com
+        scope: RUN_AND_BUILD_TIME
+      - key: IMAP_PORT
+        value: "993"
+        scope: RUN_AND_BUILD_TIME
+      - key: IMAP_USER
+        value: support@sweetlease.io
+        scope: RUN_AND_BUILD_TIME
+      - key: IMAP_PASSWORD
+        value: ${IMAP_PASSWORD}
+        type: SECRET
+        scope: RUN_AND_BUILD_TIME
+      - key: ANTHROPIC_API_KEY
+        value: ${ANTHROPIC_API_KEY}
+        type: SECRET
+        scope: RUN_AND_BUILD_TIME
+      - key: GRASSHOPPER_API_URL
+        value: http://198.199.78.62:8080
+        scope: RUN_AND_BUILD_TIME
+      - key: CRICKET_API_URL
+        value: http://198.199.78.62:8081
+        scope: RUN_AND_BUILD_TIME
+      - key: GRASSHOPPER_EMAIL
+        value: ${GRASSHOPPER_EMAIL}
+        type: SECRET
+        scope: RUN_AND_BUILD_TIME
+      - key: GRASSHOPPER_PASSWORD
+        value: ${GRASSHOPPER_PASSWORD}
+        type: SECRET
+        scope: RUN_AND_BUILD_TIME
+      - key: APOLLO_API_KEY
+        value: ${APOLLO_API_KEY}
+        type: SECRET
+        scope: RUN_AND_BUILD_TIME
+      - key: NODE_ENV
+        value: production
+        scope: RUN_AND_BUILD_TIME
+      - key: NEXT_PUBLIC_APP_URL
+        value: ${APP_URL}
+        scope: RUN_AND_BUILD_TIME
