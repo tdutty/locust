@@ -71,6 +71,31 @@ const SEARCH_TEMPLATES: Record<string, any> = {
     person_locations: ['United States'],
     organization_num_employees_ranges: ['51,200', '201,500', '501,1000', '1001,5000', '5001,10000'],
   },
+  'landlord-contacts': {
+    person_titles: [
+      'Property Manager',
+      'Leasing Director',
+      'VP of Property Management',
+      'Multifamily Asset Manager',
+      'Director of Leasing',
+      'Regional Property Manager',
+      'Director of Property Management',
+      'Leasing Manager',
+      'VP of Asset Management',
+      'Director of Residential Operations',
+    ],
+    q_organization_keyword_tags: ['property management', 'real estate', 'multifamily', 'apartment', 'residential'],
+    organization_num_employees_ranges: ['11,50', '51,200', '201,500', '501,1000', '1001,5000'],
+  },
+};
+
+// Map templates to contact types
+const TEMPLATE_TYPE_MAP: Record<string, string> = {
+  'residency-coordinators': 'residency',
+  'graduate-housing': 'university',
+  'employer-relocation': 'employer',
+  'benefits-platforms': 'employer',
+  'landlord-contacts': 'landlord',
 };
 
 /**
@@ -183,6 +208,9 @@ export async function POST(req: NextRequest) {
       enrichMap.set(person.id, person);
     }
 
+    // Determine contact type from template
+    const contactType = template ? (TEMPLATE_TYPE_MAP[template] || null) : null;
+
     // Transform contacts — use enriched data when available, fall back to search data
     const contacts = people.map((searchPerson: any) => {
       const enriched = enrichMap.get(searchPerson.id);
@@ -201,6 +229,7 @@ export async function POST(req: NextRequest) {
           city: enriched.city,
           state: enriched.state,
           country: enriched.country,
+          contactType,
           organization: {
             id: enriched.organization_id || enriched.organization?.id,
             name: enriched.organization?.name || enriched.employment_history?.[0]?.organization_name,
@@ -227,6 +256,7 @@ export async function POST(req: NextRequest) {
         city: null,
         state: null,
         country: null,
+        contactType,
         organization: {
           id: null,
           name: searchPerson.organization?.name,

@@ -11,6 +11,8 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get('status');
     const template = searchParams.get('template');
     const search = searchParams.get('search');
+    const state = searchParams.get('state');
+    const contactType = searchParams.get('contact_type');
     const page = parseInt(searchParams.get('page') || '1');
     const perPage = parseInt(searchParams.get('perPage') || '50');
 
@@ -25,6 +27,15 @@ export async function GET(req: NextRequest) {
     if (template) {
       where.push(`source_template = $${paramIdx++}`);
       params.push(template);
+    }
+    if (state) {
+      where.push(`(state = $${paramIdx} OR org_state = $${paramIdx})`);
+      params.push(state);
+      paramIdx++;
+    }
+    if (contactType) {
+      where.push(`contact_type = $${paramIdx++}`);
+      params.push(contactType);
     }
     if (search) {
       where.push(`(name ILIKE $${paramIdx} OR email ILIKE $${paramIdx} OR org_name ILIKE $${paramIdx} OR title ILIKE $${paramIdx})`);
@@ -88,13 +99,32 @@ export async function POST(req: NextRequest) {
           }
         }
 
+        // Derive contact_type from contactType field, sourceTemplate, or org_industry
+        let contactType = contact.contactType || null;
+        if (!contactType && contact.sourceTemplate) {
+          const templateTypeMap: Record<string, string> = {
+            'residency-coordinators': 'residency',
+            'graduate-housing': 'university',
+            'employer-relocation': 'employer',
+            'benefits-platforms': 'employer',
+            'landlord-contacts': 'landlord',
+          };
+          contactType = templateTypeMap[contact.sourceTemplate] || null;
+        }
+        if (!contactType) {
+          const industry = (contact.organization?.industry || '').toLowerCase();
+          if (industry.includes('hospital') || industry.includes('health')) contactType = 'residency';
+          else if (industry.includes('education') || industry.includes('university')) contactType = 'university';
+          else if (industry.includes('real estate')) contactType = 'landlord';
+        }
+
         await query(`
           INSERT INTO contacts (
             apollo_id, first_name, last_name, name, title, email, email_status,
             phone, linkedin_url, city, state, country,
             org_name, org_website, org_industry, org_employee_count, org_city, org_state,
-            source_template, status
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, 'new')
+            source_template, contact_type, status
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, 'new')
         `, [
           contact.id || null,
           contact.firstName || null,
@@ -115,6 +145,7 @@ export async function POST(req: NextRequest) {
           contact.organization?.city || null,
           contact.organization?.state || null,
           contact.sourceTemplate || null,
+          contactType,
         ]);
         saved++;
       } catch (err: any) {

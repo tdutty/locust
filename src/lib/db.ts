@@ -87,6 +87,7 @@ async function initTables() {
       org_city TEXT,
       org_state TEXT,
       source_template TEXT,
+      contact_type TEXT,
       tags TEXT,
       notes TEXT,
       status TEXT NOT NULL DEFAULT 'new' CHECK(status IN ('new', 'contacted', 'replied', 'qualified', 'disqualified')),
@@ -94,6 +95,21 @@ async function initTables() {
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
+
+  // Add contact_type column to existing contacts tables
+  await pool.query(`ALTER TABLE contacts ADD COLUMN IF NOT EXISTS contact_type TEXT`).catch(() => {});
+
+  // Backfill contact_type for existing contacts that don't have one
+  await pool.query(`
+    UPDATE contacts SET contact_type = CASE
+      WHEN source_template = 'residency-coordinators' OR org_industry ILIKE '%hospital%' OR org_industry ILIKE '%health%' THEN 'residency'
+      WHEN source_template = 'graduate-housing' OR org_industry ILIKE '%education%' OR org_industry ILIKE '%university%' THEN 'university'
+      WHEN source_template = 'employer-relocation' OR source_template = 'benefits-platforms' THEN 'employer'
+      WHEN org_industry ILIKE '%real estate%' OR source_template = 'landlord-contacts' THEN 'landlord'
+      ELSE NULL
+    END
+    WHERE contact_type IS NULL
+  `).catch(() => {});
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS inbox_cache (

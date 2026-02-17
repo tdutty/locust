@@ -74,6 +74,7 @@ interface SavedContact {
   org_city: string | null;
   org_state: string | null;
   source_template: string | null;
+  contact_type: string | null;
   tags: string | null;
   notes: string | null;
   status: string;
@@ -116,6 +117,11 @@ const TEMPLATE_META: Record<string, { icon: any; color: string; description: str
     color: 'text-amber-600 bg-amber-50 border-amber-200',
     description: 'HR, People Ops, and relocation managers at mid-to-large companies',
   },
+  'landlord-contacts': {
+    icon: Building2,
+    color: 'text-emerald-600 bg-emerald-50 border-emerald-200',
+    description: 'Property managers, leasing directors, and asset managers at multifamily firms',
+  },
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -149,6 +155,8 @@ export default function ContactsPage() {
   const [savedLoading, setSavedLoading] = useState(false);
   const [savedSearch, setSavedSearch] = useState('');
   const [savedStatusFilter, setSavedStatusFilter] = useState('');
+  const [savedStateFilter, setSavedStateFilter] = useState('');
+  const [savedTypeFilter, setSavedTypeFilter] = useState('');
   const [selectedSaved, setSelectedSaved] = useState<Set<number>>(new Set());
 
   // Save feedback
@@ -214,6 +222,8 @@ export default function ContactsPage() {
       const params = new URLSearchParams({ page: String(page), perPage: '50' });
       if (savedSearch) params.set('search', savedSearch);
       if (savedStatusFilter) params.set('status', savedStatusFilter);
+      if (savedStateFilter) params.set('state', savedStateFilter);
+      if (savedTypeFilter) params.set('contact_type', savedTypeFilter);
 
       const res = await fetch(`/api/contacts?${params}`);
       const data = await res.json();
@@ -226,7 +236,7 @@ export default function ContactsPage() {
     } finally {
       setSavedLoading(false);
     }
-  }, [savedSearch, savedStatusFilter]);
+  }, [savedSearch, savedStatusFilter, savedStateFilter, savedTypeFilter]);
 
   const handleTemplateClick = (templateId: string) => {
     setActiveTemplate(templateId);
@@ -285,7 +295,7 @@ export default function ContactsPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contacts: toSave.map(c => ({ ...c, sourceTemplate: activeTemplate })),
+          contacts: toSave.map(c => ({ ...c, sourceTemplate: activeTemplate, contactType: (c as any).contactType || null })),
         }),
       });
 
@@ -318,7 +328,7 @@ export default function ContactsPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contacts: contacts.map(c => ({ ...c, sourceTemplate: activeTemplate })),
+          contacts: contacts.map(c => ({ ...c, sourceTemplate: activeTemplate, contactType: (c as any).contactType || null })),
         }),
       });
 
@@ -383,6 +393,7 @@ export default function ContactsPage() {
     'graduate-housing': 'graduate-housing',
     'benefits-platforms': 'benefits-platform',
     'employer-relocation': 'employer',
+    'landlord-contacts': 'landlord',
   };
 
   const getLeadType = (contact: SavedContact) => {
@@ -825,21 +836,22 @@ export default function ContactsPage() {
           </div>
 
           {/* Search & Filter Bar */}
-          <div className="flex items-center gap-3 bg-white border border-slate-200 rounded-lg px-4 py-2.5">
-            <Search className="w-4 h-4 text-slate-400 flex-shrink-0" />
-            <input
-              type="text"
-              placeholder="Search saved contacts..."
-              value={savedSearch}
-              onChange={e => setSavedSearch(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') loadSavedContacts(1); }}
-              className="flex-1 text-sm bg-transparent outline-none placeholder:text-slate-400"
-            />
-            <div className="w-px h-5 bg-slate-200" />
+          <div className="flex flex-wrap items-center gap-2 bg-white border border-slate-200 rounded-lg px-4 py-3">
+            <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+              <Search className="w-4 h-4 text-slate-400 flex-shrink-0" />
+              <input
+                type="text"
+                placeholder="Search saved contacts..."
+                value={savedSearch}
+                onChange={e => setSavedSearch(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') loadSavedContacts(1); }}
+                className="flex-1 text-sm bg-transparent outline-none placeholder:text-slate-400"
+              />
+            </div>
             <select
               value={savedStatusFilter}
               onChange={e => { setSavedStatusFilter(e.target.value); }}
-              className="text-sm bg-transparent outline-none text-slate-600 cursor-pointer"
+              className="text-sm px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-md text-slate-700 cursor-pointer hover:border-slate-300 transition-colors"
             >
               <option value="">All statuses</option>
               <option value="new">New</option>
@@ -848,9 +860,30 @@ export default function ContactsPage() {
               <option value="qualified">Qualified</option>
               <option value="disqualified">Disqualified</option>
             </select>
+            <select
+              value={savedStateFilter}
+              onChange={e => { setSavedStateFilter(e.target.value); }}
+              className="text-sm px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-md text-slate-700 cursor-pointer hover:border-slate-300 transition-colors"
+            >
+              <option value="">All states</option>
+              <option value="Illinois">Illinois</option>
+              <option value="Massachusetts">Massachusetts</option>
+              <option value="Texas">Texas</option>
+            </select>
+            <select
+              value={savedTypeFilter}
+              onChange={e => { setSavedTypeFilter(e.target.value); }}
+              className="text-sm px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-md text-slate-700 cursor-pointer hover:border-slate-300 transition-colors"
+            >
+              <option value="">All types</option>
+              <option value="landlord">Landlord</option>
+              <option value="employer">Employer</option>
+              <option value="residency">Residency</option>
+              <option value="university">University</option>
+            </select>
             <button
               onClick={() => loadSavedContacts(1)}
-              className="px-3 py-1 bg-primary text-white text-xs font-medium rounded-md hover:bg-primary/90 transition-colors"
+              className="px-3 py-1.5 bg-primary text-white text-xs font-medium rounded-md hover:bg-primary/90 transition-colors"
             >
               Filter
             </button>
