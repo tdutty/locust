@@ -35,15 +35,8 @@ COPY --from=builder /app/public ./public
 RUN mkdir .next
 RUN chown nextjs:nodejs .next
 
-# Create data directory for SQLite
-RUN mkdir -p data
-RUN chown nextjs:nodejs data
-
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-
-# Copy sql.js WASM binary
-COPY --from=builder /app/node_modules/sql.js/dist/sql-wasm.wasm ./node_modules/sql.js/dist/sql-wasm.wasm
 
 USER nextjs
 

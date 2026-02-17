@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb } from '@/lib/db';
+import { query } from '@/lib/db';
 
 export async function GET() {
   try {
-    const db = await getDb();
-    const rows = db.prepare('SELECT key, value FROM settings').all() as { key: string; value: string }[];
+    const result = await query('SELECT key, value FROM settings');
 
     const settings: Record<string, string> = {};
-    for (const row of rows) {
+    for (const row of result.rows) {
       settings[row.key] = row.value;
     }
 
@@ -33,15 +32,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Settings object is required' }, { status: 400 });
     }
 
-    const db = await getDb();
-
     for (const [key, value] of Object.entries(settings) as [string, string][]) {
       // Don't allow writing system keys
       if (key.startsWith('_')) continue;
-      db.prepare(`
-        INSERT INTO settings (key, value, updated_at) VALUES (?, ?, datetime('now'))
-        ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')
-      `).run(key, value);
+      await query(`
+        INSERT INTO settings (key, value, updated_at) VALUES ($1, $2, NOW())
+        ON CONFLICT(key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()
+      `, [key, value]);
     }
 
     return NextResponse.json({ success: true });

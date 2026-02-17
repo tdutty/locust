@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
-import { getDb } from '@/lib/db';
+import { query } from '@/lib/db';
 
 function getTransporter() {
   const user = process.env.SMTP_USER;
@@ -63,11 +63,10 @@ export async function POST(request: NextRequest) {
 
     // Log to database
     try {
-      const db = await getDb();
-      db.prepare(`
+      await query(`
         INSERT INTO email_log (to_email, subject, body, lead_id, lead_type, message_id)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `).run(to, subject, emailBody, leadId || null, leadType || null, info.messageId);
+        VALUES ($1, $2, $3, $4, $5, $6)
+      `, [to, subject, emailBody, leadId || null, leadType || null, info.messageId]);
     } catch (dbErr) {
       console.error('Failed to log email to database:', dbErr);
     }

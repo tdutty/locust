@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb } from '@/lib/db';
+import { query } from '@/lib/db';
 
 export async function GET(request: NextRequest) {
   try {
@@ -8,24 +8,29 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get('offset') || '0');
     const leadType = searchParams.get('lead_type');
 
-    const db = await getDb();
-    let query = 'SELECT * FROM email_log';
+    let sql = 'SELECT * FROM email_log';
     const params: any[] = [];
+    let paramIdx = 1;
 
     if (leadType) {
-      query += ' WHERE lead_type = ?';
+      sql += ` WHERE lead_type = $${paramIdx++}`;
       params.push(leadType);
     }
 
-    query += ' ORDER BY sent_at DESC LIMIT ? OFFSET ?';
+    sql += ` ORDER BY sent_at DESC LIMIT $${paramIdx++} OFFSET $${paramIdx++}`;
     params.push(limit, offset);
 
-    const emails = db.prepare(query).all(...params);
-    const total = db.prepare(
-      `SELECT COUNT(*) as count FROM email_log${leadType ? ' WHERE lead_type = ?' : ''}`
-    ).get(...(leadType ? [leadType] : [])) as { count: number };
+    const emails = await query(sql, params);
 
-    return NextResponse.json({ emails, total: total.count });
+    let countSql = 'SELECT COUNT(*) as count FROM email_log';
+    const countParams: any[] = [];
+    if (leadType) {
+      countSql += ' WHERE lead_type = $1';
+      countParams.push(leadType);
+    }
+    const total = await query(countSql, countParams);
+
+    return NextResponse.json({ emails: emails.rows, total: parseInt(total.rows[0].count) });
   } catch (error: any) {
     console.error('Email log GET error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -41,13 +46,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'To and subject are required' }, { status: 400 });
     }
 
-    const db = await getDb();
-    const result = db.prepare(`
+    const result = await query(`
       INSERT INTO email_log (to_email, subject, body, lead_id, lead_type, message_id)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).run(to, subject, emailBody || '', leadId || null, leadType || null, messageId || null);
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING id
+    `, [to, subject, emailBody || '', leadId || null, leadType || null, messageId || null]);
 
-    return NextResponse.json({ id: result.lastInsertRowid, success: true }, { status: 201 });
+    return NextResponse.json({ id: result.rows[0].id, success: true }, { status: 201 });
   } catch (error: any) {
     console.error('Email log POST error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDb } from '@/lib/db';
+import { query } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,73 +11,75 @@ export async function GET(request: NextRequest) {
     const daysMap: Record<string, number> = { '7d': 7, '30d': 30, '90d': 90 };
     const days = daysMap[range] || 7;
 
-    const db = await getDb();
-
     // Email stats
-    const emailsSent = db.prepare(`
-      SELECT COUNT(*) as count FROM email_log
-      WHERE sent_at >= datetime('now', '-${days} days')
-    `).get() as { count: number };
+    const emailsSent = await query(
+      `SELECT COUNT(*) as count FROM email_log WHERE sent_at >= NOW() - $1::INTERVAL`,
+      [`${days} days`]
+    );
 
-    const emailsByType = db.prepare(`
-      SELECT lead_type, COUNT(*) as count FROM email_log
-      WHERE sent_at >= datetime('now', '-${days} days')
-      GROUP BY lead_type
-    `).all() as { lead_type: string; count: number }[];
+    const emailsByType = await query(
+      `SELECT lead_type, COUNT(*) as count FROM email_log
+       WHERE sent_at >= NOW() - $1::INTERVAL
+       GROUP BY lead_type`,
+      [`${days} days`]
+    );
 
     // Previous period for comparison
-    const prevEmailsSent = db.prepare(`
-      SELECT COUNT(*) as count FROM email_log
-      WHERE sent_at >= datetime('now', '-${days * 2} days')
-        AND sent_at < datetime('now', '-${days} days')
-    `).get() as { count: number };
+    const prevEmailsSent = await query(
+      `SELECT COUNT(*) as count FROM email_log
+       WHERE sent_at >= NOW() - $1::INTERVAL
+         AND sent_at < NOW() - $2::INTERVAL`,
+      [`${days * 2} days`, `${days} days`]
+    );
 
     // Pipeline stats
-    const pipelineByStage = db.prepare(`
+    const pipelineByStage = await query(`
       SELECT stage, COUNT(*) as count, COALESCE(SUM(value), 0) as total_value
       FROM pipeline_deals
       GROUP BY stage
-    `).all() as { stage: string; count: number; total_value: number }[];
+    `);
 
-    const totalDeals = db.prepare('SELECT COUNT(*) as count FROM pipeline_deals').get() as { count: number };
+    const totalDeals = await query('SELECT COUNT(*) as count FROM pipeline_deals');
 
     // Daily breakdown for the period
-    const dailyEmails = db.prepare(`
-      SELECT date(sent_at) as day, COUNT(*) as count
-      FROM email_log
-      WHERE sent_at >= datetime('now', '-${days} days')
-      GROUP BY date(sent_at)
-      ORDER BY day
-    `).all() as { day: string; count: number }[];
+    const dailyEmails = await query(
+      `SELECT DATE(sent_at) as day, COUNT(*) as count
+       FROM email_log
+       WHERE sent_at >= NOW() - $1::INTERVAL
+       GROUP BY DATE(sent_at)
+       ORDER BY day`,
+      [`${days} days`]
+    );
 
     // Top subjects
-    const topSubjects = db.prepare(`
-      SELECT subject, COUNT(*) as send_count
-      FROM email_log
-      WHERE sent_at >= datetime('now', '-${days} days')
-      GROUP BY subject
-      ORDER BY send_count DESC
-      LIMIT 5
-    `).all() as { subject: string; send_count: number }[];
+    const topSubjects = await query(
+      `SELECT subject, COUNT(*) as send_count
+       FROM email_log
+       WHERE sent_at >= NOW() - $1::INTERVAL
+       GROUP BY subject
+       ORDER BY send_count DESC
+       LIMIT 5`,
+      [`${days} days`]
+    );
 
     // Recent activity
-    const recentActivity = db.prepare(`
+    const recentActivity = await query(`
       SELECT a.*, d.name as deal_name, d.company as deal_company
       FROM activity_log a
       LEFT JOIN pipeline_deals d ON a.deal_id = d.id
       ORDER BY a.created_at DESC
       LIMIT 10
-    `).all();
+    `);
 
     return NextResponse.json({
-      emailsSent: emailsSent.count,
-      emailsSentPrev: prevEmailsSent.count,
-      emailsByType,
-      pipelineByStage,
-      totalDeals: totalDeals.count,
-      dailyEmails,
-      topSubjects,
-      recentActivity,
+      emailsSent: parseInt(emailsSent.rows[0].count),
+      emailsSentPrev: parseInt(prevEmailsSent.rows[0].count),
+      emailsByType: emailsByType.rows,
+      pipelineByStage: pipelineByStage.rows,
+      totalDeals: parseInt(totalDeals.rows[0].count),
+      dailyEmails: dailyEmails.rows,
+      topSubjects: topSubjects.rows,
+      recentActivity: recentActivity.rows,
       range,
     });
   } catch (error: any) {

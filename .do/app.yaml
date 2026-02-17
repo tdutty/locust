@@ -17,6 +17,10 @@ services:
         value: ${JWT_SECRET}
         type: SECRET
         scope: RUN_AND_BUILD_TIME
+      - key: LOCUST_USERS
+        value: ${LOCUST_USERS}
+        type: SECRET
+        scope: RUN_AND_BUILD_TIME
       - key: SMTP_HOST
         value: smtp.porkbun.com
         scope: RUN_AND_BUILD_TIME
@@ -63,6 +67,10 @@ services:
         scope: RUN_AND_BUILD_TIME
       - key: APOLLO_API_KEY
         value: ${APOLLO_API_KEY}
+        type: SECRET
+        scope: RUN_AND_BUILD_TIME
+      - key: DATABASE_URL
+        value: ${DATABASE_URL}
         type: SECRET
         scope: RUN_AND_BUILD_TIME
       - key: NODE_ENV

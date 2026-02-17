@@ -1,127 +1,34 @@
-import initSqlJs, { Database as SqlJsDatabase } from 'sql.js';
-import path from 'path';
-import fs from 'fs';
+import { Pool, PoolClient, QueryResult } from 'pg';
 
-const DATA_DIR = path.join(process.cwd(), 'data');
-const DB_PATH = path.join(DATA_DIR, 'locust.db');
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.DATABASE_URL?.includes('ondigitalocean.com') ? { rejectUnauthorized: false } : undefined,
+  max: 10,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 5000,
+});
 
-function ensureDataDir() {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-  }
-}
+let initialized = false;
 
-function saveDb(db: SqlJsDatabase) {
-  const data = db.export();
-  const buffer = Buffer.from(data);
-  fs.writeFileSync(DB_PATH, buffer);
-}
+async function initTables() {
+  if (initialized) return;
 
-// Wrapper that provides a better-sqlite3-compatible API over sql.js
-class DatabaseWrapper {
-  private db: SqlJsDatabase;
-  private saveTimeout: ReturnType<typeof setTimeout> | null = null;
-
-  constructor(db: SqlJsDatabase) {
-    this.db = db;
-  }
-
-  private scheduleSave() {
-    if (this.saveTimeout) clearTimeout(this.saveTimeout);
-    this.saveTimeout = setTimeout(() => {
-      saveDb(this.db);
-      this.saveTimeout = null;
-    }, 100);
-  }
-
-  exec(sql: string) {
-    this.db.run(sql);
-    this.scheduleSave();
-  }
-
-  prepare(sql: string) {
-    const db = this.db;
-    const wrapper = this;
-    return {
-      run(...params: any[]) {
-        db.run(sql, params);
-        wrapper.scheduleSave();
-        return { changes: db.getRowsModified(), lastInsertRowid: getLastInsertRowid(db) };
-      },
-      all(...params: any[]): any[] {
-        const stmt = db.prepare(sql);
-        if (params.length > 0) stmt.bind(params);
-        const rows: any[] = [];
-        while (stmt.step()) {
-          rows.push(stmt.getAsObject());
-        }
-        stmt.free();
-        return rows;
-      },
-      get(...params: any[]): any {
-        const stmt = db.prepare(sql);
-        if (params.length > 0) stmt.bind(params);
-        let row = null;
-        if (stmt.step()) {
-          row = stmt.getAsObject();
-        }
-        stmt.free();
-        return row;
-      },
-    };
-  }
-}
-
-function getLastInsertRowid(db: SqlJsDatabase): number {
-  const stmt = db.prepare('SELECT last_insert_rowid() as id');
-  stmt.step();
-  const result = stmt.getAsObject() as { id: number };
-  stmt.free();
-  return result.id;
-}
-
-let _dbPromise: Promise<DatabaseWrapper> | null = null;
-
-export async function getDb(): Promise<DatabaseWrapper> {
-  if (_dbPromise) return _dbPromise;
-
-  _dbPromise = (async () => {
-    ensureDataDir();
-
-    const SQL = await initSqlJs();
-
-    let db: SqlJsDatabase;
-    if (fs.existsSync(DB_PATH)) {
-      const buffer = fs.readFileSync(DB_PATH);
-      db = new SQL.Database(buffer);
-    } else {
-      db = new SQL.Database();
-    }
-
-    const wrapper = new DatabaseWrapper(db);
-    initTables(wrapper);
-    return wrapper;
-  })();
-
-  return _dbPromise;
-}
-
-function initTables(db: DatabaseWrapper) {
-  db.exec(`
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS email_log (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       to_email TEXT NOT NULL,
       subject TEXT NOT NULL,
       body TEXT NOT NULL,
       lead_id TEXT,
       lead_type TEXT,
       message_id TEXT,
-      sent_at TEXT NOT NULL DEFAULT (datetime('now'))
+      sent_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
-  db.exec(`
+
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS pipeline_deals (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       name TEXT NOT NULL,
       company TEXT,
       type TEXT NOT NULL CHECK(type IN ('landlord', 'employer')),
@@ -130,30 +37,33 @@ function initTables(db: DatabaseWrapper) {
       probability INTEGER DEFAULT 10,
       notes TEXT,
       next_action TEXT,
-      created_at TEXT NOT NULL DEFAULT (datetime('now')),
-      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
-  db.exec(`
+
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS activity_log (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       deal_id INTEGER REFERENCES pipeline_deals(id) ON DELETE CASCADE,
       activity_type TEXT NOT NULL,
       description TEXT NOT NULL,
       metadata TEXT,
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
-  db.exec(`
+
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS settings (
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL,
-      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
-  db.exec(`
+
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS contacts (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      id SERIAL PRIMARY KEY,
       apollo_id TEXT UNIQUE,
       first_name TEXT,
       last_name TEXT,
@@ -176,11 +86,12 @@ function initTables(db: DatabaseWrapper) {
       tags TEXT,
       notes TEXT,
       status TEXT NOT NULL DEFAULT 'new' CHECK(status IN ('new', 'contacted', 'replied', 'qualified', 'disqualified')),
-      created_at TEXT NOT NULL DEFAULT (datetime('now')),
-      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
-  db.exec(`
+
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS inbox_cache (
       id TEXT PRIMARY KEY,
       from_name TEXT,
@@ -194,7 +105,19 @@ function initTables(db: DatabaseWrapper) {
       has_replied INTEGER DEFAULT 0,
       classification TEXT,
       priority TEXT,
-      cached_at TEXT NOT NULL DEFAULT (datetime('now'))
+      cached_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
+
+  initialized = true;
+}
+
+export async function query(text: string, params?: any[]): Promise<QueryResult> {
+  await initTables();
+  return pool.query(text, params);
+}
+
+export async function getClient(): Promise<PoolClient> {
+  await initTables();
+  return pool.connect();
 }
