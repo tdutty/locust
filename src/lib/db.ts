@@ -1,8 +1,12 @@
 import { Pool, PoolClient, QueryResult } from 'pg';
 
+// Strip sslmode from URL (we configure SSL separately to avoid self-signed cert errors)
+const connectionString = (process.env.DATABASE_URL || '').replace(/[?&]sslmode=[^&]*/g, '');
+const isRemote = connectionString.includes('ondigitalocean.com') || process.env.NODE_ENV === 'production';
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_URL?.includes('ondigitalocean.com') ? { rejectUnauthorized: false } : undefined,
+  connectionString,
+  ssl: isRemote ? { rejectUnauthorized: false } : undefined,
   max: 10,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,
