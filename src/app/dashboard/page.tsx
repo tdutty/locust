@@ -234,6 +234,44 @@ export default function DashboardPage() {
         // Fall through - universities are optional
       }
 
+      // Fetch saved contacts from local DB and merge by type
+      const typeMap: Record<string, 'landlord' | 'employer' | 'university'> = {
+        landlord: 'landlord',
+        employer: 'employer',
+        university: 'university',
+        residency: 'university',
+      };
+      try {
+        const res = await fetch('/api/contacts?perPage=200');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.contacts && Array.isArray(data.contacts)) {
+            for (const c of data.contacts) {
+              if (!c.email) continue;
+              const leadType = typeMap[c.contact_type] || null;
+              if (!leadType) continue;
+              const lead: Lead = {
+                id: `contact-${c.id}`,
+                name: c.name,
+                email: c.email,
+                type: leadType,
+                company: c.org_name || undefined,
+                city: c.city || c.org_city || '',
+                state: c.state || c.org_state || undefined,
+                score: 50,
+                status: (c.status === 'disqualified' ? 'closed' : c.status || 'new') as Lead['status'],
+                industry: c.org_industry || undefined,
+              };
+              if (leadType === 'landlord') fetchedLandlords.push(lead);
+              else if (leadType === 'employer') fetchedEmployers.push(lead);
+              else if (leadType === 'university') fetchedUniversities.push(lead);
+            }
+          }
+        }
+      } catch {
+        // Non-critical — saved contacts are a bonus
+      }
+
       if (cancelled) return;
 
       // Use fetched data or fall back to samples

@@ -255,6 +255,13 @@ export default function ContactsPage() {
     }
   }, [savedSearch, savedStatusFilter, savedStateFilter, savedTypeFilter]);
 
+  // Auto-reload saved contacts when filters change
+  useEffect(() => {
+    if (viewMode === 'saved') {
+      loadSavedContacts(1);
+    }
+  }, [savedStatusFilter, savedStateFilter, savedTypeFilter, viewMode, loadSavedContacts]);
+
   const handleTemplateClick = (templateId: string) => {
     setActiveTemplate(templateId);
     setViewMode('search');
