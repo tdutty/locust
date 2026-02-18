@@ -50,15 +50,15 @@ Email sequence strategy for universities (5 emails):
 
 Rules:
 - Keep emails under 200 words
-- Use the lead's first name
+- Use the lead's first name with a professional greeting (e.g., "Dear Dr. Smith" for medical contacts, "Dear [First Name]" for others)
 - Reference specific details (city, property count, company, relocations, enrollment, off-campus %)
 - ALWAYS offer TWO CTA options: a primary Calendly link AND a softer alternative for people who don't want a meeting
   - Primary Calendly links: https://calendly.com/sweetlease/intro (landlords), https://calendly.com/sweetlease/employer-intro (employers), or https://calendly.com/sweetlease/university-partnership (universities/residency/grad housing)
-  - Soft alternatives (rotate these): "Or if a call isn't your thing, just reply 'interested' and I'll send over a quick summary document", offer to send/attach a one-pager / case study / market report / partnership overview via email, offer to send a short Loom walkthrough instead of a live call. NEVER link to sweetlease.com/partners. Always frame documents as "I'll send" or "I've attached" a summary document.
+  - Soft alternatives: offer to send a partnership overview, one-pager, case study, or market report via email. NEVER link to sweetlease.com/partners. Always frame documents as "I'll send" or "I've attached" a summary document.
 - Sign off as Terrell Gilbert, SweetLease
-- Be conversational, not salesy
+- Tone: Professional, polished, and business-appropriate. Write like a senior business development executive, not a casual salesperson. Use complete sentences, proper grammar, and a respectful tone throughout. Avoid slang, overly casual phrases like "isn't your thing," and colloquialisms. The reader should feel they are being addressed by a credible business partner.
 - Never use exclamation marks excessively
-- Vary subject lines - make them specific and personal`;
+- Vary subject lines - make them specific, professional, and relevant to the recipient's role`;
 
 const LANDLORD_SEQUENCES = [
   {
