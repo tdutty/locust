@@ -31,7 +31,40 @@ export async function POST(request: NextRequest) {
     const transporter = getTransporter();
     await transporter.verify();
 
-    // Create HTML version
+    const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://locust-m7ng3.ondigitalocean.app';
+    const logoUrl = `${APP_URL}/sweetlease-logo.png`;
+
+    // Create HTML version with email signature
+    const bodyHtml = emailBody.split('\n').map((line: string) => {
+      if (line.includes('https://')) {
+        const url = line.trim();
+        return `<p><a href="${url}" style="color:#dc2626;text-decoration:none;">${url}</a></p>`;
+      }
+      if (line.startsWith('•') || line.startsWith('-')) {
+        return `<p style="margin:4px 0 4px 16px;">${line}</p>`;
+      }
+      return line ? `<p>${line}</p>` : '<br>';
+    }).join('');
+
+    const signature = `
+<table cellpadding="0" cellspacing="0" border="0" style="margin-top:24px;border-top:1px solid #e2e8f0;padding-top:16px;">
+  <tr>
+    <td style="padding-right:16px;vertical-align:top;">
+      <img src="${logoUrl}" alt="SweetLease" width="48" height="48" style="border-radius:8px;" />
+    </td>
+    <td style="vertical-align:top;font-family:Arial,sans-serif;">
+      <p style="margin:0;font-size:14px;font-weight:600;color:#1a1a1a;">Terrell Gilbert</p>
+      <p style="margin:2px 0 0;font-size:12px;color:#64748b;">Account Executive</p>
+      <p style="margin:2px 0 0;font-size:12px;color:#64748b;">SweetLease</p>
+      <p style="margin:6px 0 0;font-size:12px;">
+        <a href="https://sweetlease.co" style="color:#dc2626;text-decoration:none;">sweetlease.co</a>
+        <span style="color:#cbd5e1;margin:0 6px;">|</span>
+        <a href="mailto:tgilbert@sweetlease.io" style="color:#dc2626;text-decoration:none;">tgilbert@sweetlease.io</a>
+      </p>
+    </td>
+  </tr>
+</table>`;
+
     const htmlBody = `
 <!DOCTYPE html>
 <html>
@@ -39,15 +72,11 @@ export async function POST(request: NextRequest) {
   <style>
     body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; }
     p { margin: 10px 0; }
-    a { color: #16a34a; }
   </style>
 </head>
 <body>
-  ${emailBody.split('\n').map((line: string) =>
-    line.includes('https://')
-      ? `<p><a href="${line.trim()}">${line.trim()}</a></p>`
-      : line ? `<p>${line}</p>` : '<br>'
-  ).join('')}
+  ${bodyHtml}
+  ${signature}
 </body>
 </html>
 `;
