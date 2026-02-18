@@ -36,17 +36,6 @@ interface Employer {
   source?: string;
 }
 
-const SAMPLE_EMPLOYERS: Employer[] = [
-  { id: 'e1', company: 'Tesla', contact_name: 'Sarah Chen', contact_title: 'VP of HR', contact_email: 's.chen@tesla.com', phone: '(512) 555-0201', relocation_count: 850, city: 'Austin', state: 'TX', industry: 'Automotive/Tech', employees: 127000, score: 95, status: 'new', source: 'sample' },
-  { id: 'e2', company: 'Delta Air Lines', contact_name: 'Michael Torres', contact_title: 'Relocation Manager', contact_email: 'm.torres@delta.com', phone: '(404) 555-0202', relocation_count: 650, city: 'Atlanta', state: 'GA', industry: 'Airlines', employees: 95000, score: 90, status: 'new', source: 'sample' },
-  { id: 'e3', company: 'Apple', contact_name: 'Jennifer Wu', contact_title: 'HR Operations', contact_email: 'j.wu@apple.com', phone: '(512) 555-0203', relocation_count: 520, city: 'Austin', state: 'TX', industry: 'Technology', employees: 164000, score: 88, status: 'contacted', source: 'sample' },
-  { id: 'e4', company: 'Bank of America', contact_name: 'David Kim', contact_title: 'Relocation Director', contact_email: 'd.kim@bofa.com', phone: '(704) 555-0204', relocation_count: 450, city: 'Charlotte', state: 'NC', industry: 'Finance', employees: 213000, score: 85, status: 'responded', source: 'sample' },
-  { id: 'e5', company: 'Boeing Defense', contact_name: 'Patricia Adams', contact_title: 'HR Manager', contact_email: 'p.adams@boeing.com', phone: '(843) 555-0205', relocation_count: 250, city: 'Charleston', state: 'SC', industry: 'Aerospace', employees: 142000, score: 82, status: 'qualified', source: 'sample' },
-  { id: 'e6', company: 'Oracle', contact_name: 'Robert Martinez', contact_title: 'People Ops', contact_email: 'r.martinez@oracle.com', phone: '(512) 555-0206', relocation_count: 380, city: 'Austin', state: 'TX', industry: 'Technology', employees: 143000, score: 80, status: 'new', source: 'sample' },
-  { id: 'e7', company: 'Samsung', contact_name: 'Lisa Park', contact_title: 'HR Director', contact_email: 'l.park@samsung.com', phone: '(512) 555-0207', relocation_count: 320, city: 'Austin', state: 'TX', industry: 'Electronics', employees: 267000, score: 78, status: 'contacted', source: 'sample' },
-  { id: 'e8', company: 'BMW Manufacturing', contact_name: 'Hans Mueller', contact_title: 'Relocation Coordinator', contact_email: 'h.mueller@bmw.com', phone: '(864) 555-0208', relocation_count: 180, city: 'Greenville', state: 'SC', industry: 'Automotive', employees: 118000, score: 75, status: 'new', source: 'sample' },
-];
-
 const PAGE_LIMIT = 50;
 
 export default function EmployersPage() {
@@ -108,8 +97,8 @@ export default function EmployersPage() {
       setDataSource('Cricket');
     } catch {
       if (!append) {
-        setEmployers(SAMPLE_EMPLOYERS);
-        setTotalCount(SAMPLE_EMPLOYERS.length);
+        setEmployers([]);
+        setTotalCount(0);
         setDataSource('Sample Data');
       }
     }

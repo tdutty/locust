@@ -58,16 +58,6 @@ interface ApiResponse {
 
 const PAGE_LIMIT = 50;
 
-const SAMPLE_LANDLORDS: Landlord[] = [
-  { id: 'l1', name: 'Alexander Phillips', email: 'a.phillips@realestate.com', phone: '(512) 555-0101', propertyCount: 58, city: 'Austin', state: 'TX', score: 92, status: 'new', source: 'Sample Data', avgRent: 2200, totalUnits: 145 },
-  { id: 'l2', name: 'Kevin Lee', email: 'kevin.lee@properties.com', phone: '(843) 555-0102', propertyCount: 56, city: 'Charleston', state: 'SC', score: 88, status: 'new', source: 'Sample Data', avgRent: 1800, totalUnits: 112 },
-  { id: 'l3', name: 'William Johnson', email: 'wjohnson@landlord.com', phone: '(864) 555-0103', propertyCount: 55, city: 'Greenville', state: 'SC', score: 85, status: 'contacted', lastContact: '2 days ago', source: 'Sample Data', avgRent: 1600, totalUnits: 98 },
-  { id: 'l4', name: 'Maria Garcia', email: 'maria@garciaproperties.com', phone: '(704) 555-0104', propertyCount: 42, city: 'Charlotte', state: 'NC', score: 78, status: 'new', source: 'Sample Data', avgRent: 1900, totalUnits: 84 },
-  { id: 'l5', name: 'Robert Chen', email: 'rchen@rentals.com', phone: '(919) 555-0105', propertyCount: 38, city: 'Raleigh', state: 'NC', score: 75, status: 'responded', lastContact: '1 day ago', source: 'Sample Data', avgRent: 1750, totalUnits: 76 },
-  { id: 'l6', name: 'Sarah Williams', email: 's.williams@atl-homes.com', phone: '(404) 555-0106', propertyCount: 35, city: 'Atlanta', state: 'GA', score: 72, status: 'qualified', lastContact: '3 days ago', source: 'Sample Data', avgRent: 2100, totalUnits: 70 },
-  { id: 'l7', name: 'James Brown', email: 'jbrown@property-mgmt.com', phone: '(512) 555-0107', propertyCount: 32, city: 'Austin', state: 'TX', score: 70, status: 'new', source: 'Sample Data', avgRent: 2300, totalUnits: 64 },
-  { id: 'l8', name: 'Jennifer Martinez', email: 'jmartinez@rentco.com', phone: '(843) 555-0108', propertyCount: 28, city: 'Charleston', state: 'SC', score: 68, status: 'contacted', lastContact: '5 days ago', source: 'Sample Data', avgRent: 1850, totalUnits: 56 },
-];
 
 function mapApiLandlord(api: ApiLandlord): Landlord {
   return {
@@ -120,11 +110,10 @@ export default function LandlordsPage() {
       setOffset(currentOffset + mapped.length);
       setDataSource('Grasshopper');
     } catch {
-      // Fall back to sample data on API failure
       if (!append) {
-        setLandlords(SAMPLE_LANDLORDS);
-        setTotal(SAMPLE_LANDLORDS.length);
-        setOffset(SAMPLE_LANDLORDS.length);
+        setLandlords([]);
+        setTotal(0);
+        setOffset(0);
         setDataSource('Sample Data');
       }
     }

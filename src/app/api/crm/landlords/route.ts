@@ -46,9 +46,9 @@ export async function GET(request: NextRequest) {
     const token = await getGrasshopperToken();
     if (!token) {
       return NextResponse.json({
-        landlords: getSampleLandlords(),
-        total: 166,
-        source: 'sample',
+        landlords: [],
+        total: 0,
+        source: 'none',
       });
     }
 
@@ -70,12 +70,12 @@ export async function GET(request: NextRequest) {
     });
 
     if (!response.ok) {
-      // Token might be expired, clear cache and fall back
+      // Token might be expired, clear cache
       cachedToken = null;
       return NextResponse.json({
-        landlords: getSampleLandlords(),
-        total: 166,
-        source: 'sample',
+        landlords: [],
+        total: 0,
+        source: 'none',
       });
     }
 
@@ -105,22 +105,9 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching landlords:', error);
     return NextResponse.json({
-      landlords: getSampleLandlords(),
-      total: 166,
-      source: 'sample',
+      landlords: [],
+      total: 0,
+      source: 'none',
     });
   }
-}
-
-function getSampleLandlords() {
-  return [
-    { id: '1', name: 'Alexander Phillips', email: 'alex.phillips@gmail.com', phone: '(512) 555-0101', city: 'Austin', state: 'TX', property_count: 47, total_units: 312, avg_rent: 2200, score: 92, status: 'new', source: 'sample' },
-    { id: '2', name: 'Robert Chen', email: 'rchen@propertymgmt.com', phone: '(512) 555-0102', city: 'Austin', state: 'TX', property_count: 23, total_units: 156, avg_rent: 1800, score: 85, status: 'contacted', source: 'sample' },
-    { id: '3', name: 'Sarah Johnson', email: 'sjohnson@realestate.net', phone: '(713) 555-0103', city: 'Houston', state: 'TX', property_count: 34, total_units: 228, avg_rent: 1900, score: 88, status: 'new', source: 'sample' },
-    { id: '4', name: 'Michael Williams', email: 'mwilliams@outlook.com', phone: '(214) 555-0104', city: 'Dallas', state: 'TX', property_count: 19, total_units: 127, avg_rent: 1750, score: 76, status: 'qualified', source: 'sample' },
-    { id: '5', name: 'Jennifer Martinez', email: 'jmartinez@gmail.com', phone: '(512) 555-0105', city: 'Austin', state: 'TX', property_count: 28, total_units: 189, avg_rent: 2100, score: 81, status: 'new', source: 'sample' },
-    { id: '6', name: 'David Thompson', email: 'dthompson@txproperties.com', phone: '(210) 555-0106', city: 'San Antonio', state: 'TX', property_count: 15, total_units: 98, avg_rent: 1600, score: 72, status: 'contacted', source: 'sample' },
-    { id: '7', name: 'Amanda Garcia', email: 'agarcia@rentals.com', phone: '(713) 555-0107', city: 'Houston', state: 'TX', property_count: 42, total_units: 284, avg_rent: 2300, score: 90, status: 'new', source: 'sample' },
-    { id: '8', name: 'Kevin Lee', email: 'klee@propertyinvest.com', phone: '(512) 555-0108', city: 'Austin', state: 'TX', property_count: 31, total_units: 207, avg_rent: 1850, score: 84, status: 'qualified', source: 'sample' },
-  ];
 }

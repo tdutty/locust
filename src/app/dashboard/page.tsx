@@ -63,23 +63,7 @@ interface SentEmailLog {
   status: string;
 }
 
-type DataSource = 'Grasshopper' | 'Cricket' | 'Playbook' | 'Sample Data';
-
-// Fallback sample data
-const SAMPLE_LANDLORDS: Lead[] = [
-  { id: 'l1', name: 'Alexander Phillips', email: 'a.phillips@example.com', type: 'landlord', propertyCount: 58, city: 'Austin', score: 92, status: 'new' },
-  { id: 'l2', name: 'Kevin Lee', email: 'k.lee@example.com', type: 'landlord', propertyCount: 56, city: 'Charleston', score: 88, status: 'new' },
-  { id: 'l3', name: 'William Johnson', email: 'w.johnson@example.com', type: 'landlord', propertyCount: 55, city: 'Greenville', score: 85, status: 'contacted' },
-  { id: 'l4', name: 'Maria Garcia', email: 'm.garcia@example.com', type: 'landlord', propertyCount: 42, city: 'Charlotte', score: 78, status: 'new' },
-  { id: 'l5', name: 'Robert Chen', email: 'r.chen@example.com', type: 'landlord', propertyCount: 38, city: 'Raleigh', score: 75, status: 'responded' },
-];
-
-const SAMPLE_EMPLOYERS: Lead[] = [
-  { id: 'e1', name: 'Sarah Chen', email: 's.chen@tesla.com', type: 'employer', company: 'Tesla', relocationCount: 850, city: 'Austin', score: 95, status: 'new' },
-  { id: 'e2', name: 'Michael Torres', email: 'm.torres@delta.com', type: 'employer', company: 'Delta Air Lines', relocationCount: 650, city: 'Atlanta', score: 90, status: 'new' },
-  { id: 'e3', name: 'Jennifer Wu', email: 'j.wu@apple.com', type: 'employer', company: 'Apple', relocationCount: 520, city: 'Austin', score: 88, status: 'contacted' },
-  { id: 'e4', name: 'David Kim', email: 'd.kim@bofa.com', type: 'employer', company: 'Bank of America', relocationCount: 450, city: 'Charlotte', score: 85, status: 'new' },
-];
+type DataSource = 'Grasshopper' | 'Cricket' | 'Playbook' | 'Contacts' | 'None';
 
 function getWordCount(text: string): number {
   return text.trim().split(/\s+/).filter(Boolean).length;
@@ -102,7 +86,7 @@ export default function DashboardPage() {
   const [employers, setEmployers] = useState<Lead[]>([]);
   const [universities, setUniversities] = useState<Lead[]>([]);
   const [isLoadingLeads, setIsLoadingLeads] = useState(true);
-  const [dataSource, setDataSource] = useState<DataSource>('Sample Data');
+  const [dataSource, setDataSource] = useState<DataSource>('None');
   const [recentlySent, setRecentlySent] = useState<SentEmailLog[]>([]);
   const [isLoadingSent, setIsLoadingSent] = useState(false);
 
@@ -112,8 +96,8 @@ export default function DashboardPage() {
 
     async function fetchLeads() {
       setIsLoadingLeads(true);
-      let landlordSource: DataSource = 'Sample Data';
-      let employerSource: DataSource = 'Sample Data';
+      let landlordSource: DataSource = 'None';
+      let employerSource: DataSource = 'None';
       let fetchedLandlords: Lead[] = [];
       let fetchedEmployers: Lead[] = [];
 
@@ -274,28 +258,19 @@ export default function DashboardPage() {
 
       if (cancelled) return;
 
-      // Use fetched data or fall back to samples
-      if (fetchedLandlords.length > 0) {
-        setLandlords(fetchedLandlords);
-      } else {
-        setLandlords(SAMPLE_LANDLORDS);
-        landlordSource = 'Sample Data';
-      }
-
-      if (fetchedEmployers.length > 0) {
-        setEmployers(fetchedEmployers);
-      } else {
-        setEmployers(SAMPLE_EMPLOYERS);
-        employerSource = 'Sample Data';
-      }
-
+      // Set real data only — no sample fallbacks
+      setLandlords(fetchedLandlords);
+      setEmployers(fetchedEmployers);
       setUniversities(fetchedUniversities);
 
-      // Set data source based on whichever is currently active, preferring non-sample
-      if (landlordSource !== 'Sample Data' || employerSource !== 'Sample Data') {
-        setDataSource(landlordSource !== 'Sample Data' ? landlordSource : employerSource);
+      if (fetchedLandlords.length > 0 && landlordSource === 'None') landlordSource = 'Contacts';
+      if (fetchedEmployers.length > 0 && employerSource === 'None') employerSource = 'Contacts';
+
+      // Set data source indicator
+      if (landlordSource !== 'None' || employerSource !== 'None') {
+        setDataSource(landlordSource !== 'None' ? landlordSource : employerSource);
       } else {
-        setDataSource('Sample Data');
+        setDataSource('None');
       }
 
       setIsLoadingLeads(false);
@@ -309,15 +284,13 @@ export default function DashboardPage() {
   // Update data source indicator when lead type changes
   useEffect(() => {
     if (isLoadingLeads) return;
-    const isUsingLiveLandlords = landlords.length > 0 && landlords[0]?.id !== 'l1';
-    const isUsingLiveEmployers = employers.length > 0 && employers[0]?.id !== 'e1';
 
     if (leadType === 'landlord') {
-      setDataSource(isUsingLiveLandlords ? (dataSource === 'Cricket' ? 'Cricket' : 'Grasshopper') : 'Sample Data');
+      setDataSource(landlords.length > 0 ? (landlords.some(l => !l.id.startsWith('contact-')) ? 'Grasshopper' : 'Contacts') : 'None');
     } else if (leadType === 'university') {
-      setDataSource(universities.length > 0 ? 'Playbook' : 'Sample Data');
+      setDataSource(universities.length > 0 ? 'Playbook' : 'None');
     } else {
-      setDataSource(isUsingLiveEmployers ? (dataSource === 'Cricket' ? 'Cricket' : 'Grasshopper') : 'Sample Data');
+      setDataSource(employers.length > 0 ? (employers.some(e => !e.id.startsWith('contact-')) ? 'Cricket' : 'Contacts') : 'None');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [leadType, isLoadingLeads]);
@@ -452,7 +425,7 @@ export default function DashboardPage() {
           icon={<Send className="w-7 h-7" />}
           badge={
             <span className={`ml-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 text-xs font-medium rounded-full border ${
-              dataSource === 'Sample Data'
+              dataSource === 'None'
                 ? 'bg-slate-50 text-slate-600 border-slate-200'
                 : 'bg-primary-50 text-primary-700 border-primary-200'
             }`}>
