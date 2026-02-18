@@ -27,6 +27,8 @@ import {
   Edit,
   Eye,
   RefreshCw,
+  Clock,
+  Calendar,
 } from 'lucide-react';
 
 interface Contact {
@@ -80,6 +82,21 @@ interface SavedContact {
   status: string;
   created_at: string;
   updated_at: string;
+}
+
+interface ScheduledEmail {
+  id: number;
+  contact_id: number | null;
+  contact_name: string | null;
+  to_email: string;
+  subject: string;
+  body: string;
+  lead_id: string | null;
+  lead_type: string | null;
+  scheduled_for: string;
+  status: string;
+  error: string | null;
+  created_at: string;
 }
 
 interface Pagination {
@@ -386,7 +403,14 @@ export default function ContactsPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [emailEditMode, setEmailEditMode] = useState(false);
-  const [emailSendStatus, setEmailSendStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [emailSendStatus, setEmailSendStatus] = useState<'idle' | 'success' | 'error' | 'scheduled'>('idle');
+  const [scheduleMode, setScheduleMode] = useState(false);
+  const [scheduledTime, setScheduledTime] = useState('');
+
+  // Scheduled emails state
+  const [showScheduled, setShowScheduled] = useState(false);
+  const [scheduledEmails, setScheduledEmails] = useState<ScheduledEmail[]>([]);
+  const [scheduledLoading, setScheduledLoading] = useState(false);
 
   const TEMPLATE_TO_LEAD_TYPE: Record<string, string> = {
     'residency-coordinators': 'residency',
@@ -419,6 +443,8 @@ export default function ContactsPage() {
     setGeneratedBody('');
     setEmailEditMode(false);
     setEmailSendStatus('idle');
+    setScheduleMode(false);
+    setScheduledTime('');
   };
 
   const generateEmail = async () => {
@@ -493,6 +519,70 @@ export default function ContactsPage() {
       setEmailSendStatus('error');
     }
     setIsSending(false);
+  };
+
+  const scheduleEmail = async () => {
+    if (!emailContact || !generatedBody || !scheduledTime) return;
+    setIsSending(true);
+
+    try {
+      const res = await fetch('/api/email/schedule', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: emailContact.email,
+          subject: generatedSubject,
+          body: generatedBody,
+          scheduledFor: scheduledTime,
+          contactId: emailContact.id,
+          leadId: String(emailContact.id),
+          leadType: getLeadType(emailContact),
+        }),
+      });
+
+      if (res.ok) {
+        setEmailSendStatus('scheduled');
+        setTimeout(() => {
+          setEmailContact(null);
+          setEmailSendStatus('idle');
+          setScheduleMode(false);
+          setScheduledTime('');
+        }, 2500);
+      } else {
+        setEmailSendStatus('error');
+      }
+    } catch {
+      setEmailSendStatus('error');
+    }
+    setIsSending(false);
+  };
+
+  const loadScheduledEmails = async () => {
+    setScheduledLoading(true);
+    try {
+      const res = await fetch('/api/email/schedule?status=pending');
+      const data = await res.json();
+      setScheduledEmails(data.emails || []);
+    } catch {
+      // silently fail
+    } finally {
+      setScheduledLoading(false);
+    }
+  };
+
+  const cancelScheduledEmail = async (id: number) => {
+    try {
+      const res = await fetch('/api/email/schedule', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+      if (res.ok) {
+        setScheduledEmails(prev => prev.filter(e => e.id !== id));
+      }
+    } catch {
+      // silently fail
+    }
   };
 
   const exportCSV = () => {
@@ -823,6 +913,17 @@ export default function ContactsPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
+              <button
+                onClick={() => { setShowScheduled(!showScheduled); if (!showScheduled) loadScheduledEmails(); }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                  showScheduled
+                    ? 'text-blue-700 bg-blue-50 border border-blue-200'
+                    : 'text-slate-700 bg-white border border-slate-200 hover:bg-slate-50'
+                }`}
+              >
+                <Clock className="w-3.5 h-3.5" />
+                Scheduled
+              </button>
               {selectedSaved.size > 0 && (
                 <button
                   onClick={deleteSelectedSaved}
@@ -888,6 +989,63 @@ export default function ContactsPage() {
               Filter
             </button>
           </div>
+
+          {/* Scheduled Emails Panel */}
+          {showScheduled && (
+            <div className="bg-white border border-blue-200 rounded-lg overflow-hidden">
+              <div className="px-4 py-3 bg-blue-50 border-b border-blue-200 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-blue-600" />
+                  <h3 className="text-sm font-semibold text-blue-900">Scheduled Emails</h3>
+                </div>
+                <button
+                  onClick={loadScheduledEmails}
+                  className="p-1 text-blue-500 hover:text-blue-700 rounded transition-colors"
+                  title="Refresh"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {scheduledLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
+                  <span className="ml-2 text-sm text-slate-500">Loading...</span>
+                </div>
+              ) : scheduledEmails.length === 0 ? (
+                <div className="text-center py-8">
+                  <Calendar className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                  <p className="text-sm text-slate-500">No scheduled emails</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-100">
+                  {scheduledEmails.map(email => (
+                    <div key={email.id} className="px-4 py-3 flex items-center gap-4 hover:bg-slate-50 transition-colors">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <p className="text-sm font-medium text-slate-900 truncate">{email.to_email}</p>
+                          {email.contact_name && (
+                            <span className="text-xs text-slate-400">({email.contact_name})</span>
+                          )}
+                        </div>
+                        <p className="text-xs text-slate-600 truncate">{email.subject}</p>
+                        <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {new Date(email.scheduled_for).toLocaleString()}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => cancelScheduledEmail(email.id)}
+                        className="px-2.5 py-1 text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded-md hover:bg-red-100 transition-colors flex-shrink-0"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {savedLoading && (
             <div className="flex items-center justify-center py-16">
@@ -1184,6 +1342,12 @@ export default function ContactsPage() {
                   Email sent successfully! Contact marked as contacted.
                 </div>
               )}
+              {emailSendStatus === 'scheduled' && (
+                <div className="flex items-center gap-2 px-4 py-3 bg-blue-50 text-blue-800 border border-blue-200 rounded-lg text-sm">
+                  <Clock className="w-4 h-4 flex-shrink-0" />
+                  Email scheduled for {new Date(scheduledTime).toLocaleString()}
+                </div>
+              )}
               {emailSendStatus === 'error' && (
                 <div className="flex items-center gap-2 px-4 py-3 bg-red-50 text-red-800 border border-red-200 rounded-lg text-sm">
                   <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -1193,32 +1357,69 @@ export default function ContactsPage() {
             </div>
 
             {/* Footer Actions */}
-            {generatedBody && !isGenerating && emailSendStatus !== 'success' && (
-              <div className="px-5 py-4 border-t border-slate-200 bg-white">
-                <div className="flex items-center gap-3">
+            {generatedBody && !isGenerating && emailSendStatus !== 'success' && emailSendStatus !== 'scheduled' && (
+              <div className="px-5 py-4 border-t border-slate-200 bg-white space-y-3">
+                {scheduleMode && (
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                    <input
+                      type="datetime-local"
+                      value={scheduledTime}
+                      onChange={e => setScheduledTime(e.target.value)}
+                      min={new Date(Date.now() + 60000).toISOString().slice(0, 16)}
+                      className="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                    />
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
                   <button
-                    onClick={() => { setEmailContact(null); setEmailSendStatus('idle'); }}
-                    className="flex-1 px-4 py-2.5 text-sm font-medium text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+                    onClick={() => { setScheduleMode(!scheduleMode); setScheduledTime(''); }}
+                    className={`flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors ${
+                      scheduleMode
+                        ? 'text-slate-700 bg-white border border-slate-200 hover:bg-slate-50'
+                        : 'text-blue-700 bg-blue-50 border border-blue-200 hover:bg-blue-100'
+                    }`}
                   >
-                    Cancel
+                    <Clock className="w-4 h-4" />
+                    {scheduleMode ? 'Cancel' : 'Schedule'}
                   </button>
-                  <button
-                    onClick={sendEmail}
-                    disabled={isSending || !emailContact.email}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
-                  >
-                    {isSending ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Sending...
-                      </>
-                    ) : (
-                      <>
-                        <Send className="w-4 h-4" />
-                        Send Email
-                      </>
-                    )}
-                  </button>
+                  {scheduleMode ? (
+                    <button
+                      onClick={scheduleEmail}
+                      disabled={isSending || !scheduledTime || !emailContact.email}
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                    >
+                      {isSending ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Scheduling...
+                        </>
+                      ) : (
+                        <>
+                          <Calendar className="w-4 h-4" />
+                          Confirm Schedule
+                        </>
+                      )}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={sendEmail}
+                      disabled={isSending || !emailContact.email}
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-primary rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
+                    >
+                      {isSending ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Sending...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-4 h-4" />
+                          Send Now
+                        </>
+                      )}
+                    </button>
+                  )}
                 </div>
               </div>
             )}

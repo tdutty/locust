@@ -35,8 +35,8 @@ function validateJWT(token: string): boolean {
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Skip auth routes
-  if (pathname.startsWith('/api/auth/')) {
+  // Skip auth routes and cron endpoints (cron uses secret-based auth)
+  if (pathname.startsWith('/api/auth/') || pathname.startsWith('/api/cron/')) {
     return NextResponse.next();
   }
 

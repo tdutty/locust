@@ -70,7 +70,11 @@ services:
         type: SECRET
         scope: RUN_AND_BUILD_TIME
       - key: DATABASE_URL
-        value: ${DATABASE_URL}
+        value: ${locust-db.DATABASE_URL}
+        type: SECRET
+        scope: RUN_AND_BUILD_TIME
+      - key: CRON_SECRET
+        value: ${CRON_SECRET}
         type: SECRET
         scope: RUN_AND_BUILD_TIME
       - key: NODE_ENV

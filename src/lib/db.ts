@@ -112,6 +112,24 @@ async function initTables() {
   `).catch(() => {});
 
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS scheduled_emails (
+      id SERIAL PRIMARY KEY,
+      contact_id INTEGER REFERENCES contacts(id) ON DELETE SET NULL,
+      to_email TEXT NOT NULL,
+      subject TEXT NOT NULL,
+      body TEXT NOT NULL,
+      lead_id TEXT,
+      lead_type TEXT,
+      scheduled_for TIMESTAMPTZ NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','sent','failed','cancelled')),
+      error TEXT,
+      message_id TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      sent_at TIMESTAMPTZ
+    )
+  `);
+
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS inbox_cache (
       id TEXT PRIMARY KEY,
       from_name TEXT,
