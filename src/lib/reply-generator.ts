@@ -50,14 +50,21 @@ async function fetchCalendlySlots(): Promise<CalendlySlot[]> {
       byDay.get(day)!.push(slot);
     }
 
+    // Target different times of day for variety
+    const targetHoursUTC = [15, 18, 20]; // ~9-10am, ~12-1pm, ~2-3pm CT
+    let targetIdx = 0;
+
     const picked: CalendlySlot[] = [];
     for (const [, daySlots] of byDay) {
       if (picked.length >= 3) break;
-      // Pick a mid-morning or afternoon slot from each day
-      const slot = daySlots.find((s: any) => {
+      // Pick slot closest to target hour for variety across the day
+      const targetHour = targetHoursUTC[targetIdx % targetHoursUTC.length];
+      targetIdx++;
+      const slot = daySlots.reduce((best: any, s: any) => {
         const hour = new Date(s.start_time).getUTCHours();
-        return hour >= 14 && hour <= 20; // 9am-3pm CT (UTC-5/6)
-      }) || daySlots[0];
+        const bestHour = new Date(best.start_time).getUTCHours();
+        return Math.abs(hour - targetHour) < Math.abs(bestHour - targetHour) ? s : best;
+      });
 
       const dt = new Date(slot.start_time);
       const label = dt.toLocaleDateString('en-US', {
