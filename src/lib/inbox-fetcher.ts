@@ -17,10 +17,10 @@ export interface Email {
 }
 
 export function getImapConfig() {
-  const user = process.env.SMTP_USER;
-  const password = process.env.SMTP_PASSWORD;
+  const user = process.env.IMAP_USER || process.env.SMTP_USER;
+  const password = process.env.IMAP_PASSWORD || process.env.SMTP_PASSWORD;
   if (!user || !password) {
-    throw new Error('SMTP_USER and SMTP_PASSWORD environment variables are required');
+    throw new Error('IMAP_USER/SMTP_USER and IMAP_PASSWORD/SMTP_PASSWORD environment variables are required');
   }
   return {
     user,
