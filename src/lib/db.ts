@@ -35,7 +35,8 @@ async function initTables() {
       id SERIAL PRIMARY KEY,
       name TEXT NOT NULL,
       company TEXT,
-      type TEXT NOT NULL CHECK(type IN ('landlord', 'employer')),
+      contact_id INTEGER,
+      type TEXT NOT NULL CHECK(type IN ('landlord', 'employer', 'university', 'residency', 'benefits-platform', 'graduate-housing')),
       stage TEXT NOT NULL DEFAULT 'lead' CHECK(stage IN ('lead', 'contacted', 'qualified', 'proposal', 'negotiation', 'closed')),
       value REAL DEFAULT 0,
       probability INTEGER DEFAULT 10,
@@ -45,6 +46,13 @@ async function initTables() {
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
+
+  // Add contact_id column to existing pipeline_deals tables
+  await pool.query(`ALTER TABLE pipeline_deals ADD COLUMN IF NOT EXISTS contact_id INTEGER`).catch(() => {});
+
+  // Expand type constraint for existing pipeline_deals tables
+  await pool.query(`ALTER TABLE pipeline_deals DROP CONSTRAINT IF EXISTS pipeline_deals_type_check`).catch(() => {});
+  await pool.query(`ALTER TABLE pipeline_deals ADD CONSTRAINT pipeline_deals_type_check CHECK(type IN ('landlord', 'employer', 'university', 'residency', 'benefits-platform', 'graduate-housing'))`).catch(() => {});
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS activity_log (
@@ -143,9 +151,34 @@ async function initTables() {
       has_replied INTEGER DEFAULT 0,
       classification TEXT,
       priority TEXT,
+      processed INTEGER DEFAULT 0,
       cached_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
+
+  // Add processed column to existing inbox_cache tables
+  await pool.query(`ALTER TABLE inbox_cache ADD COLUMN IF NOT EXISTS processed INTEGER DEFAULT 0`).catch(() => {});
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS response_log (
+      id SERIAL PRIMARY KEY,
+      from_email TEXT NOT NULL,
+      from_name TEXT,
+      subject TEXT,
+      body TEXT,
+      classification TEXT NOT NULL,
+      priority TEXT,
+      contact_id INTEGER,
+      deal_id INTEGER,
+      action_taken TEXT,
+      reply_scheduled_id INTEGER,
+      processed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  // Indexes for fast lookups
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_contacts_email ON contacts(email)`).catch(() => {});
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_response_log_from_email ON response_log(from_email)`).catch(() => {});
 
   initialized = true;
 }
