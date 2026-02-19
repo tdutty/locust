@@ -31,9 +31,6 @@ export async function POST(request: NextRequest) {
     const transporter = getTransporter();
     await transporter.verify();
 
-    const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://locust-m7ng3.ondigitalocean.app';
-    const logoUrl = `${APP_URL}/sweetlease-logo.png`;
-
     // Create HTML version with email signature
     const bodyHtml = emailBody.split('\n').map((line: string) => {
       if (line.includes('https://')) {
@@ -49,17 +46,16 @@ export async function POST(request: NextRequest) {
     const signature = `
 <table cellpadding="0" cellspacing="0" border="0" style="margin-top:24px;border-top:1px solid #e2e8f0;padding-top:16px;">
   <tr>
-    <td style="padding-right:16px;vertical-align:top;">
-      <img src="${logoUrl}" alt="SweetLease" width="48" height="48" style="border-radius:8px;" />
-    </td>
     <td style="vertical-align:top;font-family:Arial,sans-serif;">
+      <p style="margin:0 0 8px 0;font-size:20px;font-weight:700;letter-spacing:-0.02em;line-height:1;">
+        <span style="color:#EA580C;">SWEET</span><span style="color:#1a1a1a;">LEASE</span>
+      </p>
       <p style="margin:0;font-size:14px;font-weight:600;color:#1a1a1a;">Terrell Gilbert</p>
       <p style="margin:2px 0 0;font-size:12px;color:#64748b;">Account Executive</p>
-      <p style="margin:2px 0 0;font-size:12px;color:#64748b;">SweetLease</p>
       <p style="margin:6px 0 0;font-size:12px;">
-        <a href="https://sweetlease.co" style="color:#dc2626;text-decoration:none;">sweetlease.co</a>
+        <a href="https://sweetlease.io" style="color:#EA580C;text-decoration:none;">sweetlease.io</a>
         <span style="color:#cbd5e1;margin:0 6px;">|</span>
-        <a href="mailto:tgilbert@sweetlease.io" style="color:#dc2626;text-decoration:none;">tgilbert@sweetlease.io</a>
+        <a href="mailto:tgilbert@sweetlease.io" style="color:#EA580C;text-decoration:none;">tgilbert@sweetlease.io</a>
       </p>
     </td>
   </tr>
