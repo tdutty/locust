@@ -8,30 +8,95 @@ export interface OriginalEmail {
   classification: 'interested' | 'objection' | 'not_interested' | 'question' | 'spam' | 'system';
 }
 
-/** Returns the next 3 weekday slots (skips weekends) with formatted dates */
-function getNextAvailableSlots(): string[] {
-  const times = ['2:00 PM', '10:00 AM', '3:00 PM'];
-  const slots: string[] = [];
-  const now = new Date();
-  let day = new Date(now);
-  // Start from tomorrow
-  day.setDate(day.getDate() + 1);
+const CALENDLY_EVENT_TYPE = 'https://api.calendly.com/event_types/9855ae1b-631d-48c4-8089-78956bd85b7d';
+const CALENDLY_SCHEDULING_URL = 'https://calendly.com/terrellgilb5/30min';
 
-  while (slots.length < 3) {
-    const dow = day.getDay();
-    if (dow !== 0 && dow !== 6) { // skip weekends
-      const dayName = day.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'America/Chicago' });
-      const month = day.toLocaleDateString('en-US', { month: 'long', timeZone: 'America/Chicago' });
-      const date = day.getDate();
-      slots.push(`${dayName}, ${month} ${date} at ${times[slots.length]} CT`);
-    }
-    day.setDate(day.getDate() + 1);
-  }
-  return slots;
+interface CalendlySlot {
+  label: string;
+  scheduling_url: string;
 }
 
-export function getReplySystemPrompt(): string {
-  const slots = getNextAvailableSlots();
+/** Fetches 3 real available slots from Calendly API */
+async function fetchCalendlySlots(): Promise<CalendlySlot[]> {
+  const token = process.env.CALENDLY_API_TOKEN;
+  if (!token) return [];
+
+  try {
+    const now = new Date();
+    const start = new Date(now);
+    start.setDate(start.getDate() + 1);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(start);
+    end.setDate(end.getDate() + 7);
+
+    const url = `https://api.calendly.com/event_type_available_times?event_type=${encodeURIComponent(CALENDLY_EVENT_TYPE)}&start_time=${start.toISOString()}&end_time=${end.toISOString()}`;
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (!res.ok) {
+      console.error('Calendly API error:', res.status);
+      return [];
+    }
+
+    const data = await res.json();
+    const available = data.collection || [];
+
+    // Pick 3 slots spread across different days for variety
+    const byDay = new Map<string, typeof available>();
+    for (const slot of available) {
+      const day = slot.start_time.slice(0, 10);
+      if (!byDay.has(day)) byDay.set(day, []);
+      byDay.get(day)!.push(slot);
+    }
+
+    const picked: CalendlySlot[] = [];
+    for (const [, daySlots] of byDay) {
+      if (picked.length >= 3) break;
+      // Pick a mid-morning or afternoon slot from each day
+      const slot = daySlots.find((s: any) => {
+        const hour = new Date(s.start_time).getUTCHours();
+        return hour >= 14 && hour <= 20; // 9am-3pm CT (UTC-5/6)
+      }) || daySlots[0];
+
+      const dt = new Date(slot.start_time);
+      const label = dt.toLocaleDateString('en-US', {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+        timeZone: 'America/Chicago',
+      }) + ' at ' + dt.toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+        timeZone: 'America/Chicago',
+      }) + ' CT';
+
+      picked.push({ label, scheduling_url: slot.scheduling_url });
+    }
+
+    return picked;
+  } catch (err) {
+    console.error('Calendly fetch failed:', err);
+    return [];
+  }
+}
+
+/** Format slots for display in email body */
+function formatSlotsText(slots: CalendlySlot[]): string {
+  if (slots.length === 0) {
+    return `Grab a time that works best: ${CALENDLY_SCHEDULING_URL}`;
+  }
+  const lines = slots.map(s => `- ${s.label}: ${s.scheduling_url}`);
+  lines.push(`\nOr pick another time: ${CALENDLY_SCHEDULING_URL}`);
+  return lines.join('\n');
+}
+
+export async function getReplySystemPrompt(): Promise<string> {
+  const slots = await fetchCalendlySlots();
+  const slotText = slots.length > 0
+    ? slots.map(s => `  - ${s.label} (book directly: ${s.scheduling_url})`).join('\n')
+    : `  (Check availability: ${CALENDLY_SCHEDULING_URL})`;
+
   return `You are Locust, the AI Account Executive for SweetLease. You are writing a reply to an incoming email.
 
 SweetLease connects independent landlords with relocating corporate employees. Key value props:
@@ -43,11 +108,10 @@ Today's date is ${new Date().toLocaleDateString('en-US', { weekday: 'long', year
 Rules:
 - Be warm and conversational
 - Address their specific questions or concerns
-- For interested leads: propose a call with these available times:
-  - ${slots[0]}
-  - ${slots[1]}
-  - ${slots[2]}
-  Also include the Calendly link: https://calendly.com/sweetlease/intro
+- For interested leads: propose a call using ONLY these real available times from Calendly:
+${slotText}
+  Include the direct booking link for each time slot so they can click to book instantly.
+  Also include the general Calendly link: ${CALENDLY_SCHEDULING_URL}
 - For objections: acknowledge, provide value, suggest future follow-up
 - For questions: answer directly with specific details
 - For not_interested: graciously remove them, leave door open
@@ -55,21 +119,16 @@ Rules:
 - Sign off as Terrell Gilbert, SweetLease`;
 }
 
-export const REPLY_TEMPLATES: Record<string, { subject: (original: string) => string; body: (name: string) => string }> = {
+export const REPLY_TEMPLATES: Record<string, { subject: (original: string) => string; body: (name: string, slotsText?: string) => string }> = {
   interested: {
     subject: (original: string) => `Re: ${original}`,
-    body: (name: string) => {
-      const slots = getNextAvailableSlots();
+    body: (name: string, slotsText?: string) => {
       return `Hi ${name},
 
-Thank you for your interest in SweetLease! I'd love to schedule a quick 15-minute call to learn more about your portfolio and show you how we're helping landlords like you compete with corporate players.
+Thank you for your interest in SweetLease! I'd love to schedule a quick 30-minute call to learn more about your portfolio and show you how we're helping landlords like you compete with corporate players.
 
 Here are a few times that work for me:
-- ${slots[0]}
-- ${slots[1]}
-- ${slots[2]}
-
-Or grab a time that works best: https://calendly.com/sweetlease/intro
+${slotsText || `Grab a time that works best: ${CALENDLY_SCHEDULING_URL}`}
 
 Looking forward to connecting!
 
@@ -132,10 +191,11 @@ export async function generateReplyWithAI(originalEmail: OriginalEmail): Promise
 
   try {
     const client = new Anthropic({ apiKey });
+    const systemPrompt = await getReplySystemPrompt();
     const message = await client.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 1024,
-      system: getReplySystemPrompt(),
+      system: systemPrompt,
       messages: [{
         role: 'user',
         content: `Write a reply to this email:
@@ -161,6 +221,30 @@ Respond in JSON: {"subject": "Re: ...", "body": "..."}`
     console.error('Claude AI reply generation failed, using template:', err);
     return null;
   }
+}
+
+/** Generates reply with Calendly slots pre-fetched (for template fallback) */
+export async function generateReply(originalEmail: OriginalEmail): Promise<{ subject: string; body: string; source: string } | null> {
+  if (originalEmail.classification === 'spam' || originalEmail.classification === 'system') return null;
+
+  // Try AI first
+  const aiReply = await generateReplyWithAI(originalEmail);
+  if (aiReply) return { ...aiReply, source: 'ai' };
+
+  // Template fallback — fetch Calendly slots for interested templates
+  const template = REPLY_TEMPLATES[originalEmail.classification];
+  const firstName = originalEmail.from.split(' ')[0];
+  const subject = template.subject(originalEmail.subject.replace(/^Re:\s*/i, ''));
+
+  let body: string;
+  if (originalEmail.classification === 'interested') {
+    const slots = await fetchCalendlySlots();
+    body = template.body(firstName, formatSlotsText(slots));
+  } else {
+    body = template.body(firstName);
+  }
+
+  return { subject, body, source: 'template' };
 }
 
 export function getSuggestedAction(classification: string): string {

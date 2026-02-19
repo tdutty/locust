@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { fetchEmails, classifyWithAI, Email } from '@/lib/inbox-fetcher';
-import { generateReplyWithAI, REPLY_TEMPLATES, OriginalEmail } from '@/lib/reply-generator';
+import { generateReply, OriginalEmail } from '@/lib/reply-generator';
 
 // Status rank for "only upgrade, never downgrade" logic
 const STATUS_RANK: Record<string, number> = {
@@ -227,20 +227,11 @@ export async function GET(request: NextRequest) {
               classification: email.classification,
             };
 
-            // Try AI reply first, fall back to template
-            let replySubject: string;
-            let replyBody: string;
+            const reply = await generateReply(originalEmail);
+            if (!reply) continue;
 
-            const aiReply = await generateReplyWithAI(originalEmail);
-            if (aiReply) {
-              replySubject = aiReply.subject;
-              replyBody = aiReply.body;
-            } else {
-              const template = REPLY_TEMPLATES[email.classification];
-              const firstName = email.from.split(' ')[0];
-              replySubject = template.subject(email.subject.replace(/^Re:\s*/i, ''));
-              replyBody = template.body(firstName);
-            }
+            const replySubject = reply.subject;
+            const replyBody = reply.body;
 
             const scheduledFor = new Date(Date.now() + delayMs).toISOString();
             const scheduleResult = await query(
