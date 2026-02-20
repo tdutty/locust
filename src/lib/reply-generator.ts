@@ -249,7 +249,7 @@ export async function getReplySystemPrompt(): Promise<string> {
   return `You are writing a professional reply on behalf of Terrell Gilbert, Account Executive at SweetLease.
 
 SweetLease connects independent landlords with relocating corporate employees. Key value props:
-- For landlords: Fill vacancies 3x faster, pre-screened tenants with employer-backed guarantees, commission 25% below industry standard, we integrate their existing listings for free
+- For landlords: Fill vacancies 3x faster, pre-screened tenants with employer-backed guarantees, landlord has final say on pricing and tenant approval, commission 25% below industry standard, we integrate their existing listings for free
 - For employers: Complimentary housing placement service, $100-300/month rent savings, zero cost to employer
 - For universities/residency programs: Free housing resource for incoming students and residents
 
@@ -332,7 +332,7 @@ function buildTemplateReply(email: OriginalEmail, slots: CalendlySlot[]): { subj
     }
     case 'question': {
       const bulletPoints = [
-        'You maintain full control over pricing and tenant selection',
+        'You have final say on pricing and tenant approval',
         'Our commission is 25% below the industry standard',
         'All tenants are pre-screened with employer-backed guarantees',
         'Average placement timeline: 14 days, compared to 45 days on traditional platforms',
