@@ -330,9 +330,15 @@ export async function generateReply(originalEmail: OriginalEmail): Promise<{ sub
   const aiReply = await generateReplyWithAI(originalEmail);
   if (aiReply) {
     const textParagraphs = aiReply.body.split('\n').filter(l => l.trim());
-    // Strip any AI-generated signature (everything after "Best," or "Terrell")
-    const sigIdx = textParagraphs.findIndex(l => /^(best|regards|cheers|terrell|sweetlease)/i.test(l.trim()));
-    const bodyParagraphs = sigIdx > 0 ? textParagraphs.slice(0, sigIdx) : textParagraphs;
+    // Strip any AI-generated signature (everything after "Best regards," etc.)
+    const sigIdx = textParagraphs.findIndex(l => /^(best regards|best,|regards,|warm regards|sincerely|cheers,|terrell gilbert|— terrell|--\s*$)/i.test(l.trim()));
+    const trimmed = sigIdx > 0 ? textParagraphs.slice(0, sigIdx) : textParagraphs;
+    // Strip AI-generated Calendly slot lines and "Alternatively" links — we render these in the HTML table
+    const bodyParagraphs = trimmed.filter(l =>
+      !(/^-\s.*(calendly\.com|AM CT|PM CT)/i.test(l.trim())) &&
+      !(/^alternatively.*calendly/i.test(l.trim())) &&
+      !(/partnership overview for your review/i.test(l.trim()))
+    );
 
     return {
       subject: aiReply.subject,
