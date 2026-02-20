@@ -321,11 +321,12 @@ function buildTemplateReply(email: OriginalEmail, slots: CalendlySlot[]): { subj
       const slotLines = slots.length > 0
         ? slots.map(s => `- ${s.label}: ${s.scheduling_url}`).join('\n') + `\n\nAlternatively, you can view all available times here: ${CALENDLY_SCHEDULING_URL}`
         : `You can select a convenient time here: ${CALENDLY_SCHEDULING_URL}`;
-      const body = `Dear ${firstName},\n\nThank you for your interest in SweetLease. I would welcome the opportunity to schedule a brief 30-minute call to discuss your specific needs and walk you through our platform.\n\nOur onboarding process is quick — we integrate your existing listings at no additional cost and have you up and running in days.\n\nBelow are several available times for a conversation:\n${slotLines}\n\nI have also included a partnership overview below for your reference.\n\nBest regards,`;
+      const body = `Dear ${firstName},\n\nThank you for your interest in SweetLease. Our landlord partners are currently filling vacancies 3x faster than the market average, with pre-screened, employer-backed tenants — and at a commission 25% below the industry standard.\n\nI would welcome the opportunity to schedule a brief 30-minute call to walk you through the platform and discuss how we can put these results to work for your portfolio.\n\nOur onboarding is quick — we integrate your existing listings at no additional cost and have you up and running in days.\n\nBelow are several available times for a conversation:\n${slotLines}\n\nI have also included a partnership overview below for your reference.\n\nBest regards,`;
       const paragraphs = [
         `Dear ${firstName},`,
-        `Thank you for your interest in SweetLease. I would welcome the opportunity to schedule a brief 30-minute call to discuss your specific needs and walk you through our platform.`,
-        `Our onboarding process is quick — we integrate your existing listings at no additional cost and have you up and running in days.`,
+        `Thank you for your interest in SweetLease. Our landlord partners are currently filling vacancies 3x faster than the market average, with pre-screened, employer-backed tenants — and at a commission 25% below the industry standard.`,
+        `I would welcome the opportunity to schedule a brief 30-minute call to walk you through the platform and discuss how we can put these results to work for your portfolio.`,
+        `Our onboarding is quick — we integrate your existing listings at no additional cost and have you up and running in days.`,
         `Below are several available times for a conversation:`,
       ];
       return { subject, body, paragraphs };
@@ -340,18 +341,19 @@ function buildTemplateReply(email: OriginalEmail, slots: CalendlySlot[]): { subj
       ];
       const paragraphs = [
         `Dear ${firstName},`,
-        `Thank you for your inquiry. I am happy to provide some additional detail on how SweetLease works:`,
+        `Thank you for your inquiry. Landlords on our platform are seeing vacancies filled in an average of 14 days — compared to 45 days through traditional channels — with tenants who come pre-screened and backed by their employers.`,
+        `Here is a quick overview of how SweetLease works:`,
         bulletPoints.map(b => `&#8226; ${b}`).join('<br style="margin-bottom:6px;">'),
         `I have included a detailed overview document below for your reference. I would also be glad to walk you through our platform and discuss relevant case studies at your convenience.`,
       ];
-      const body = `Dear ${firstName},\n\nThank you for your inquiry. I am happy to provide some additional detail on how SweetLease works:\n\n${bulletPoints.map(b => `- ${b}`).join('\n')}\n\nI have included a detailed overview document below for your reference. I would also be glad to walk you through our platform and discuss relevant case studies at your convenience.\n\nBest regards,`;
+      const body = `Dear ${firstName},\n\nThank you for your inquiry. Landlords on our platform are seeing vacancies filled in an average of 14 days — compared to 45 days through traditional channels — with tenants who come pre-screened and backed by their employers.\n\nHere is a quick overview of how SweetLease works:\n\n${bulletPoints.map(b => `- ${b}`).join('\n')}\n\nI have included a detailed overview document below for your reference. I would also be glad to walk you through our platform and discuss relevant case studies at your convenience.\n\nBest regards,`;
       return { subject, body, paragraphs };
     }
     case 'objection': {
       const paragraphs = [
         `Dear ${firstName},`,
         `I appreciate you taking the time to respond, and I completely understand. Timing is an important factor in these decisions.`,
-        `Many of our current partners began with a limited pilot — one or two units — with no long-term commitment required. This approach allows you to evaluate the results before making any broader decisions.`,
+        `That said, I wanted to share one data point that our partners have found compelling: landlords using SweetLease are filling vacancies in 14 days on average, with zero upfront cost and a commission 25% below the industry standard. Many started with just one or two units as a pilot — no long-term commitment required.`,
         `I will plan to follow up in a few months. In the meantime, I have included an overview document below should you wish to learn more at your own pace.`,
       ];
       const body = paragraphs.join('\n\n') + '\n\nBest regards,';
@@ -361,7 +363,7 @@ function buildTemplateReply(email: OriginalEmail, slots: CalendlySlot[]): { subj
       const paragraphs = [
         `Dear ${firstName},`,
         `Thank you for letting me know. I have removed you from our outreach list, and you will not receive further communications from us.`,
-        `Should your circumstances change in the future, please do not hesitate to reach out. I wish you continued success.`,
+        `For reference, we are currently helping landlords fill vacancies 3x faster with employer-backed tenants at a commission 25% below the industry standard. Should your circumstances change in the future, we would be glad to help.`,
       ];
       const body = paragraphs.join('\n\n') + '\n\nBest regards,';
       return { subject, body, paragraphs };
