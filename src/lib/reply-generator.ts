@@ -240,18 +240,57 @@ function buildFullHtmlEmail(textParagraphs: string[], availabilityHtml: string, 
 </html>`;
 }
 
-export async function getReplySystemPrompt(): Promise<string> {
+export async function getReplySystemPrompt(contactType?: string): Promise<string> {
   const slots = await fetchCalendlySlots();
   const slotText = slots.length > 0
     ? slots.map(s => `  - ${s.label} (book directly: ${s.scheduling_url})`).join('\n')
     : `  (Check availability: ${CALENDLY_SCHEDULING_URL})`;
 
+  const type = contactType || 'landlord';
+  let audienceContext: string;
+  let interestedRules: string;
+
+  switch (type) {
+    case 'employer':
+    case 'benefits-platform':
+      audienceContext = `You are replying to an EMPLOYER or HR contact. They are interested in SweetLease as a housing benefit for their relocating employees.
+Key value props for employers:
+- Complimentary housing placement service — zero cost to the employer
+- Employees save $100–$300/month on rent
+- We handle the full search, vetting, and placement process end-to-end
+- Reduces relocation friction and improves employee satisfaction
+- Quick setup — we can begin placing employees within days`;
+      interestedRules = `For interested leads: propose a call to discuss how SweetLease can support their relocating workforce. Emphasize zero cost to employer and employee savings.`;
+      break;
+    case 'university':
+    case 'residency':
+    case 'graduate-housing':
+      audienceContext = `You are replying to a UNIVERSITY, RESIDENCY PROGRAM, or GRADUATE HOUSING contact. They are interested in SweetLease as a housing resource for incoming students or residents.
+Key value props for institutions:
+- Free housing resource for incoming students and residents
+- Curated, quality housing near campus and clinical sites
+- We handle the search, vetting, and placement end-to-end
+- Reduces housing-related stress and attrition for incoming cohorts
+- Quick setup — branded housing portal ready within days`;
+      interestedRules = `For interested leads: propose a call to discuss how SweetLease can serve as a housing resource for their program. Emphasize it's completely free for the institution.`;
+      break;
+    default: // landlord
+      audienceContext = `You are replying to a LANDLORD or PROPERTY MANAGER. They are interested in SweetLease to fill vacancies faster.
+Key value props for landlords:
+- Fill vacancies 3x faster with pre-screened, employer-backed tenants
+- Landlord has final say on pricing and tenant approval
+- Commission 25% below industry standard
+- We integrate their existing listings for free
+- Quick onboarding — up and running in days`;
+      interestedRules = `For interested leads: propose a call to walk them through the platform. Offer to integrate their existing listings for free. Emphasize the speed and quality of tenants.`;
+      break;
+  }
+
   return `You are writing a professional reply on behalf of Terrell Gilbert, Account Executive at SweetLease.
 
-SweetLease connects independent landlords with relocating corporate employees. Key value props:
-- For landlords: Fill vacancies 3x faster, pre-screened tenants with employer-backed guarantees, landlord has final say on pricing and tenant approval, commission 25% below industry standard, we integrate their existing listings for free
-- For employers: Complimentary housing placement service, $100-300/month rent savings, zero cost to employer
-- For universities/residency programs: Free housing resource for incoming students and residents
+SweetLease connects independent landlords with relocating corporate employees.
+
+${audienceContext}
 
 Today's date is ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'America/Chicago' })}.
 
@@ -260,16 +299,17 @@ Tone and style:
 - Use complete sentences, proper grammar, and a respectful tone.
 - Avoid slang, casual phrases, colloquialisms, and excessive exclamation marks.
 - Do NOT use "I hope this finds you well" or filler greetings. Be direct and substantive.
+- If the contact name looks like an organization or department (e.g. "Tesla HR"), address them as "Dear Tesla HR" — do NOT split it.
 
 Rules:
 - Address their specific questions or concerns directly
-- For interested leads: propose a call using ONLY these real available times from Calendly:
+- ${interestedRules}
+  Use ONLY these real available times from Calendly:
 ${slotText}
   Mention each time slot with its booking link. Also include the general Calendly link: ${CALENDLY_SCHEDULING_URL}
   Mention that you will also send over a partnership overview for their review.
-  Offer to walk them through the platform and integrate their existing listings for free.
 - For objections: acknowledge respectfully, provide value, suggest revisiting in the future
-- For questions: answer with specific details and data points
+- For questions: answer with specific details and data points relevant to their type (employer/university/landlord)
 - For not_interested: professionally remove them, leave the door open
 - Do NOT include a signature block or sign-off — it is appended automatically
 - Keep the body under 100 words (signature, scheduling table, and PDF link are added separately)
@@ -312,48 +352,115 @@ export async function generateReply(originalEmail: OriginalEmail): Promise<{ sub
   };
 }
 
+/** Extracts a proper greeting name — uses full name for orgs/departments, first name for individuals */
+function getGreetingName(from: string): string {
+  const lower = from.toLowerCase();
+  // If it looks like a department or org name (contains HR, Team, Office, Admin, etc.), use full name
+  if (/\b(hr|team|office|admin|department|dept|recruiting|talent|housing|program|admissions|staff)\b/i.test(from)) {
+    return from;
+  }
+  // If it's a single word or looks like a company name (all caps, ends in Inc/LLC/Corp), use full name
+  const parts = from.split(' ');
+  if (parts.length === 1) return from;
+  if (/^[A-Z\s]+$/.test(from) || /\b(inc|llc|corp|ltd|co)\b/i.test(lower)) return from;
+  // Otherwise use first name
+  return parts[0];
+}
+
+/** Contact-type-specific messaging */
+function getTypeMessaging(contactType: string) {
+  switch (contactType) {
+    case 'employer':
+    case 'benefits-platform':
+      return {
+        interestedHook: `SweetLease provides a complimentary housing placement service for relocating employees — saving them $100–$300 per month on rent with zero cost to your organization.`,
+        interestedCta: `I would welcome the opportunity to schedule a brief 30-minute call to discuss how SweetLease can support your relocating workforce and reduce relocation friction.`,
+        interestedOnboarding: `Integration is straightforward — we handle the entire housing search, vetting, and placement process so your HR team can stay focused on what matters.`,
+        questionHook: `Employers partnering with SweetLease offer their relocating employees a fully managed housing placement service at no cost — with average rent savings of $100–$300 per month.`,
+        questionBullets: [
+          'Completely free for your organization — zero fees, zero overhead',
+          'Employees save $100–$300/month on rent vs. searching independently',
+          'Pre-vetted, quality housing options matched to employee needs',
+          'We handle the full search and placement process end-to-end',
+          'Quick setup — we can begin placing employees within days',
+        ],
+        objectionHook: `SweetLease is entirely free for employers. We handle the housing search and placement for relocating employees at zero cost to your organization, saving them an average of $100–$300 per month in rent. Many companies start with a single department as a pilot — no long-term commitment required.`,
+        notInterestedSeed: `For reference, we currently help employers reduce relocation friction with a complimentary housing placement service that saves relocating employees $100–$300 per month. Should your needs change in the future, we would be glad to help.`,
+      };
+    case 'university':
+    case 'residency':
+    case 'graduate-housing':
+      return {
+        interestedHook: `SweetLease provides a free housing resource for incoming students and residents — helping them find quality, affordable housing near campus with a fully managed placement process.`,
+        interestedCta: `I would welcome the opportunity to schedule a brief 30-minute call to discuss how SweetLease can serve as a housing resource for your program.`,
+        interestedOnboarding: `Setup is simple — we can have a branded housing portal ready for your program within days, at no cost to your institution.`,
+        questionHook: `Universities and residency programs partnering with SweetLease give their incoming students and residents access to a curated, fully managed housing resource — completely free of charge.`,
+        questionBullets: [
+          'Completely free for your institution and your students/residents',
+          'Curated, quality housing options near campus and clinical sites',
+          'We handle the search, vetting, and placement process end-to-end',
+          'Reduces housing-related stress and attrition for incoming cohorts',
+          'Quick setup — we can have a housing resource page ready within days',
+        ],
+        objectionHook: `SweetLease is entirely free for institutions. We provide a managed housing resource for incoming students and residents at zero cost, reducing housing-related stress and attrition. Many programs start with a single incoming cohort as a pilot — no commitment required.`,
+        notInterestedSeed: `For reference, we currently serve as a free housing resource for universities and residency programs, helping incoming students and residents find quality housing near campus. Should your needs change in the future, we would be glad to help.`,
+      };
+    default: // landlord
+      return {
+        interestedHook: `Our landlord partners are currently filling vacancies 3x faster than the market average, with pre-screened, employer-backed tenants — and at a commission 25% below the industry standard.`,
+        interestedCta: `I would welcome the opportunity to schedule a brief 30-minute call to walk you through the platform and discuss how we can put these results to work for your portfolio.`,
+        interestedOnboarding: `Our onboarding is quick — we integrate your existing listings at no additional cost and have you up and running in days.`,
+        questionHook: `Landlords on our platform are seeing vacancies filled in an average of 14 days — compared to 45 days through traditional channels — with tenants who come pre-screened and backed by their employers.`,
+        questionBullets: [
+          'You have final say on pricing and tenant approval',
+          'Our commission is 25% below the industry standard',
+          'All tenants are pre-screened with employer-backed guarantees',
+          'Average placement timeline: 14 days, compared to 45 days on traditional platforms',
+          'Quick onboarding — we integrate your existing listings at no additional cost',
+        ],
+        objectionHook: `Landlords using SweetLease are filling vacancies in 14 days on average, with zero upfront cost and a commission 25% below the industry standard. Many started with just one or two units as a pilot — no long-term commitment required.`,
+        notInterestedSeed: `For reference, we are currently helping landlords fill vacancies 3x faster with employer-backed tenants at a commission 25% below the industry standard. Should your circumstances change in the future, we would be glad to help.`,
+      };
+  }
+}
+
 function buildTemplateReply(email: OriginalEmail, slots: CalendlySlot[]): { subject: string; body: string; paragraphs: string[] } {
-  const firstName = email.from.split(' ')[0];
+  const firstName = getGreetingName(email.from);
   const subject = `Re: ${email.subject.replace(/^Re:\s*/i, '')}`;
+  const contactType = email.contactType || 'landlord';
+  const msg = getTypeMessaging(contactType);
 
   switch (email.classification) {
     case 'interested': {
       const slotLines = slots.length > 0
         ? slots.map(s => `- ${s.label}: ${s.scheduling_url}`).join('\n') + `\n\nAlternatively, you can view all available times here: ${CALENDLY_SCHEDULING_URL}`
         : `You can select a convenient time here: ${CALENDLY_SCHEDULING_URL}`;
-      const body = `Dear ${firstName},\n\nThank you for your interest in SweetLease. Our landlord partners are currently filling vacancies 3x faster than the market average, with pre-screened, employer-backed tenants — and at a commission 25% below the industry standard.\n\nI would welcome the opportunity to schedule a brief 30-minute call to walk you through the platform and discuss how we can put these results to work for your portfolio.\n\nOur onboarding is quick — we integrate your existing listings at no additional cost and have you up and running in days.\n\nBelow are several available times for a conversation:\n${slotLines}\n\nI have also included a partnership overview below for your reference.\n\nBest regards,`;
+      const body = `Dear ${firstName},\n\nThank you for your interest in SweetLease. ${msg.interestedHook}\n\n${msg.interestedCta}\n\n${msg.interestedOnboarding}\n\nBelow are several available times for a conversation:\n${slotLines}\n\nI have also included a partnership overview below for your reference.\n\nBest regards,`;
       const paragraphs = [
         `Dear ${firstName},`,
-        `Thank you for your interest in SweetLease. Our landlord partners are currently filling vacancies 3x faster than the market average, with pre-screened, employer-backed tenants — and at a commission 25% below the industry standard.`,
-        `I would welcome the opportunity to schedule a brief 30-minute call to walk you through the platform and discuss how we can put these results to work for your portfolio.`,
-        `Our onboarding is quick — we integrate your existing listings at no additional cost and have you up and running in days.`,
+        `Thank you for your interest in SweetLease. ${msg.interestedHook}`,
+        msg.interestedCta,
+        msg.interestedOnboarding,
         `Below are several available times for a conversation:`,
       ];
       return { subject, body, paragraphs };
     }
     case 'question': {
-      const bulletPoints = [
-        'You have final say on pricing and tenant approval',
-        'Our commission is 25% below the industry standard',
-        'All tenants are pre-screened with employer-backed guarantees',
-        'Average placement timeline: 14 days, compared to 45 days on traditional platforms',
-        'Quick onboarding — we integrate your existing listings at no additional cost',
-      ];
       const paragraphs = [
         `Dear ${firstName},`,
-        `Thank you for your inquiry. Landlords on our platform are seeing vacancies filled in an average of 14 days — compared to 45 days through traditional channels — with tenants who come pre-screened and backed by their employers.`,
+        `Thank you for your inquiry. ${msg.questionHook}`,
         `Here is a quick overview of how SweetLease works:`,
-        bulletPoints.map(b => `&#8226; ${b}`).join('<br style="margin-bottom:6px;">'),
+        msg.questionBullets.map(b => `&#8226; ${b}`).join('<br style="margin-bottom:6px;">'),
         `I have included a detailed overview document below for your reference. I would also be glad to walk you through our platform and discuss relevant case studies at your convenience.`,
       ];
-      const body = `Dear ${firstName},\n\nThank you for your inquiry. Landlords on our platform are seeing vacancies filled in an average of 14 days — compared to 45 days through traditional channels — with tenants who come pre-screened and backed by their employers.\n\nHere is a quick overview of how SweetLease works:\n\n${bulletPoints.map(b => `- ${b}`).join('\n')}\n\nI have included a detailed overview document below for your reference. I would also be glad to walk you through our platform and discuss relevant case studies at your convenience.\n\nBest regards,`;
+      const body = `Dear ${firstName},\n\nThank you for your inquiry. ${msg.questionHook}\n\nHere is a quick overview of how SweetLease works:\n\n${msg.questionBullets.map(b => `- ${b}`).join('\n')}\n\nI have included a detailed overview document below for your reference. I would also be glad to walk you through our platform and discuss relevant case studies at your convenience.\n\nBest regards,`;
       return { subject, body, paragraphs };
     }
     case 'objection': {
       const paragraphs = [
         `Dear ${firstName},`,
         `I appreciate you taking the time to respond, and I completely understand. Timing is an important factor in these decisions.`,
-        `That said, I wanted to share one data point that our partners have found compelling: landlords using SweetLease are filling vacancies in 14 days on average, with zero upfront cost and a commission 25% below the industry standard. Many started with just one or two units as a pilot — no long-term commitment required.`,
+        `That said, I wanted to share one data point that our partners have found compelling: ${msg.objectionHook}`,
         `I will plan to follow up in a few months. In the meantime, I have included an overview document below should you wish to learn more at your own pace.`,
       ];
       const body = paragraphs.join('\n\n') + '\n\nBest regards,';
@@ -363,7 +470,7 @@ function buildTemplateReply(email: OriginalEmail, slots: CalendlySlot[]): { subj
       const paragraphs = [
         `Dear ${firstName},`,
         `Thank you for letting me know. I have removed you from our outreach list, and you will not receive further communications from us.`,
-        `For reference, we are currently helping landlords fill vacancies 3x faster with employer-backed tenants at a commission 25% below the industry standard. Should your circumstances change in the future, we would be glad to help.`,
+        msg.notInterestedSeed,
       ];
       const body = paragraphs.join('\n\n') + '\n\nBest regards,';
       return { subject, body, paragraphs };
@@ -379,7 +486,7 @@ async function generateReplyWithAI(originalEmail: OriginalEmail): Promise<{ subj
 
   try {
     const client = new Anthropic({ apiKey });
-    const systemPrompt = await getReplySystemPrompt();
+    const systemPrompt = await getReplySystemPrompt(originalEmail.contactType);
     const message = await client.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 1024,
