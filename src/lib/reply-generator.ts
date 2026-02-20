@@ -261,14 +261,20 @@ Key value props for employers:
     case 'residency':
     case 'graduate-housing':
       audienceContext = `You are replying to a UNIVERSITY, RESIDENCY PROGRAM, or GRADUATE HOUSING contact. They are interested in SweetLease as a housing resource for incoming students or residents.
-Key value props for institutions:
-- Free housing resource for incoming students and residents — zero cost to the institution
-- We connect residents with pre-screened landlords offering furnished and unfurnished options
-- We negotiate lease terms on behalf of residents, securing rates significantly below market average
-- Full end-to-end service: search, vetting, negotiation, and placement
-- Reduces housing-related stress and attrition for incoming cohorts with minimal administrative effort
-- Quick setup — branded housing portal operational within days of partnership approval`;
-      interestedRules = `For interested leads: propose a call to discuss how SweetLease can serve as a housing resource for their program. Emphasize it's completely free, we negotiate below-market rates, and requires minimal administrative effort.`;
+
+Your reply should be INFORMATIVE, not salesy. Spell out the specific benefits clearly. Do NOT be overly forward or pushy. Let the value proposition speak for itself.
+
+Key benefits to highlight (use specific details, not vague summaries):
+- Zero cost to the institution — SweetLease is completely free for the program and the residents
+- Lease negotiation service — we negotiate on behalf of each resident to secure rates 15-25% below market average
+- Furnished AND unfurnished options from our network of pre-screened, vetted landlords
+- Proximity matching — we prioritize housing near clinical sites, hospitals, and campus
+- End-to-end managed process: housing search, landlord vetting, lease negotiation, and placement
+- Branded housing portal — a dedicated page for your program where incoming residents can browse options
+- Ongoing support throughout the lease term, not just at placement
+- Minimal administrative lift — your team shares the incoming cohort list, we handle everything else
+- Reduces housing-related stress and attrition, especially for residents relocating from out of state`;
+      interestedRules = `For interested leads: explain the specific benefits in detail. Be informative, not pushy. Let them understand exactly what the service includes before suggesting a call.`;
       break;
     default: // landlord
       audienceContext = `You are replying to a LANDLORD or PROPERTY MANAGER. They are interested in SweetLease to fill vacancies faster.
@@ -399,20 +405,22 @@ function getTypeMessaging(contactType: string) {
     case 'residency':
     case 'graduate-housing':
       return {
-        interestedHook: `SweetLease provides a free housing resource for incoming students and residents — connecting them with pre-screened landlords offering furnished and unfurnished options at rates significantly below market average.`,
-        interestedCta: `I would welcome the opportunity to schedule a brief 30-minute call to discuss how SweetLease can serve as a housing resource for your program.`,
-        interestedOnboarding: `Setup is simple — we can have a branded housing portal operational within days of partnership approval, at no cost to your institution.`,
-        questionHook: `Universities and residency programs partnering with SweetLease give their incoming students and residents access to a curated, fully managed housing resource — completely free of charge — with rental rates well below what they would find independently.`,
+        interestedHook: `SweetLease is a completely free housing resource designed specifically for programs like yours. Here is what that includes:`,
+        interestedCta: `If any of this sounds relevant to your program, I am happy to walk through how it would work for your specific incoming cohort.`,
+        interestedOnboarding: `To get started, your team would simply share the incoming resident list — we handle everything else from there.`,
+        questionHook: `SweetLease is a free, fully managed housing service built for residency programs and universities. Here is a breakdown of exactly what we provide:`,
         questionBullets: [
-          'Completely free for your institution and your students/residents',
-          'Curated housing near campus and clinical sites — furnished and unfurnished options',
-          'We negotiate lease terms on behalf of residents, securing rates below market average',
-          'Full end-to-end service: search, vetting, negotiation, and placement',
-          'Reduces housing-related stress and attrition for incoming cohorts',
-          'Minimal administrative effort — branded portal operational within days',
+          'Zero cost — completely free for your institution and your residents',
+          'Lease negotiation — we negotiate on behalf of each resident to secure rates 15–25% below market average',
+          'Furnished and unfurnished options from our network of pre-screened, vetted landlords',
+          'Proximity matching — we prioritize housing near clinical sites, hospitals, and campus',
+          'End-to-end managed process: housing search, landlord vetting, lease negotiation, and placement',
+          'Branded housing portal — a dedicated page for your program where incoming residents can browse options',
+          'Ongoing support throughout the lease term, not just at placement',
+          'Minimal administrative lift — your team shares the incoming cohort list, we handle everything else',
         ],
-        objectionHook: `SweetLease is entirely free for institutions. We handle the search, vetting, and lease negotiation for incoming students and residents — securing rates below market average with zero cost and minimal administrative effort from your program. Many institutions start with a single incoming cohort as a pilot — no commitment required.`,
-        notInterestedSeed: `For reference, we currently serve as a free housing resource for universities and residency programs, negotiating below-market rates and handling the full placement process for incoming students and residents. Should your needs change in the future, we would be glad to help.`,
+        objectionHook: `SweetLease is entirely free for institutions. We negotiate lease rates 15–25% below market average on behalf of residents, handle the full search-to-placement process, and provide ongoing support throughout the lease term — all with minimal administrative effort from your team. Many programs start with a single incoming cohort as a pilot — no commitment required.`,
+        notInterestedSeed: `For reference, we currently serve as a free housing resource for residency programs and universities — negotiating rates 15–25% below market, handling the full placement process, and providing ongoing lease support for incoming residents. Should your needs change in the future, we would be glad to help.`,
       };
     default: // landlord
       return {
