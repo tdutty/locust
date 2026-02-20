@@ -189,11 +189,32 @@ function buildPdfLinkHtml(contactType?: string): string {
       </table>`;
 }
 
+/** Branded email signature matching outbound campaigns */
+function buildSignatureHtml(): string {
+  return `
+      <table cellpadding="0" cellspacing="0" border="0" style="margin-top:24px;border-top:1px solid #e2e8f0;padding-top:16px;">
+        <tr>
+          <td style="vertical-align:top;font-family:Arial,sans-serif;">
+            <p style="margin:0 0 8px 0;font-size:20px;font-weight:700;letter-spacing:-0.02em;line-height:1;">
+              <span style="color:#EA580C;">SWEET</span><span style="color:#1a1a1a;">LEASE</span>
+            </p>
+            <p style="margin:0;font-size:14px;font-weight:600;color:#1a1a1a;">Terrell Gilbert</p>
+            <p style="margin:2px 0 0;font-size:12px;color:#64748b;">Account Executive</p>
+            <p style="margin:6px 0 0;font-size:12px;">
+              <a href="https://sweetlease.io" style="color:#EA580C;text-decoration:none;">sweetlease.io</a>
+              <span style="color:#cbd5e1;margin:0 6px;">|</span>
+              <a href="mailto:tgilbert@sweetlease.io" style="color:#EA580C;text-decoration:none;">tgilbert@sweetlease.io</a>
+            </p>
+          </td>
+        </tr>
+      </table>`;
+}
+
 /** Wraps reply body text + HTML components into a full HTML email */
 function buildFullHtmlEmail(textParagraphs: string[], availabilityHtml: string, pdfHtml: string, includeAvailability: boolean): string {
   const bodyParagraphs = textParagraphs.map(p => {
     if (p.includes('https://')) {
-      return `<p style="margin:10px 0;font-size:15px;line-height:1.6;color:#333;"><a href="${p.trim()}" style="color:#16a34a;">${p.trim()}</a></p>`;
+      return `<p style="margin:10px 0;font-size:15px;line-height:1.6;color:#333;"><a href="${p.trim()}" style="color:#EA580C;text-decoration:none;">${p.trim()}</a></p>`;
     }
     return `<p style="margin:10px 0;font-size:15px;line-height:1.6;color:#333;">${p}</p>`;
   }).join('');
@@ -204,18 +225,14 @@ function buildFullHtmlEmail(textParagraphs: string[], availabilityHtml: string, 
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
-<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;margin:0;padding:0;background-color:#ffffff;">
+<body style="font-family:Arial,sans-serif;margin:0;padding:0;background-color:#ffffff;">
   <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;padding:20px;">
     <tr>
       <td>
         ${bodyParagraphs}
         ${includeAvailability ? availabilityHtml : ''}
         ${pdfHtml}
-        <table cellpadding="0" cellspacing="0" style="margin-top:24px;">
-          <tr><td style="font-size:15px;color:#333;">Best,</td></tr>
-          <tr><td style="font-size:15px;font-weight:600;color:#111;padding-top:4px;">Terrell Gilbert</td></tr>
-          <tr><td style="font-size:14px;color:#16a34a;">SweetLease</td></tr>
-        </table>
+        ${buildSignatureHtml()}
       </td>
     </tr>
   </table>
@@ -229,27 +246,33 @@ export async function getReplySystemPrompt(): Promise<string> {
     ? slots.map(s => `  - ${s.label} (book directly: ${s.scheduling_url})`).join('\n')
     : `  (Check availability: ${CALENDLY_SCHEDULING_URL})`;
 
-  return `You are Locust, the AI Account Executive for SweetLease. You are writing a reply to an incoming email.
+  return `You are writing a professional reply on behalf of Terrell Gilbert, Account Executive at SweetLease.
 
 SweetLease connects independent landlords with relocating corporate employees. Key value props:
 - For landlords: Fill vacancies 3x faster, pre-screened tenants with employer-backed guarantees
-- For employers: $99.99 one-time employee fee, $100-300/month rent savings, zero cost to employer
+- For employers: Complimentary housing placement service, $100-300/month rent savings, zero cost to employer
+- For universities/residency programs: Free housing resource for incoming students and residents
 
 Today's date is ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'America/Chicago' })}.
 
+Tone and style:
+- Professional, polished, and business-appropriate. Write like a senior business development executive.
+- Use complete sentences, proper grammar, and a respectful tone.
+- Avoid slang, casual phrases, colloquialisms, and excessive exclamation marks.
+- Do NOT use "I hope this finds you well" or filler greetings. Be direct and substantive.
+
 Rules:
-- Be warm and conversational but concise
-- Address their specific questions or concerns
+- Address their specific questions or concerns directly
 - For interested leads: propose a call using ONLY these real available times from Calendly:
 ${slotText}
-  Include the direct booking link for each time slot.
-  Also include the general Calendly link: ${CALENDLY_SCHEDULING_URL}
-- For objections: acknowledge, provide value, suggest future follow-up
-- For questions: answer directly with specific details
-- For not_interested: graciously remove them, leave door open
-- Do NOT include a signature block — it will be added automatically
-- Keep the body under 100 words (signature and scheduling table are added separately)
-- Sign off as Terrell Gilbert, SweetLease`;
+  Mention each time slot with its booking link. Also include the general Calendly link: ${CALENDLY_SCHEDULING_URL}
+  Mention that you will also send over a partnership overview for their review.
+- For objections: acknowledge respectfully, provide value, suggest revisiting in the future
+- For questions: answer with specific details and data points
+- For not_interested: professionally remove them, leave the door open
+- Do NOT include a signature block or sign-off — it is appended automatically
+- Keep the body under 100 words (signature, scheduling table, and PDF link are added separately)
+- End with "Best regards," on its own line — nothing after that`;
 }
 
 /** Generates reply with HTML body, Calendly table, and PDF link */
@@ -295,43 +318,43 @@ function buildTemplateReply(email: OriginalEmail, slots: CalendlySlot[]): { subj
   switch (email.classification) {
     case 'interested': {
       const slotLines = slots.length > 0
-        ? slots.map(s => `- ${s.label}: ${s.scheduling_url}`).join('\n') + `\n\nOr pick another time: ${CALENDLY_SCHEDULING_URL}`
-        : `Grab a time that works best: ${CALENDLY_SCHEDULING_URL}`;
-      const body = `Hi ${firstName},\n\nThank you for your interest in SweetLease! I'd love to schedule a quick 30-minute call to learn more about your needs and show you how we can help.\n\nHere are a few times that work for me:\n${slotLines}\n\nLooking forward to connecting!`;
+        ? slots.map(s => `- ${s.label}: ${s.scheduling_url}`).join('\n') + `\n\nAlternatively, you can view all available times here: ${CALENDLY_SCHEDULING_URL}`
+        : `You can select a convenient time here: ${CALENDLY_SCHEDULING_URL}`;
+      const body = `Dear ${firstName},\n\nThank you for your interest in SweetLease. I would welcome the opportunity to schedule a brief 30-minute call to discuss your specific needs and how our platform can add value.\n\nBelow are several available times for a conversation:\n${slotLines}\n\nI have also included a partnership overview below for your reference.\n\nBest regards,`;
       const paragraphs = [
-        `Hi ${firstName},`,
-        `Thank you for your interest in SweetLease! I'd love to schedule a quick 30-minute call to learn more about your needs and show you how we can help.`,
-        `Here are a few times that work for me:`,
+        `Dear ${firstName},`,
+        `Thank you for your interest in SweetLease. I would welcome the opportunity to schedule a brief 30-minute call to discuss your specific needs and how our platform can add value.`,
+        `Below are several available times for a conversation:`,
       ];
       return { subject, body, paragraphs };
     }
     case 'question': {
       const paragraphs = [
-        `Hi ${firstName},`,
-        `Great question! Here's how SweetLease works:`,
-        `&#8226; You set your rates, we bring qualified tenants<br>&#8226; No listing fees or commissions<br>&#8226; Tenants are pre-screened by their employers<br>&#8226; Average time to fill: 14 days vs 45 days on traditional platforms`,
-        `I'd be happy to walk you through a few case studies. Would a quick call this week work?`,
+        `Dear ${firstName},`,
+        `Thank you for your inquiry. I am happy to provide some additional detail on how SweetLease works:`,
+        `&#8226; You maintain full control over pricing; we source qualified tenants<br>&#8226; No listing fees or commissions<br>&#8226; All tenants are pre-screened with employer-backed guarantees<br>&#8226; Average placement timeline: 14 days, compared to 45 days on traditional platforms`,
+        `I have included a detailed overview document below for your reference. I would also be glad to walk you through several relevant case studies at your convenience.`,
       ];
-      const body = `Hi ${firstName},\n\nGreat question! Here's how SweetLease works:\n\n- You set your rates, we bring qualified tenants\n- No listing fees or commissions\n- Tenants are pre-screened by their employers\n- Average time to fill: 14 days vs 45 days on traditional platforms\n\nI'd be happy to walk you through a few case studies. Would a quick call this week work?`;
+      const body = `Dear ${firstName},\n\nThank you for your inquiry. I am happy to provide some additional detail on how SweetLease works:\n\n- You maintain full control over pricing; we source qualified tenants\n- No listing fees or commissions\n- All tenants are pre-screened with employer-backed guarantees\n- Average placement timeline: 14 days, compared to 45 days on traditional platforms\n\nI have included a detailed overview document below for your reference. I would also be glad to walk you through several relevant case studies at your convenience.\n\nBest regards,`;
       return { subject, body, paragraphs };
     }
     case 'objection': {
       const paragraphs = [
-        `Hi ${firstName},`,
-        `Completely understand. Timing is everything.`,
-        `Many of our partners started with just one or two units to test the waters. No long-term commitment required.`,
-        `I'll check back in a few months. In the meantime, feel free to reach out if anything changes.`,
+        `Dear ${firstName},`,
+        `I appreciate you taking the time to respond, and I completely understand. Timing is an important factor in these decisions.`,
+        `Many of our current partners began with a limited pilot — one or two units — with no long-term commitment required. This approach allows you to evaluate the results before making any broader decisions.`,
+        `I will plan to follow up in a few months. In the meantime, I have included an overview document below should you wish to learn more at your own pace.`,
       ];
-      const body = paragraphs.join('\n\n');
+      const body = paragraphs.join('\n\n') + '\n\nBest regards,';
       return { subject, body, paragraphs };
     }
     case 'not_interested': {
       const paragraphs = [
-        `Hi ${firstName},`,
-        `No problem at all. I've removed you from our outreach list.`,
-        `If your situation ever changes, feel free to reach out anytime. Best of luck!`,
+        `Dear ${firstName},`,
+        `Thank you for letting me know. I have removed you from our outreach list, and you will not receive further communications from us.`,
+        `Should your circumstances change in the future, please do not hesitate to reach out. I wish you continued success.`,
       ];
-      const body = paragraphs.join('\n\n');
+      const body = paragraphs.join('\n\n') + '\n\nBest regards,';
       return { subject, body, paragraphs };
     }
     default:
