@@ -171,7 +171,7 @@ function buildPdfLinkHtml(contactType?: string): string {
             <table cellpadding="0" cellspacing="0">
               <tr>
                 <td style="padding-right:14px;vertical-align:middle;">
-                  <div style="width:40px;height:40px;background-color:#fee2e2;border-radius:8px;text-align:center;line-height:40px;font-size:18px;">
+                  <div style="width:40px;height:40px;background-color:#FFF7ED;border-radius:8px;text-align:center;line-height:40px;font-size:18px;">
                     &#128196;
                   </div>
                 </td>
@@ -267,12 +267,13 @@ Key value props for employers:
     case 'graduate-housing':
       audienceContext = `You are replying to a UNIVERSITY, RESIDENCY PROGRAM, or GRADUATE HOUSING contact. They are interested in SweetLease as a housing resource for incoming students or residents.
 Key value props for institutions:
-- Free housing resource for incoming students and residents
-- Curated, quality housing near campus and clinical sites
-- We handle the search, vetting, and placement end-to-end
-- Reduces housing-related stress and attrition for incoming cohorts
-- Quick setup — branded housing portal ready within days`;
-      interestedRules = `For interested leads: propose a call to discuss how SweetLease can serve as a housing resource for their program. Emphasize it's completely free for the institution.`;
+- Free housing resource for incoming students and residents — zero cost to the institution
+- We connect residents with pre-screened landlords offering furnished and unfurnished options
+- We negotiate lease terms on behalf of residents, securing rates significantly below market average
+- Full end-to-end service: search, vetting, negotiation, and placement
+- Reduces housing-related stress and attrition for incoming cohorts with minimal administrative effort
+- Quick setup — branded housing portal operational within days of partnership approval`;
+      interestedRules = `For interested leads: propose a call to discuss how SweetLease can serve as a housing resource for their program. Emphasize it's completely free, we negotiate below-market rates, and requires minimal administrative effort.`;
       break;
     default: // landlord
       audienceContext = `You are replying to a LANDLORD or PROPERTY MANAGER. They are interested in SweetLease to fill vacancies faster.
@@ -333,12 +334,21 @@ export async function generateReply(originalEmail: OriginalEmail): Promise<{ sub
     // Strip any AI-generated signature (everything after "Best regards," etc.)
     const sigIdx = textParagraphs.findIndex(l => /^(best regards|best,|regards,|warm regards|sincerely|cheers,|terrell gilbert|— terrell|--\s*$)/i.test(l.trim()));
     const trimmed = sigIdx > 0 ? textParagraphs.slice(0, sigIdx) : textParagraphs;
-    // Strip AI-generated Calendly slot lines and "Alternatively" links — we render these in the HTML table
-    const bodyParagraphs = trimmed.filter(l =>
-      !(/^-\s.*(calendly\.com|AM CT|PM CT)/i.test(l.trim())) &&
-      !(/^alternatively.*calendly/i.test(l.trim())) &&
-      !(/partnership overview for your review/i.test(l.trim()))
-    );
+    // Strip AI-generated Calendly slot lines and related text — we render these in the HTML table
+    const bodyParagraphs = trimmed.filter(l => {
+      const t = l.trim();
+      // Lines containing calendly.com URLs
+      if (/calendly\.com/i.test(t)) return false;
+      // Slot lines like "Friday, February 20 at 9:00 AM CT" or "• Monday..."
+      if (/\d{1,2}:\d{2}\s*(AM|PM)\s*CT/i.test(t)) return false;
+      // "Alternatively" / "Or select another time" / "view all available times"
+      if (/^(alternatively|or select|view all available)/i.test(t)) return false;
+      // "I have availability" / "available times" intro lines
+      if (/\b(i have availability|available times|here are.*times)\b/i.test(t)) return false;
+      // "partnership overview for your review" / "I'll also send over"
+      if (/partnership overview/i.test(t)) return false;
+      return true;
+    });
 
     return {
       subject: aiReply.subject,
@@ -397,19 +407,20 @@ function getTypeMessaging(contactType: string) {
     case 'residency':
     case 'graduate-housing':
       return {
-        interestedHook: `SweetLease provides a free housing resource for incoming students and residents — helping them find quality, affordable housing near campus with a fully managed placement process.`,
+        interestedHook: `SweetLease provides a free housing resource for incoming students and residents — connecting them with pre-screened landlords offering furnished and unfurnished options at rates significantly below market average.`,
         interestedCta: `I would welcome the opportunity to schedule a brief 30-minute call to discuss how SweetLease can serve as a housing resource for your program.`,
-        interestedOnboarding: `Setup is simple — we can have a branded housing portal ready for your program within days, at no cost to your institution.`,
-        questionHook: `Universities and residency programs partnering with SweetLease give their incoming students and residents access to a curated, fully managed housing resource — completely free of charge.`,
+        interestedOnboarding: `Setup is simple — we can have a branded housing portal operational within days of partnership approval, at no cost to your institution.`,
+        questionHook: `Universities and residency programs partnering with SweetLease give their incoming students and residents access to a curated, fully managed housing resource — completely free of charge — with rental rates well below what they would find independently.`,
         questionBullets: [
           'Completely free for your institution and your students/residents',
-          'Curated, quality housing options near campus and clinical sites',
-          'We handle the search, vetting, and placement process end-to-end',
+          'Curated housing near campus and clinical sites — furnished and unfurnished options',
+          'We negotiate lease terms on behalf of residents, securing rates below market average',
+          'Full end-to-end service: search, vetting, negotiation, and placement',
           'Reduces housing-related stress and attrition for incoming cohorts',
-          'Quick setup — we can have a housing resource page ready within days',
+          'Minimal administrative effort — branded portal operational within days',
         ],
-        objectionHook: `SweetLease is entirely free for institutions. We provide a managed housing resource for incoming students and residents at zero cost, reducing housing-related stress and attrition. Many programs start with a single incoming cohort as a pilot — no commitment required.`,
-        notInterestedSeed: `For reference, we currently serve as a free housing resource for universities and residency programs, helping incoming students and residents find quality housing near campus. Should your needs change in the future, we would be glad to help.`,
+        objectionHook: `SweetLease is entirely free for institutions. We handle the search, vetting, and lease negotiation for incoming students and residents — securing rates below market average with zero cost and minimal administrative effort from your program. Many institutions start with a single incoming cohort as a pilot — no commitment required.`,
+        notInterestedSeed: `For reference, we currently serve as a free housing resource for universities and residency programs, negotiating below-market rates and handling the full placement process for incoming students and residents. Should your needs change in the future, we would be glad to help.`,
       };
     default: // landlord
       return {
