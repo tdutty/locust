@@ -321,11 +321,11 @@ function buildTemplateReply(email: OriginalEmail, slots: CalendlySlot[]): { subj
       const slotLines = slots.length > 0
         ? slots.map(s => `- ${s.label}: ${s.scheduling_url}`).join('\n') + `\n\nAlternatively, you can view all available times here: ${CALENDLY_SCHEDULING_URL}`
         : `You can select a convenient time here: ${CALENDLY_SCHEDULING_URL}`;
-      const body = `Dear ${firstName},\n\nThank you for your interest in SweetLease. I would welcome the opportunity to schedule a brief 30-minute call to discuss your specific needs and walk you through our platform.\n\nAs part of our onboarding, we will integrate your existing listings at no additional cost to get you up and running quickly.\n\nBelow are several available times for a conversation:\n${slotLines}\n\nI have also included a partnership overview below for your reference.\n\nBest regards,`;
+      const body = `Dear ${firstName},\n\nThank you for your interest in SweetLease. I would welcome the opportunity to schedule a brief 30-minute call to discuss your specific needs and walk you through our platform.\n\nOur onboarding process is quick — we integrate your existing listings at no additional cost and have you up and running in days.\n\nBelow are several available times for a conversation:\n${slotLines}\n\nI have also included a partnership overview below for your reference.\n\nBest regards,`;
       const paragraphs = [
         `Dear ${firstName},`,
         `Thank you for your interest in SweetLease. I would welcome the opportunity to schedule a brief 30-minute call to discuss your specific needs and walk you through our platform.`,
-        `As part of our onboarding, we will integrate your existing listings at no additional cost to get you up and running quickly.`,
+        `Our onboarding process is quick — we integrate your existing listings at no additional cost and have you up and running in days.`,
         `Below are several available times for a conversation:`,
       ];
       return { subject, body, paragraphs };
@@ -336,7 +336,7 @@ function buildTemplateReply(email: OriginalEmail, slots: CalendlySlot[]): { subj
         'Our commission is 25% below the industry standard',
         'All tenants are pre-screened with employer-backed guarantees',
         'Average placement timeline: 14 days, compared to 45 days on traditional platforms',
-        'We integrate your existing listings at no additional cost',
+        'Quick onboarding — we integrate your existing listings at no additional cost',
       ];
       const paragraphs = [
         `Dear ${firstName},`,
