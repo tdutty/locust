@@ -241,11 +241,6 @@ function buildFullHtmlEmail(textParagraphs: string[], availabilityHtml: string, 
 }
 
 export async function getReplySystemPrompt(contactType?: string): Promise<string> {
-  const slots = await fetchCalendlySlots();
-  const slotText = slots.length > 0
-    ? slots.map(s => `  - ${s.label} (book directly: ${s.scheduling_url})`).join('\n')
-    : `  (Check availability: ${CALENDLY_SCHEDULING_URL})`;
-
   const type = contactType || 'landlord';
   let audienceContext: string;
   let interestedRules: string;
@@ -305,16 +300,15 @@ Tone and style:
 Rules:
 - Address their specific questions or concerns directly
 - ${interestedRules}
-  Use ONLY these real available times from Calendly:
-${slotText}
-  Mention each time slot with its booking link. Also include the general Calendly link: ${CALENDLY_SCHEDULING_URL}
-  Mention that you will also send over a partnership overview for their review.
 - For objections: acknowledge respectfully, provide value, suggest revisiting in the future
 - For questions: answer with specific details and data points relevant to their type (employer/university/landlord)
 - For not_interested: professionally remove them, leave the door open
-- Do NOT include a signature block or sign-off — it is appended automatically
-- Keep the body under 100 words (signature, scheduling table, and PDF link are added separately)
-- End with "Best regards," on its own line — nothing after that`;
+- CRITICAL: Do NOT include ANY scheduling times, dates, availability, Calendly links, or URLs of any kind. A scheduling table is appended separately.
+- CRITICAL: Do NOT mention sending a partnership overview, PDF, or document. A document link is appended separately.
+- CRITICAL: Do NOT include a signature block or sign-off. It is appended separately.
+- CRITICAL: Do NOT include any URLs, links, bullet-point lists of times, or scheduling options.
+- Keep the body to 2-3 short paragraphs (under 80 words total). End with a sentence like "I would welcome the opportunity to connect at your convenience."
+- End with "Best regards," on its own line — absolutely nothing after that`;
 }
 
 /** Generates reply with HTML body, Calendly table, and PDF link */
@@ -331,24 +325,22 @@ export async function generateReply(originalEmail: OriginalEmail): Promise<{ sub
   const aiReply = await generateReplyWithAI(originalEmail);
   if (aiReply) {
     const textParagraphs = aiReply.body.split('\n').filter(l => l.trim());
-    // Strip any AI-generated signature (everything after "Best regards," etc.)
-    const sigIdx = textParagraphs.findIndex(l => /^(best regards|best,|regards,|warm regards|sincerely|cheers,|terrell gilbert|— terrell|--\s*$)/i.test(l.trim()));
-    const trimmed = sigIdx > 0 ? textParagraphs.slice(0, sigIdx) : textParagraphs;
-    // Strip AI-generated Calendly slot lines and related text — we render these in the HTML table
-    const bodyParagraphs = trimmed.filter(l => {
+    // Truncate at signature OR any scheduling/link content (whichever comes first)
+    const cutIdx = textParagraphs.findIndex(l => {
       const t = l.trim();
-      // Lines containing calendly.com URLs
-      if (/calendly\.com/i.test(t)) return false;
-      // Slot lines like "Friday, February 20 at 9:00 AM CT" or "• Monday..."
-      if (/\d{1,2}:\d{2}\s*(AM|PM)\s*CT/i.test(t)) return false;
-      // "Alternatively" / "Or select another time" / "view all available times"
-      if (/^(alternatively|or select|view all available)/i.test(t)) return false;
-      // "I have availability" / "available times" intro lines
-      if (/\b(i have availability|available times|here are.*times)\b/i.test(t)) return false;
-      // "partnership overview for your review" / "I'll also send over"
-      if (/partnership overview/i.test(t)) return false;
-      return true;
+      // Signature lines
+      if (/^(best regards|best,|regards,|warm regards|sincerely|cheers,|terrell gilbert|— terrell|--\s*$)/i.test(t)) return true;
+      // Any line with URLs or calendly
+      if (/calendly\.com|https?:\/\//i.test(t)) return true;
+      // Time slots (9:00 AM CT, etc.)
+      if (/\d{1,2}:\d{2}\s*(AM|PM)\s*CT/i.test(t)) return true;
+      // Scheduling intro lines
+      if (/\b(i have availability|available times|here are.*times|following times|times available)\b/i.test(t)) return true;
+      // Partnership overview / PDF mentions
+      if (/partnership overview|send over|overview for your review/i.test(t)) return true;
+      return false;
     });
+    const bodyParagraphs = cutIdx > 0 ? textParagraphs.slice(0, cutIdx) : textParagraphs;
 
     return {
       subject: aiReply.subject,
