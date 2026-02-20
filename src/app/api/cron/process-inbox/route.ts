@@ -225,20 +225,18 @@ export async function GET(request: NextRequest) {
               subject: email.subject,
               body: email.body,
               classification: email.classification,
+              contactType: contact.contact_type || 'landlord',
             };
 
             const reply = await generateReply(originalEmail);
             if (!reply) continue;
 
-            const replySubject = reply.subject;
-            const replyBody = reply.body;
-
             const scheduledFor = new Date(Date.now() + delayMs).toISOString();
             const scheduleResult = await query(
-              `INSERT INTO scheduled_emails (contact_id, to_email, subject, body, lead_type, scheduled_for)
-               VALUES ($1, $2, $3, $4, $5, $6)
+              `INSERT INTO scheduled_emails (contact_id, to_email, subject, body, html_body, lead_type, scheduled_for)
+               VALUES ($1, $2, $3, $4, $5, $6, $7)
                RETURNING id`,
-              [contact.id, email.fromEmail, replySubject, replyBody, contact.contact_type || 'landlord', scheduledFor]
+              [contact.id, email.fromEmail, reply.subject, reply.body, reply.htmlBody, contact.contact_type || 'landlord', scheduledFor]
             );
 
             replyScheduledId = scheduleResult.rows[0].id;

@@ -6,10 +6,22 @@ export interface OriginalEmail {
   subject: string;
   body: string;
   classification: 'interested' | 'objection' | 'not_interested' | 'question' | 'spam' | 'system';
+  contactType?: string;
 }
 
 const CALENDLY_EVENT_TYPE = 'https://api.calendly.com/event_types/9855ae1b-631d-48c4-8089-78956bd85b7d';
 const CALENDLY_SCHEDULING_URL = 'https://calendly.com/terrellgilb5/30min';
+const APP_BASE_URL = 'https://locust-m7ng3.ondigitalocean.app';
+
+// PDF docs mapped by contact type
+const PDF_DOCS: Record<string, { label: string; path: string }> = {
+  landlord: { label: 'SweetLease Landlord Overview', path: '/docs/sweetlease-landlord-overview.pdf' },
+  employer: { label: 'SweetLease Employer Overview', path: '/docs/sweetlease-employer-overview.pdf' },
+  university: { label: 'SweetLease University Housing Resource', path: '/docs/sweetlease-university-housing-resource.pdf' },
+  residency: { label: 'SweetLease Residency Program Overview', path: '/docs/sweetlease-residency-program-overview.pdf' },
+  'benefits-platform': { label: 'SweetLease Benefits Partnership Deck', path: '/docs/sweetlease-benefits-partnership-deck.pdf' },
+  'graduate-housing': { label: 'SweetLease University Housing Resource', path: '/docs/sweetlease-university-housing-resource.pdf' },
+};
 
 interface CalendlySlot {
   label: string;
@@ -57,7 +69,6 @@ async function fetchCalendlySlots(): Promise<CalendlySlot[]> {
     const picked: CalendlySlot[] = [];
     for (const [, daySlots] of byDay) {
       if (picked.length >= 3) break;
-      // Pick slot closest to target hour for variety across the day
       const targetHour = targetHoursUTC[targetIdx % targetHoursUTC.length];
       targetIdx++;
       const slot = daySlots.reduce((best: any, s: any) => {
@@ -88,14 +99,128 @@ async function fetchCalendlySlots(): Promise<CalendlySlot[]> {
   }
 }
 
-/** Format slots for display in email body */
-function formatSlotsText(slots: CalendlySlot[]): string {
+/** Build HTML availability table */
+function buildAvailabilityTableHtml(slots: CalendlySlot[]): string {
   if (slots.length === 0) {
-    return `Grab a time that works best: ${CALENDLY_SCHEDULING_URL}`;
+    return `
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;">
+        <tr>
+          <td align="center" style="padding:16px;">
+            <a href="${CALENDLY_SCHEDULING_URL}" style="display:inline-block;background-color:#16a34a;color:#ffffff;font-size:16px;font-weight:600;text-decoration:none;padding:12px 28px;border-radius:8px;">
+              View Available Times
+            </a>
+          </td>
+        </tr>
+      </table>`;
   }
-  const lines = slots.map(s => `- ${s.label}: ${s.scheduling_url}`);
-  lines.push(`\nOr pick another time: ${CALENDLY_SCHEDULING_URL}`);
-  return lines.join('\n');
+
+  const rows = slots.map((s, i) => {
+    const parts = s.label.split(' at ');
+    const day = parts[0];
+    const time = parts[1] || s.label;
+    const bgColor = i % 2 === 0 ? '#f9fafb' : '#ffffff';
+    return `
+          <tr style="background-color:${bgColor};">
+            <td style="padding:12px 16px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#374151;">
+              ${day}
+            </td>
+            <td style="padding:12px 16px;border-bottom:1px solid #e5e7eb;font-size:14px;font-weight:600;color:#111827;">
+              ${time}
+            </td>
+            <td style="padding:12px 16px;border-bottom:1px solid #e5e7eb;text-align:center;">
+              <a href="${s.scheduling_url}" style="display:inline-block;background-color:#16a34a;color:#ffffff;font-size:13px;font-weight:600;text-decoration:none;padding:8px 18px;border-radius:6px;">
+                Book
+              </a>
+            </td>
+          </tr>`;
+  }).join('');
+
+  return `
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;border-radius:8px;overflow:hidden;border:1px solid #e5e7eb;">
+        <thead>
+          <tr style="background-color:#f0fdf4;">
+            <th style="padding:12px 16px;text-align:left;font-size:13px;font-weight:600;color:#166534;text-transform:uppercase;letter-spacing:0.5px;border-bottom:2px solid #16a34a;">
+              Day
+            </th>
+            <th style="padding:12px 16px;text-align:left;font-size:13px;font-weight:600;color:#166534;text-transform:uppercase;letter-spacing:0.5px;border-bottom:2px solid #16a34a;">
+              Time
+            </th>
+            <th style="padding:12px 16px;text-align:center;font-size:13px;font-weight:600;color:#166534;text-transform:uppercase;letter-spacing:0.5px;border-bottom:2px solid #16a34a;">
+              &nbsp;
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows}
+        </tbody>
+      </table>
+      <p style="margin:8px 0 0;font-size:13px;color:#6b7280;">
+        None of these work? <a href="${CALENDLY_SCHEDULING_URL}" style="color:#16a34a;font-weight:500;">View all available times</a>
+      </p>`;
+}
+
+/** Build HTML block for PDF doc link */
+function buildPdfLinkHtml(contactType?: string): string {
+  const doc = PDF_DOCS[contactType || 'landlord'] || PDF_DOCS.landlord;
+  const url = `${APP_BASE_URL}${doc.path}`;
+
+  return `
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0 8px;">
+        <tr>
+          <td style="background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:16px 20px;">
+            <table cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="padding-right:14px;vertical-align:middle;">
+                  <div style="width:40px;height:40px;background-color:#fee2e2;border-radius:8px;text-align:center;line-height:40px;font-size:18px;">
+                    &#128196;
+                  </div>
+                </td>
+                <td style="vertical-align:middle;">
+                  <p style="margin:0;font-size:14px;font-weight:600;color:#1e293b;">${doc.label}</p>
+                  <p style="margin:4px 0 0;font-size:13px;color:#64748b;">
+                    Prefer to read first?
+                    <a href="${url}" style="color:#16a34a;font-weight:600;text-decoration:none;">Download PDF</a>
+                  </p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>`;
+}
+
+/** Wraps reply body text + HTML components into a full HTML email */
+function buildFullHtmlEmail(textParagraphs: string[], availabilityHtml: string, pdfHtml: string, includeAvailability: boolean): string {
+  const bodyParagraphs = textParagraphs.map(p => {
+    if (p.includes('https://')) {
+      return `<p style="margin:10px 0;font-size:15px;line-height:1.6;color:#333;"><a href="${p.trim()}" style="color:#16a34a;">${p.trim()}</a></p>`;
+    }
+    return `<p style="margin:10px 0;font-size:15px;line-height:1.6;color:#333;">${p}</p>`;
+  }).join('');
+
+  return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;margin:0;padding:0;background-color:#ffffff;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;padding:20px;">
+    <tr>
+      <td>
+        ${bodyParagraphs}
+        ${includeAvailability ? availabilityHtml : ''}
+        ${pdfHtml}
+        <table cellpadding="0" cellspacing="0" style="margin-top:24px;">
+          <tr><td style="font-size:15px;color:#333;">Best,</td></tr>
+          <tr><td style="font-size:15px;font-weight:600;color:#111;padding-top:4px;">Terrell Gilbert</td></tr>
+          <tr><td style="font-size:14px;color:#16a34a;">SweetLease</td></tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
 }
 
 export async function getReplySystemPrompt(): Promise<string> {
@@ -113,86 +238,108 @@ SweetLease connects independent landlords with relocating corporate employees. K
 Today's date is ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'America/Chicago' })}.
 
 Rules:
-- Be warm and conversational
+- Be warm and conversational but concise
 - Address their specific questions or concerns
 - For interested leads: propose a call using ONLY these real available times from Calendly:
 ${slotText}
-  Include the direct booking link for each time slot so they can click to book instantly.
+  Include the direct booking link for each time slot.
   Also include the general Calendly link: ${CALENDLY_SCHEDULING_URL}
 - For objections: acknowledge, provide value, suggest future follow-up
 - For questions: answer directly with specific details
 - For not_interested: graciously remove them, leave door open
-- Keep replies under 150 words
+- Do NOT include a signature block — it will be added automatically
+- Keep the body under 100 words (signature and scheduling table are added separately)
 - Sign off as Terrell Gilbert, SweetLease`;
 }
 
-export const REPLY_TEMPLATES: Record<string, { subject: (original: string) => string; body: (name: string, slotsText?: string) => string }> = {
-  interested: {
-    subject: (original: string) => `Re: ${original}`,
-    body: (name: string, slotsText?: string) => {
-      return `Hi ${name},
+/** Generates reply with HTML body, Calendly table, and PDF link */
+export async function generateReply(originalEmail: OriginalEmail): Promise<{ subject: string; body: string; htmlBody: string; source: string } | null> {
+  if (originalEmail.classification === 'spam' || originalEmail.classification === 'system') return null;
 
-Thank you for your interest in SweetLease! I'd love to schedule a quick 30-minute call to learn more about your portfolio and show you how we're helping landlords like you compete with corporate players.
+  const contactType = originalEmail.contactType || 'landlord';
+  const slots = await fetchCalendlySlots();
+  const availabilityHtml = buildAvailabilityTableHtml(slots);
+  const pdfHtml = buildPdfLinkHtml(contactType);
+  const includeAvailability = originalEmail.classification === 'interested' || originalEmail.classification === 'question';
 
-Here are a few times that work for me:
-${slotsText || `Grab a time that works best: ${CALENDLY_SCHEDULING_URL}`}
+  // Try AI first
+  const aiReply = await generateReplyWithAI(originalEmail);
+  if (aiReply) {
+    const textParagraphs = aiReply.body.split('\n').filter(l => l.trim());
+    // Strip any AI-generated signature (everything after "Best," or "Terrell")
+    const sigIdx = textParagraphs.findIndex(l => /^(best|regards|cheers|terrell|sweetlease)/i.test(l.trim()));
+    const bodyParagraphs = sigIdx > 0 ? textParagraphs.slice(0, sigIdx) : textParagraphs;
 
-Looking forward to connecting!
+    return {
+      subject: aiReply.subject,
+      body: aiReply.body,
+      htmlBody: buildFullHtmlEmail(bodyParagraphs, availabilityHtml, pdfHtml, includeAvailability),
+      source: 'ai',
+    };
+  }
 
-Best,
-Terrell Gilbert
-SweetLease`;
-    },
-  },
-  question: {
-    subject: (original: string) => `Re: ${original}`,
-    body: (name: string) => `Hi ${name},
+  // Template fallback
+  const { subject, body, paragraphs } = buildTemplateReply(originalEmail, slots);
+  return {
+    subject,
+    body,
+    htmlBody: buildFullHtmlEmail(paragraphs, availabilityHtml, pdfHtml, includeAvailability),
+    source: 'template',
+  };
+}
 
-Great question! Here's how SweetLease works:
+function buildTemplateReply(email: OriginalEmail, slots: CalendlySlot[]): { subject: string; body: string; paragraphs: string[] } {
+  const firstName = email.from.split(' ')[0];
+  const subject = `Re: ${email.subject.replace(/^Re:\s*/i, '')}`;
 
-- You set your rates, we bring qualified tenants
-- No listing fees or commissions
-- Tenants are pre-screened by their employers
-- Average time to fill: 14 days vs 45 days on traditional platforms
+  switch (email.classification) {
+    case 'interested': {
+      const slotLines = slots.length > 0
+        ? slots.map(s => `- ${s.label}: ${s.scheduling_url}`).join('\n') + `\n\nOr pick another time: ${CALENDLY_SCHEDULING_URL}`
+        : `Grab a time that works best: ${CALENDLY_SCHEDULING_URL}`;
+      const body = `Hi ${firstName},\n\nThank you for your interest in SweetLease! I'd love to schedule a quick 30-minute call to learn more about your needs and show you how we can help.\n\nHere are a few times that work for me:\n${slotLines}\n\nLooking forward to connecting!`;
+      const paragraphs = [
+        `Hi ${firstName},`,
+        `Thank you for your interest in SweetLease! I'd love to schedule a quick 30-minute call to learn more about your needs and show you how we can help.`,
+        `Here are a few times that work for me:`,
+      ];
+      return { subject, body, paragraphs };
+    }
+    case 'question': {
+      const paragraphs = [
+        `Hi ${firstName},`,
+        `Great question! Here's how SweetLease works:`,
+        `&#8226; You set your rates, we bring qualified tenants<br>&#8226; No listing fees or commissions<br>&#8226; Tenants are pre-screened by their employers<br>&#8226; Average time to fill: 14 days vs 45 days on traditional platforms`,
+        `I'd be happy to walk you through a few case studies. Would a quick call this week work?`,
+      ];
+      const body = `Hi ${firstName},\n\nGreat question! Here's how SweetLease works:\n\n- You set your rates, we bring qualified tenants\n- No listing fees or commissions\n- Tenants are pre-screened by their employers\n- Average time to fill: 14 days vs 45 days on traditional platforms\n\nI'd be happy to walk you through a few case studies. Would a quick call this week work?`;
+      return { subject, body, paragraphs };
+    }
+    case 'objection': {
+      const paragraphs = [
+        `Hi ${firstName},`,
+        `Completely understand. Timing is everything.`,
+        `Many of our partners started with just one or two units to test the waters. No long-term commitment required.`,
+        `I'll check back in a few months. In the meantime, feel free to reach out if anything changes.`,
+      ];
+      const body = paragraphs.join('\n\n');
+      return { subject, body, paragraphs };
+    }
+    case 'not_interested': {
+      const paragraphs = [
+        `Hi ${firstName},`,
+        `No problem at all. I've removed you from our outreach list.`,
+        `If your situation ever changes, feel free to reach out anytime. Best of luck!`,
+      ];
+      const body = paragraphs.join('\n\n');
+      return { subject, body, paragraphs };
+    }
+    default:
+      return { subject, body: '', paragraphs: [] };
+  }
+}
 
-I'd be happy to walk you through a few case studies from landlords in your area. Would a quick call this week work?
-
-Best,
-Terrell Gilbert
-SweetLease`,
-  },
-  objection: {
-    subject: (original: string) => `Re: ${original}`,
-    body: (name: string) => `Hi ${name},
-
-Completely understand. Timing is everything.
-
-Many of our landlord partners started with just one or two units to test the waters. No long-term commitment required.
-
-I'll check back in a few months. In the meantime, feel free to reach out if anything changes.
-
-Best,
-Terrell Gilbert
-SweetLease`,
-  },
-  not_interested: {
-    subject: (original: string) => `Re: ${original}`,
-    body: (name: string) => `Hi ${name},
-
-No problem at all. I've removed you from our outreach list.
-
-If your situation ever changes, feel free to reach out anytime.
-
-Best of luck with your properties!
-
-Terrell Gilbert
-SweetLease`,
-  },
-  spam: { subject: () => '', body: () => '' },
-  system: { subject: () => '', body: () => '' },
-};
-
-export async function generateReplyWithAI(originalEmail: OriginalEmail): Promise<{ subject: string; body: string } | null> {
+async function generateReplyWithAI(originalEmail: OriginalEmail): Promise<{ subject: string; body: string } | null> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return null;
 
@@ -228,30 +375,6 @@ Respond in JSON: {"subject": "Re: ...", "body": "..."}`
     console.error('Claude AI reply generation failed, using template:', err);
     return null;
   }
-}
-
-/** Generates reply with Calendly slots pre-fetched (for template fallback) */
-export async function generateReply(originalEmail: OriginalEmail): Promise<{ subject: string; body: string; source: string } | null> {
-  if (originalEmail.classification === 'spam' || originalEmail.classification === 'system') return null;
-
-  // Try AI first
-  const aiReply = await generateReplyWithAI(originalEmail);
-  if (aiReply) return { ...aiReply, source: 'ai' };
-
-  // Template fallback — fetch Calendly slots for interested templates
-  const template = REPLY_TEMPLATES[originalEmail.classification];
-  const firstName = originalEmail.from.split(' ')[0];
-  const subject = template.subject(originalEmail.subject.replace(/^Re:\s*/i, ''));
-
-  let body: string;
-  if (originalEmail.classification === 'interested') {
-    const slots = await fetchCalendlySlots();
-    body = template.body(firstName, formatSlotsText(slots));
-  } else {
-    body = template.body(firstName);
-  }
-
-  return { subject, body, source: 'template' };
 }
 
 export function getSuggestedAction(classification: string): string {

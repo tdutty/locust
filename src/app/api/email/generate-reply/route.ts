@@ -29,6 +29,7 @@ export async function POST(request: NextRequest) {
       to: originalEmail.fromEmail,
       subject: result.subject,
       body: result.body,
+      htmlBody: result.htmlBody,
       classification,
       source: result.source,
       suggestedAction: getSuggestedAction(classification),

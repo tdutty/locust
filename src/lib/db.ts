@@ -156,6 +156,9 @@ async function initTables() {
     )
   `);
 
+  // Add html_body column to existing scheduled_emails tables
+  await pool.query(`ALTER TABLE scheduled_emails ADD COLUMN IF NOT EXISTS html_body TEXT`).catch(() => {});
+
   // Add processed column to existing inbox_cache tables
   await pool.query(`ALTER TABLE inbox_cache ADD COLUMN IF NOT EXISTS processed INTEGER DEFAULT 0`).catch(() => {});
 

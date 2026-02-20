@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
 
     for (const email of result.rows) {
       try {
-        const htmlBody = `
+        const htmlBody = email.html_body || `
 <!DOCTYPE html>
 <html>
 <head>
