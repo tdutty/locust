@@ -249,7 +249,7 @@ export async function getReplySystemPrompt(): Promise<string> {
   return `You are writing a professional reply on behalf of Terrell Gilbert, Account Executive at SweetLease.
 
 SweetLease connects independent landlords with relocating corporate employees. Key value props:
-- For landlords: Fill vacancies 3x faster, pre-screened tenants with employer-backed guarantees
+- For landlords: Fill vacancies 3x faster, pre-screened tenants with employer-backed guarantees, commission 25% below industry standard, we integrate their existing listings for free
 - For employers: Complimentary housing placement service, $100-300/month rent savings, zero cost to employer
 - For universities/residency programs: Free housing resource for incoming students and residents
 
@@ -267,6 +267,7 @@ Rules:
 ${slotText}
   Mention each time slot with its booking link. Also include the general Calendly link: ${CALENDLY_SCHEDULING_URL}
   Mention that you will also send over a partnership overview for their review.
+  Offer to walk them through the platform and integrate their existing listings for free.
 - For objections: acknowledge respectfully, provide value, suggest revisiting in the future
 - For questions: answer with specific details and data points
 - For not_interested: professionally remove them, leave the door open
@@ -320,22 +321,30 @@ function buildTemplateReply(email: OriginalEmail, slots: CalendlySlot[]): { subj
       const slotLines = slots.length > 0
         ? slots.map(s => `- ${s.label}: ${s.scheduling_url}`).join('\n') + `\n\nAlternatively, you can view all available times here: ${CALENDLY_SCHEDULING_URL}`
         : `You can select a convenient time here: ${CALENDLY_SCHEDULING_URL}`;
-      const body = `Dear ${firstName},\n\nThank you for your interest in SweetLease. I would welcome the opportunity to schedule a brief 30-minute call to discuss your specific needs and how our platform can add value.\n\nBelow are several available times for a conversation:\n${slotLines}\n\nI have also included a partnership overview below for your reference.\n\nBest regards,`;
+      const body = `Dear ${firstName},\n\nThank you for your interest in SweetLease. I would welcome the opportunity to schedule a brief 30-minute call to discuss your specific needs and walk you through our platform.\n\nAs part of our onboarding, we will integrate your existing listings at no additional cost to get you up and running quickly.\n\nBelow are several available times for a conversation:\n${slotLines}\n\nI have also included a partnership overview below for your reference.\n\nBest regards,`;
       const paragraphs = [
         `Dear ${firstName},`,
-        `Thank you for your interest in SweetLease. I would welcome the opportunity to schedule a brief 30-minute call to discuss your specific needs and how our platform can add value.`,
+        `Thank you for your interest in SweetLease. I would welcome the opportunity to schedule a brief 30-minute call to discuss your specific needs and walk you through our platform.`,
+        `As part of our onboarding, we will integrate your existing listings at no additional cost to get you up and running quickly.`,
         `Below are several available times for a conversation:`,
       ];
       return { subject, body, paragraphs };
     }
     case 'question': {
+      const bulletPoints = [
+        'You maintain full control over pricing and tenant selection',
+        'Our commission is 25% below the industry standard',
+        'All tenants are pre-screened with employer-backed guarantees',
+        'Average placement timeline: 14 days, compared to 45 days on traditional platforms',
+        'We integrate your existing listings at no additional cost',
+      ];
       const paragraphs = [
         `Dear ${firstName},`,
         `Thank you for your inquiry. I am happy to provide some additional detail on how SweetLease works:`,
-        `&#8226; You maintain full control over pricing; we source qualified tenants<br>&#8226; No listing fees or commissions<br>&#8226; All tenants are pre-screened with employer-backed guarantees<br>&#8226; Average placement timeline: 14 days, compared to 45 days on traditional platforms`,
-        `I have included a detailed overview document below for your reference. I would also be glad to walk you through several relevant case studies at your convenience.`,
+        bulletPoints.map(b => `&#8226; ${b}`).join('<br style="margin-bottom:6px;">'),
+        `I have included a detailed overview document below for your reference. I would also be glad to walk you through our platform and discuss relevant case studies at your convenience.`,
       ];
-      const body = `Dear ${firstName},\n\nThank you for your inquiry. I am happy to provide some additional detail on how SweetLease works:\n\n- You maintain full control over pricing; we source qualified tenants\n- No listing fees or commissions\n- All tenants are pre-screened with employer-backed guarantees\n- Average placement timeline: 14 days, compared to 45 days on traditional platforms\n\nI have included a detailed overview document below for your reference. I would also be glad to walk you through several relevant case studies at your convenience.\n\nBest regards,`;
+      const body = `Dear ${firstName},\n\nThank you for your inquiry. I am happy to provide some additional detail on how SweetLease works:\n\n${bulletPoints.map(b => `- ${b}`).join('\n')}\n\nI have included a detailed overview document below for your reference. I would also be glad to walk you through our platform and discuss relevant case studies at your convenience.\n\nBest regards,`;
       return { subject, body, paragraphs };
     }
     case 'objection': {
