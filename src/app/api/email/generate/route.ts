@@ -54,7 +54,7 @@ Rules:
 - Reference specific details (city, property count, company, relocations, enrollment, off-campus %)
 - ALWAYS offer TWO CTA options: a primary Calendly link AND a softer alternative for people who don't want a meeting
   - Primary Calendly links: https://calendly.com/sweetlease/intro (landlords), https://calendly.com/sweetlease/employer-intro (employers), or https://calendly.com/sweetlease/university-partnership (universities/residency/grad housing)
-  - Soft alternatives: offer to send a partnership overview, one-pager, case study, or market report via email. NEVER link to sweetlease.com/partners. Always frame documents as "I'll send" or "I've attached" a summary document.
+  - Soft alternatives: reference the ATTACHED partnership overview, one-pager, case study, or market report. Always frame documents as "I have attached" — never ask them to reply for it. NEVER link to sweetlease.com/partners.
 - Sign off with just "Best regards," and "Terrell Gilbert" on the next line. Do NOT include "SweetLease" in the sign-off text — the email signature with logo and company info is appended automatically.
 - IMPORTANT: When mentioning cost, emphasize that the service is FREE for the recipient's organization/program. We are waiving any fees as part of our partnership outreach. Never mention a $99.99 fee or any cost to the end user in outreach emails.
 - Tone: Professional, polished, and business-appropriate. Write like a senior business development executive. Use complete sentences, proper grammar, and a respectful tone. Avoid slang, casual phrases, and colloquialisms.
@@ -82,11 +82,10 @@ These are W-2 employed tenants, pre-vetted by Fortune 500 companies, ready to si
 
 Want to see how it works? I can show you in 15 minutes: https://calendly.com/sweetlease/intro
 
-Or if a call isn't your thing, just reply "interested" and I'll send a one-pager with how it works for landlords like you.
+If a call is not ideal right now, I have attached a one-pager that covers how it works for landlords like you — takes 2 minutes to read.
 
-Best,
-Terrell Gilbert
-SweetLease | Batch Fulfillment for Landlords`,
+Best regards,
+Terrell Gilbert`,
   },
   {
     subject: '{{company}} relocations - a better way',
@@ -104,11 +103,10 @@ Last month, we placed 47 relocating employees in ${lead.city || 'Texas'} propert
 
 Would it make sense to chat for 15 minutes? https://calendly.com/sweetlease/intro
 
-No time for a call? Just reply "send info" and I'll send over a summary document with everything you need to know — takes 2 minutes to read.
+No time for a call? I have attached a summary document with everything you need to know — takes 2 minutes to read.
 
-Best,
-Terrell Gilbert
-SweetLease`,
+Best regards,
+Terrell Gilbert`,
   },
   {
     subject: 'Your ${city} vacancies are costing you $X/day',
@@ -128,11 +126,10 @@ Our landlord partners in ${lead.city || 'your area'} are averaging 14-day fills 
 
 Worth a 15-minute call to explore? https://calendly.com/sweetlease/intro
 
-Or just reply "send info" and I'll shoot over a quick case study from a landlord in your market.
+I have also attached a quick case study from a landlord in your market — worth a look if you are short on time.
 
-Best,
-Terrell Gilbert
-SweetLease`,
+Best regards,
+Terrell Gilbert`,
   },
   {
     subject: 'Should I close your file?',
@@ -146,9 +143,8 @@ Either way, no hard feelings. Just let me know.
 
 If the timing is better later this year, I'm happy to reconnect then.
 
-Best,
-Terrell Gilbert
-SweetLease`,
+Best regards,
+Terrell Gilbert`,
   },
   {
     subject: 'We\'re onboarding 5 ${city} landlords this month',
@@ -167,11 +163,10 @@ That's it. No long-term contracts, no listing fees.
 
 Interested? https://calendly.com/sweetlease/intro
 
-Not ready for a call? Just reply "interested" and I'll send over the details by email.
+Not ready for a call? I have attached the details — takes 2 minutes to read.
 
-Best,
-Terrell Gilbert
-SweetLease`,
+Best regards,
+Terrell Gilbert`,
   },
 ];
 
@@ -193,11 +188,10 @@ We're already partnered with HR teams at Tesla, Apple, and Bank of America.
 
 Would it be helpful to explore this? I can walk through it in 15 minutes: https://calendly.com/sweetlease/employer-intro
 
-If a meeting doesn't work, I can also send a 2-page overview you can share with your team — just reply "send it."
+If a meeting does not work, I have attached a 2-page overview you can share with your team — takes 2 minutes to read.
 
-Best,
-Terrell Gilbert
-SweetLease | Corporate Housing Solutions`,
+Best regards,
+Terrell Gilbert`,
   },
   {
     subject: 'Reducing relocation friction for ${company} employees',
@@ -213,11 +207,10 @@ The result? Your employees find housing 40% faster than through traditional chan
 
 Would a quick call make sense? https://calendly.com/sweetlease/employer-intro
 
-Or if you'd rather skip the call, just reply "send it" and I'll send over a 2-page summary document covering how we work with HR teams.
+If you would rather skip the call, I have attached a 2-page summary covering how we work with HR teams.
 
-Best,
-Terrell Gilbert
-SweetLease`,
+Best regards,
+Terrell Gilbert`,
   },
   {
     subject: 'Case study: How Tesla reduced relocation housing time by 50%',
@@ -236,11 +229,10 @@ I'd love to share more details and explore if similar results are possible for $
 
 15 minutes work for you? https://calendly.com/sweetlease/employer-intro
 
-Or I can send the full case study as a PDF — just reply "send it" and it's yours.
+I have also attached the full case study for your reference.
 
-Best,
-Terrell Gilbert
-SweetLease`,
+Best regards,
+Terrell Gilbert`,
   },
   {
     subject: 'Quick question about ${company} relocations',
@@ -259,9 +251,8 @@ If C, here's the 30-second version: SweetLease gives your relocating employees f
 
 Worth a quick chat?
 
-Best,
-Terrell Gilbert
-SweetLease`,
+Best regards,
+Terrell Gilbert`,
   },
   {
     subject: 'Closing the loop on housing support',
@@ -275,9 +266,8 @@ If things change or you'd like to explore this down the road, I'm always happy t
 
 Wishing you and the team continued success!
 
-Best,
-Terrell Gilbert
-SweetLease`,
+Best regards,
+Terrell Gilbert`,
   },
 ];
 
@@ -299,11 +289,10 @@ There's zero cost to the university. We simply want to be a resource your ${lead
 
 Would you be open to a 15-minute call? https://calendly.com/sweetlease/university-partnership
 
-No time for a call? I can send a one-pager you can share with your team — just reply "send info" and it's yours.
+If a call is not ideal right now, I have attached a one-pager you can share with your team — takes 2 minutes to read.
 
-Best,
-Terrell Gilbert
-SweetLease | Student Housing Solutions`,
+Best regards,
+Terrell Gilbert`,
   },
   {
     subject: 'Housing data for ${city} - {{university}} students',
@@ -321,11 +310,10 @@ We'd love to share a full market report for ${lead.city || 'your area'} with you
 
 Worth a quick chat? https://calendly.com/sweetlease/university-partnership
 
-Or if you'd prefer, I can send the market report directly — just reply "send report" and I'll have it in your inbox by end of day.
+I have also attached a market report for your area — worth a look if you are short on time.
 
-Best,
-Terrell Gilbert
-SweetLease`,
+Best regards,
+Terrell Gilbert`,
   },
   {
     subject: 'Housing support for {{university}} international students',
@@ -344,11 +332,10 @@ This could be a great resource for your international student orientation packet
 
 Could we schedule 15 minutes to discuss? https://calendly.com/sweetlease/university-partnership
 
-Or just reply "interested" and I'll send over a quick overview of how we support international students at other schools.
+I have attached an overview of how we support international students at other schools.
 
-Best,
-Terrell Gilbert
-SweetLease`,
+Best regards,
+Terrell Gilbert`,
   },
   {
     subject: 'Graduate student housing partnership - {{university}}',
@@ -367,11 +354,10 @@ This is completely free and designed to make your students' transition easier.
 
 Interested in learning more? https://calendly.com/sweetlease/university-partnership
 
-Or I can send a sample of the co-branded housing guide — reply "send sample" and I'll have it over in a few hours.
+I have attached a sample of the co-branded housing guide for your reference.
 
-Best,
-Terrell Gilbert
-SweetLease`,
+Best regards,
+Terrell Gilbert`,
   },
   {
     subject: 'Housing fair booth request - {{university}}',
@@ -388,11 +374,10 @@ We're flexible on format - whether that's a booth at a housing fair, a 20-minute
 
 Would it be possible to discuss getting involved in your next student housing event? https://calendly.com/sweetlease/university-partnership
 
-Or if it's easier, just reply with the date of your next housing fair and I'll send over a formal participation request.
+If it is easier, just reply with the date of your next housing fair and I will send over a formal participation request.
 
-Best,
-Terrell Gilbert
-SweetLease`,
+Best regards,
+Terrell Gilbert`,
   },
 ];
 
@@ -415,11 +400,10 @@ We're already working with residency programs in ${lead.state === 'NY' ? 'the Ne
 
 Would 15 minutes work to walk through how it works? https://calendly.com/sweetlease/university-partnership
 
-If a call doesn't work with your schedule, I can send a short overview you can share with your GME team — just reply "send info."
+If a call does not work with your schedule, I have attached a short overview you can share with your GME team.
 
-Best,
-Terrell Gilbert
-SweetLease`,
+Best regards,
+Terrell Gilbert`,
   },
   {
     subject: 'Quick follow-up — resident housing at {{orgName}}',
@@ -437,11 +421,10 @@ All we'd need is a brief intro to include SweetLease in your incoming resident w
 
 Worth a quick call? https://calendly.com/sweetlease/university-partnership
 
-Or if it's easier, just reply "send it" and I'll email a one-pager you can drop straight into your welcome packet.
+I have also attached a one-pager you can drop straight into your welcome packet.
 
-Best,
-Terrell Gilbert
-SweetLease`,
+Best regards,
+Terrell Gilbert`,
   },
   {
     subject: 'How one program saved residents $3,200/year on housing',
@@ -457,11 +440,10 @@ I think we could do something similar for ${lead.orgName || 'your program'}'s in
 
 If the timing isn't right for this cycle, I'm happy to reconnect before your next match. Just let me know either way.
 
-If you'd like to learn more without hopping on a call, just reply "send info" and I'll send over a summary document that covers the full program.
+I have attached a summary document that covers the full program — worth a look if you do not have time for a call.
 
-Best,
-Terrell Gilbert
-SweetLease`,
+Best regards,
+Terrell Gilbert`,
   },
 ];
 
@@ -484,11 +466,10 @@ We're looking for one benefits platform partner to launch with. Given ${lead.org
 
 Would 20 minutes work to explore the partnership model? https://calendly.com/sweetlease/employer-intro
 
-If a meeting doesn't make sense yet, I can send a short deck on the integration model — just reply "send deck."
+If a meeting does not make sense yet, I have attached a short deck on the integration model.
 
-Best,
-Terrell Gilbert
-SweetLease`,
+Best regards,
+Terrell Gilbert`,
   },
   {
     subject: 'Housing is the benefit gap — here\'s the data',
@@ -502,18 +483,16 @@ SweetLease fills that gap. We aggregate employee demand by geography and negotia
 
 The model for ${lead.orgName || 'your platform'}:
 - White-label or co-branded integration
-- Revenue share on employee signups
-- We handle all landlord relationships and negotiation
+- Zero cost to integrate — we handle all landlord relationships and negotiation
 
 Your clients get a differentiating benefit. Their employees save real money. You add a category nobody else has.
 
 Can we explore this for 20 minutes? https://calendly.com/sweetlease/employer-intro
 
-Or if you'd rather read through it first, reply "send data" and I'll send the full housing benefit research with the partnership model attached.
+I have attached the full housing benefit research with the partnership model for your review.
 
-Best,
-Terrell Gilbert
-SweetLease`,
+Best regards,
+Terrell Gilbert`,
   },
   {
     subject: 'Last note — partnership window closing',
@@ -529,9 +508,8 @@ Either way, no hard feelings. Just let me know.
 
 https://calendly.com/sweetlease/employer-intro
 
-Best,
-Terrell Gilbert
-SweetLease`,
+Best regards,
+Terrell Gilbert`,
   },
 ];
 
@@ -554,11 +532,10 @@ We're already working with housing offices at universities in ${lead.state === '
 
 Would 15 minutes work to walk through it? https://calendly.com/sweetlease/university-partnership
 
-Or if a call isn't ideal right now, I can send a quick overview you can share with your team — just reply "send info."
+If a call is not ideal right now, I have attached a quick overview you can share with your team.
 
-Best,
-Terrell Gilbert
-SweetLease`,
+Best regards,
+Terrell Gilbert`,
   },
   {
     subject: 'Rent data near {{orgName}} — thought this would be useful',
@@ -577,11 +554,10 @@ We'd be happy to:
 
 Any of those work for your office? https://calendly.com/sweetlease/university-partnership
 
-Or just reply with which option interests you and I'll follow up with the relevant materials — no call needed.
+I have attached relevant materials for each option — no call needed.
 
-Best,
-Terrell Gilbert
-SweetLease`,
+Best regards,
+Terrell Gilbert`,
   },
   {
     subject: 'Closing the loop — housing partnership with {{orgName}}',
@@ -595,9 +571,8 @@ If you'd like to revisit this before the next academic cycle (when incoming stud
 
 Either way, wishing you and the ${lead.orgName || 'your university'} team a great semester.
 
-Best,
-Terrell Gilbert
-SweetLease`,
+Best regards,
+Terrell Gilbert`,
   },
 ];
 
