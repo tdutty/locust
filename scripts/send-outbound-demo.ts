@@ -2,85 +2,71 @@ import { config } from 'dotenv';
 config({ path: '.env.local' });
 
 import nodemailer from 'nodemailer';
-import Anthropic from '@anthropic-ai/sdk';
 
 const TO = 'terrellgilb5@gmail.com';
 
-// Use templates directly (same as generate route)
 const demos = [
   {
     type: 'landlord',
-    subject: 'How to compete with corporate landlords',
+    subject: 'Corporate relocation tenants in Austin',
     body: `Dear Sarah Mitchell,
 
-My name is Terrell Gilbert with SweetLease, and I am reaching out regarding an opportunity to connect your Austin properties with relocating corporate tenants.
+My name is Terrell Gilbert with SweetLease. SweetLease is a rental listing platform founded in 2026 with the goal of making renting more accessible. We connect property managers with pre-screened, employer-backed tenants who are actively relocating and ready to sign.
 
-Independent landlords are competing with corporate property managers who have dedicated sales teams reaching relocating employees before those tenants ever hit Zillow or Apartments.com. SweetLease levels that playing field.
+We partner with HR departments at companies relocating employees to Austin. When their employees need housing, we match them with property managers like you first.
 
-We partner with HR departments at companies relocating employees to Austin. When their employees need housing, we match them with landlords like you first. These are W-2 employed, pre-screened tenants ready to sign quickly at competitive rates.
+These are W-2 employed, pre-screened tenants backed by their employers, ready to sign at competitive rates. We deliver tenant signings in bulk, and our partners are averaging 14-day fills compared to 45 days on traditional platforms. Our commission is 25% below the industry standard.
 
-Key benefits for your portfolio:
-- Fill vacancies in 14 days on average, compared to 45 days on traditional platforms
-- Pre-screened tenants with employer-backed lease guarantees
-- You maintain final say on pricing and tenant approval
-- Our commission is 25% below the industry standard
-- We integrate your existing listings at no additional cost
+You maintain final say on pricing and tenant approval. We integrate your existing listings at no additional cost and the onboarding process is quick.
 
-Would it be helpful to explore this? I can walk through it in a brief call:
+Would it be helpful to explore this? I can walk through it in 15 minutes:
 https://calendly.com/sweetlease/intro
 
-If a call is not ideal right now, I have attached a one-pager that covers how it works for landlords in your market  - takes 2 minutes to read.
+If a call is not ideal right now, I have attached a one-pager that covers how it works - takes 2 minutes to read.
 
 Best regards,
 Terrell Gilbert`,
   },
   {
     type: 'employer',
-    subject: 'Housing support for relocating Tesla employees',
-    body: `Dear Tesla HR,
+    subject: 'Employee housing placement - Forma',
+    body: `Dear Lisa Park,
 
-My name is Terrell Gilbert with SweetLease, and I am reaching out regarding housing support for your relocating employees.
+My name is Terrell Gilbert with SweetLease. SweetLease is a rental listing and negotiation platform founded in 2026 with the goal of making renting more accessible. We provide a complimentary housing placement service for companies with relocating employees, handling the full search and lease negotiation process at no cost to your organization.
 
-SweetLease is a complimentary housing placement service designed to reduce relocation friction. When your employees need housing in a new city, we connect them with pre-vetted, move-in ready properties before they hit the public market  - at zero cost to Tesla.
+When Forma employees relocate, we connect them with pre-vetted, move-in ready properties before they hit the public market and negotiate lease terms on their behalf. Employees typically save $100-$300 per month on rent compared to searching independently.
 
 What this means for your relocating workforce:
-- Employees save $100–$300 per month on rent compared to searching independently
-- Access to quality rentals 2–3 weeks before public listing
-- Pre-negotiated lease terms with flexible options
+- Complimentary service - zero cost to Forma
+- Access to quality rentals 2-3 weeks before public listing
+- We negotiate lease terms on behalf of each employee
 - Dedicated support throughout the entire leasing process
 - We handle the full search, vetting, and placement end-to-end
-
-This service is entirely free for your organization. We simply want to be a resource your HR team can offer to employees during the relocation process.
 
 Would it be helpful to explore this? I can walk through it in 15 minutes:
 https://calendly.com/sweetlease/employer-intro
 
-If a meeting does not work, I have attached a 2-page overview you can share with your team  - takes 2 minutes to read.
+If a meeting does not work, I have attached a 2-page overview you can share with your team - takes 2 minutes to read.
 
 Best regards,
 Terrell Gilbert`,
   },
   {
     type: 'residency',
-    subject: 'Housing support for incoming residents at Memorial Hermann',
-    body: `Dear Dr. James Rivera,
+    subject: 'Housing resource for incoming Mount Sinai residents',
+    body: `Dear Sarah Mitchell,
 
-My name is Terrell Gilbert with SweetLease, and I am reaching out regarding housing support for your incoming medical residents.
+My name is Terrell Gilbert with SweetLease. SweetLease is a rental listing and negotiation platform founded in 2026 with the goal of making renting more accessible. We work with residency programs to help incoming medical residents find quality housing near their clinical sites, negotiating lease terms on their behalf to secure below-market rates.
 
-SweetLease is a free, fully managed housing service built specifically for residency programs. We help incoming residents find quality, affordable housing by negotiating lease terms on their behalf  - securing rates 15–25% below market average.
-
-Here is what the service includes for your program:
-- Zero cost to the institution and to the residents
-- Lease negotiation on behalf of each resident to secure below-market rates
-- Furnished and unfurnished options from pre-screened, vetted landlords
-- Proximity matching  - we prioritize housing near clinical sites and hospitals
+For Mount Sinai Health System, this means:
+- Zero cost to the program, institution, and residents
+- We negotiate lease terms on behalf of each resident, securing rates 15-25% below market average
+- Furnished and unfurnished options from pre-screened, vetted landlords near Mount Sinai
 - End-to-end managed process: housing search, landlord vetting, negotiation, and placement
-- A branded housing portal where incoming residents can browse available options
-- Ongoing support throughout the lease term, not just at placement
+- Branded housing portal where incoming residents can browse available options
+- Minimal administrative lift - your team shares the incoming cohort list, we handle everything else
 
-Your team would simply share the incoming cohort list  - we handle everything else from there. The administrative lift on your end is minimal.
-
-Would 15 minutes work to walk through how this would look for your program?
+Would 15 minutes work to walk through how it works?
 https://calendly.com/sweetlease/university-partnership
 
 If a call does not work with your schedule, I have attached a short overview you can share with your GME team.
@@ -90,46 +76,42 @@ Terrell Gilbert`,
   },
   {
     type: 'university',
-    subject: 'Free housing resource for UT Austin students',
-    body: `Dear Professor Chen,
+    subject: 'Off-campus housing resource - Columbia University',
+    body: `Dear Marcus Thompson,
 
-My name is Terrell Gilbert with SweetLease, and I am reaching out regarding a free housing resource for your students.
+My name is Terrell Gilbert with SweetLease. SweetLease is a rental listing and negotiation platform founded in 2026 with the goal of making renting more accessible. We partner with universities to provide students with a curated housing resource, negotiating directly with landlords to secure rates well below what students would find on their own.
 
-SweetLease helps students find quality off-campus housing at rates 15–25% below market average. We negotiate directly with landlords on behalf of students, using collective demand to secure better lease terms  - similar to how group buying works in other industries.
+For Columbia University students specifically:
+- Zero cost to the university and to students
+- We negotiate lease terms on behalf of students, securing rates 15-25% below market average
+- Curated, pre-vetted housing options near campus - furnished and unfurnished
+- Especially valuable for incoming freshmen, transfer students, and international students
+- Branded housing portal for your program where students can browse options
 
-For your students specifically:
-- Curated, pre-vetted housing options near campus
-- Furnished and unfurnished options matched to student needs
-- We negotiate lease terms on their behalf, securing $100–$250 below market rate
-- No credit history required  - we use alternative verification for international students
-- Dedicated support throughout the lease term
+There is zero cost to the university. We are simply a resource your housing office can recommend to students.
 
-There is zero cost to the university. We are simply a resource your housing office can recommend to students, particularly incoming freshmen, transfer students, and international students who face the biggest housing challenges.
-
-Would you be open to a 15-minute call to discuss how this could work for UT Austin?
+Would you be open to a 15-minute call?
 https://calendly.com/sweetlease/university-partnership
 
-If a call is not ideal right now, I have attached a one-pager you can share with your team  - takes 2 minutes to read.
+If a call is not ideal right now, I have attached a one-pager you can share with your team - takes 2 minutes to read.
 
 Best regards,
 Terrell Gilbert`,
   },
   {
     type: 'benefits-platform',
-    subject: 'New LSA category your clients are asking about',
-    body: `Dear Benefits Team,
+    subject: 'Housing as an employee benefit - Benepass',
+    body: `Dear Michael Okafor,
 
-My name is Terrell Gilbert with SweetLease, and I am reaching out because your platform is one of the leaders in employee benefits, and we have built something that fits naturally into your marketplace.
+My name is Terrell Gilbert with SweetLease. SweetLease is a rental listing and negotiation platform founded in 2026 with the goal of making renting more accessible. We aggregate renter demand by geography and negotiate group rates with landlords, creating a housing benefit that fits naturally into employee benefits marketplaces.
 
-SweetLease is a housing benefit. Employees who rent  - especially those relocating  - get access to group-negotiated rent discounts that save $100–$300 per month. It works like a buying group for housing.
-
-For your platform, this means:
+For Benepass, this means:
 - A new benefit category that no other LSA or benefits platform offers yet
-- High engagement  - housing is a top-3 expense for every employee
-- Simple integration  - we handle the negotiation, your platform gets a new category
-- Zero cost to integrate  - we handle all landlord relationships and negotiation
+- High engagement - housing is a top-3 expense for every employee
+- Simple integration - we handle all negotiation and landlord relationships
+- Employees save $100-$300 per month on rent through group negotiation
 
-We are looking for one benefits platform partner to launch with. Given your position in the market, you would be first to offer this category.
+We are looking for one benefits platform partner to launch with. Given Benepass's position in the market, you would be first to offer this category.
 
 Would 20 minutes work to explore the partnership model?
 https://calendly.com/sweetlease/employer-intro
@@ -193,7 +175,7 @@ async function main() {
       await transporter.sendMail({
         from: `"Terrell Gilbert" <${process.env.SMTP_USER}>`,
         to: TO,
-        subject: `SweetLease Outbound [${demo.type.toUpperCase()}]  - ${demo.subject}`,
+        subject: `SweetLease Outbound [${demo.type.toUpperCase()}] - ${demo.subject}`,
         text: demo.body,
         html: htmlBody,
       });

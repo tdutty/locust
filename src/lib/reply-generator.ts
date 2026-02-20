@@ -279,7 +279,7 @@ Key benefits to highlight (use specific details, not vague summaries):
     default: // landlord
       audienceContext = `You are replying to a LANDLORD or PROPERTY MANAGER. They are interested in SweetLease to fill vacancies faster.
 Key value props for landlords:
-- Fill vacancies 3x faster with pre-screened, employer-backed tenants
+- Bulk tenant signings - fill vacancies 3x faster with pre-screened, employer-backed tenants
 - Landlord has final say on pricing and tenant approval
 - Commission 25% below industry standard
 - We integrate their existing listings for free
@@ -424,7 +424,7 @@ function getTypeMessaging(contactType: string) {
       };
     default: // landlord
       return {
-        interestedHook: `Our landlord partners are currently filling vacancies 3x faster than the market average, with pre-screened, employer-backed tenants  - and at a commission 25% below the industry standard.`,
+        interestedHook: `We deliver tenant signings in bulk - our landlord partners are currently filling vacancies 3x faster than the market average, with pre-screened, employer-backed tenants and a commission 25% below the industry standard.`,
         interestedCta: `I would welcome the opportunity to schedule a brief 30-minute call to walk you through the platform and discuss how we can put these results to work for your portfolio.`,
         interestedOnboarding: `Our onboarding is quick  - we integrate your existing listings at no additional cost and have you up and running in days.`,
         questionHook: `Landlords on our platform are seeing vacancies filled in an average of 14 days  - compared to 45 days through traditional channels  - with tenants who come pre-screened and backed by their employers.`,

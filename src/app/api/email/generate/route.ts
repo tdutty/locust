@@ -67,28 +67,26 @@ Rules:
 
 const LANDLORD_SEQUENCES = [
   {
-    subject: 'How to compete with corporate landlords',
-    body: (lead: GenerateEmailRequest['lead']) => `Hi ${lead.name.split(' ')[0]},
+    subject: 'Corporate relocation tenants in {{city}}',
+    body: (lead: GenerateEmailRequest['lead']) => `Dear ${lead.name},
 
-I noticed you manage ${lead.properties || 'several'} properties in ${lead.city || 'Texas'}. Impressive portfolio.
+My name is Terrell Gilbert with SweetLease. SweetLease is a rental listing platform founded in 2026 with the goal of making renting more accessible. We connect property managers with pre-screened, employer-backed tenants who are actively relocating and ready to sign.
 
-The big corporate landlords are eating independent landlords alive right now. They have dedicated sales teams reaching out to relocating employees before those tenants ever hit Zillow or Apartments.com.
+We partner with HR departments at companies relocating employees to ${lead.city || 'your area'}. When their employees need housing, we match them with property managers like you first.
 
-But here's the thing: you can access that same pipeline without building an entire corporate infrastructure.
+These are W-2 employed, pre-screened tenants backed by their employers, ready to sign at competitive rates. We deliver tenant signings in bulk, and our partners are averaging 14-day fills compared to 45 days on traditional platforms. Our commission is 25% below the industry standard.
 
-SweetLease partners with HR departments at companies like Tesla, Apple, and Bank of America. When their employees need housing, we match them with landlords like you first.
+You maintain final say on pricing and tenant approval. We integrate your existing listings at no additional cost and the onboarding process is quick.
 
-These are W-2 employed tenants, pre-vetted by Fortune 500 companies, ready to sign quickly at competitive rates.
+Would it be helpful to explore this? I can walk through it in 15 minutes: https://calendly.com/sweetlease/intro
 
-Want to see how it works? I can show you in 15 minutes: https://calendly.com/sweetlease/intro
-
-If a call is not ideal right now, I have attached a one-pager that covers how it works for landlords like you  - takes 2 minutes to read.
+If a call is not ideal right now, I have attached a one-pager that covers how it works - takes 2 minutes to read.
 
 Best regards,
 Terrell Gilbert`,
   },
   {
-    subject: '{{company}} relocations - a better way',
+    subject: 'Employer-backed tenant placement',
     body: (lead: GenerateEmailRequest['lead']) => `Hi ${lead.name.split(' ')[0]},
 
 Following up on my last note.
@@ -109,7 +107,7 @@ Best regards,
 Terrell Gilbert`,
   },
   {
-    subject: 'Your ${city} vacancies are costing you $X/day',
+    subject: '{{city}} rental market - corporate tenant demand',
     body: (lead: GenerateEmailRequest['lead']) => `Hi ${lead.name.split(' ')[0]},
 
 Quick math:
@@ -132,7 +130,7 @@ Best regards,
 Terrell Gilbert`,
   },
   {
-    subject: 'Should I close your file?',
+    subject: 'Following up - {{city}} tenant placement',
     body: (lead: GenerateEmailRequest['lead']) => `Hi ${lead.name.split(' ')[0]},
 
 I've reached out a few times about connecting your properties with relocating employees.
@@ -147,7 +145,7 @@ Best regards,
 Terrell Gilbert`,
   },
   {
-    subject: 'We\'re onboarding 5 ${city} landlords this month',
+    subject: 'Closing the loop',
     body: (lead: GenerateEmailRequest['lead']) => `Hi ${lead.name.split(' ')[0]},
 
 Last chance note:
@@ -172,29 +170,29 @@ Terrell Gilbert`,
 
 const EMPLOYER_SEQUENCES = [
   {
-    subject: 'Housing support for relocating employees',
-    body: (lead: GenerateEmailRequest['lead']) => `Hi ${lead.name?.split(' ')[0] || 'there'},
+    subject: 'Employee housing placement - {{company}}',
+    body: (lead: GenerateEmailRequest['lead']) => `Dear ${lead.name || 'there'},
 
-I understand ${lead.company || 'your company'} relocates ${lead.relocationsPerYear || 'hundreds of'} employees each year. Finding quality housing quickly is often one of the biggest pain points in the relocation process.
+My name is Terrell Gilbert with SweetLease. SweetLease is a rental listing and negotiation platform founded in 2026 with the goal of making renting more accessible. We provide a complimentary housing placement service for companies with relocating employees, handling the full search and lease negotiation process at no cost to your organization.
 
-SweetLease works with landlords who prioritize corporate relocations. That means your employees get access to pre-vetted, move-in ready properties before they hit the public market.
+When ${lead.company || 'your'} employees relocate, we connect them with pre-vetted, move-in ready properties before they hit the public market and negotiate lease terms on their behalf. Employees typically save $100-$300 per month on rent compared to searching independently.
 
-Benefits for your employees:
+What this means for your relocating workforce:
+- Complimentary service - zero cost to ${lead.company || 'your organization'}
 - Access to quality rentals 2-3 weeks before public listing
-- Pre-negotiated rates with flexible lease terms
-- Dedicated support throughout the leasing process
-
-We're already partnered with HR teams at Tesla, Apple, and Bank of America.
+- We negotiate lease terms on behalf of each employee
+- Dedicated support throughout the entire leasing process
+- We handle the full search, vetting, and placement end-to-end
 
 Would it be helpful to explore this? I can walk through it in 15 minutes: https://calendly.com/sweetlease/employer-intro
 
-If a meeting does not work, I have attached a 2-page overview you can share with your team  - takes 2 minutes to read.
+If a meeting does not work, I have attached a 2-page overview you can share with your team - takes 2 minutes to read.
 
 Best regards,
 Terrell Gilbert`,
   },
   {
-    subject: 'Reducing relocation friction for ${company} employees',
+    subject: 'Housing support for relocating employees',
     body: (lead: GenerateEmailRequest['lead']) => `Hi ${lead.name?.split(' ')[0] || 'there'},
 
 Following up on my previous note about housing support for relocating employees.
@@ -213,7 +211,7 @@ Best regards,
 Terrell Gilbert`,
   },
   {
-    subject: 'Case study: How Tesla reduced relocation housing time by 50%',
+    subject: 'Employee relocation housing - quick overview',
     body: (lead: GenerateEmailRequest['lead']) => `Hi ${lead.name?.split(' ')[0] || 'there'},
 
 Quick case study:
@@ -235,7 +233,7 @@ Best regards,
 Terrell Gilbert`,
   },
   {
-    subject: 'Quick question about ${company} relocations',
+    subject: 'Following up - {{company}} employee housing',
     body: (lead: GenerateEmailRequest['lead']) => `Hi ${lead.name?.split(' ')[0] || 'there'},
 
 I've reached out a couple times about housing support for relocating employees.
@@ -255,7 +253,7 @@ Best regards,
 Terrell Gilbert`,
   },
   {
-    subject: 'Closing the loop on housing support',
+    subject: 'Closing the loop',
     body: (lead: GenerateEmailRequest['lead']) => `Hi ${lead.name?.split(' ')[0] || 'there'},
 
 This will be my last note about SweetLease's corporate housing solution.
@@ -273,29 +271,29 @@ Terrell Gilbert`,
 
 const UNIVERSITY_SEQUENCES = [
   {
-    subject: 'Free housing resource for {{university}} students',
-    body: (lead: GenerateEmailRequest['lead']) => `Hi ${lead.name?.split(' ')[0] || 'there'},
+    subject: 'Off-campus housing resource - {{university}}',
+    body: (lead: GenerateEmailRequest['lead']) => `Dear ${lead.name || 'there'},
 
-I'm reaching out because I know ${lead.university || 'your university'} has ${lead.enrollment ? lead.enrollment.toLocaleString() : 'thousands of'} students, and finding quality off-campus housing is one of the biggest challenges they face.
-
-SweetLease is a free platform that helps students find pre-vetted, competitively priced off-campus housing. We work directly with local landlords to ensure quality and fair pricing.
+My name is Terrell Gilbert with SweetLease. SweetLease is a rental listing and negotiation platform founded in 2026 with the goal of making renting more accessible. We partner with universities to provide students with a curated housing resource, negotiating directly with landlords to secure rates well below what students would find on their own.
 
 For ${lead.university || 'your university'} students specifically:
-- ${lead.offCampusPercent || '40'}% of students live off-campus and need housing support
-- Average rent in ${lead.city || 'your area'} is $${lead.avgRent || '1,200'}/month - we help students find options $100-300 below market
-- Pre-vetted landlords with quality guarantees
+- Zero cost to the university and to students
+- We negotiate lease terms on behalf of students, securing rates 15-25% below market average
+- Curated, pre-vetted housing options near campus - furnished and unfurnished
+- Especially valuable for incoming freshmen, transfer students, and international students
+- Branded housing portal for your program where students can browse options
 
-There's zero cost to the university. We simply want to be a resource your ${lead.contactDepartment || 'housing office'} can recommend to students.
+There is zero cost to the university. We are simply a resource your ${lead.contactDepartment || 'housing office'} can recommend to students.
 
 Would you be open to a 15-minute call? https://calendly.com/sweetlease/university-partnership
 
-If a call is not ideal right now, I have attached a one-pager you can share with your team  - takes 2 minutes to read.
+If a call is not ideal right now, I have attached a one-pager you can share with your team - takes 2 minutes to read.
 
 Best regards,
 Terrell Gilbert`,
   },
   {
-    subject: 'Housing data for ${city} - {{university}} students',
+    subject: '{{city}} housing data for {{university}} students',
     body: (lead: GenerateEmailRequest['lead']) => `Hi ${lead.name?.split(' ')[0] || 'there'},
 
 Following up on my previous note about SweetLease as a housing resource for ${lead.university || 'your'} students.
@@ -316,7 +314,7 @@ Best regards,
 Terrell Gilbert`,
   },
   {
-    subject: 'Housing support for {{university}} international students',
+    subject: 'International student housing - {{university}}',
     body: (lead: GenerateEmailRequest['lead']) => `Hi ${lead.name?.split(' ')[0] || 'there'},
 
 International students face unique housing challenges: no U.S. credit history, unfamiliarity with local rental markets, and tight timelines between arrival and semester start.
@@ -338,7 +336,7 @@ Best regards,
 Terrell Gilbert`,
   },
   {
-    subject: 'Graduate student housing partnership - {{university}}',
+    subject: 'Graduate housing partnership - {{university}}',
     body: (lead: GenerateEmailRequest['lead']) => `Hi ${lead.name?.split(' ')[0] || 'there'},
 
 Graduate and professional students often have different housing needs than undergrads: they want quiet neighborhoods, longer lease terms, and proximity to specific facilities.
@@ -360,7 +358,7 @@ Best regards,
 Terrell Gilbert`,
   },
   {
-    subject: 'Housing fair booth request - {{university}}',
+    subject: 'Housing fair - {{university}}',
     body: (lead: GenerateEmailRequest['lead']) => `Hi ${lead.name?.split(' ')[0] || 'there'},
 
 I know ${lead.university || 'your university'} hosts housing fairs and orientation events for incoming students. We'd love to participate.
@@ -384,19 +382,18 @@ Terrell Gilbert`,
 // ── RESIDENCY PROGRAM SEQUENCES ──
 const RESIDENCY_SEQUENCES = [
   {
-    subject: 'Housing support for incoming residents at {{orgName}}',
-    body: (lead: GenerateEmailRequest['lead']) => `Hi ${lead.name?.split(' ')[0] || 'there'},
+    subject: 'Housing resource for incoming {{orgName}} residents',
+    body: (lead: GenerateEmailRequest['lead']) => `Dear ${lead.name || 'there'},
 
-I'm reaching out because I know ${lead.orgName || 'your program'} brings in a new class of residents every July, and finding affordable housing in ${lead.city || 'a high-cost city'} is consistently one of the biggest stressors for incoming trainees.
+My name is Terrell Gilbert with SweetLease. SweetLease is a rental listing and negotiation platform founded in 2026 with the goal of making renting more accessible. We work with residency programs to help incoming medical residents find quality housing near their clinical sites, negotiating lease terms on their behalf to secure below-market rates.
 
-SweetLease helps residents save 5-15% on rent through group negotiation  - we aggregate demand from incoming cohorts and negotiate directly with landlords near major medical centers.
-
-For ${lead.orgName || 'your institution'}, this means:
-- Incoming residents get pre-negotiated rent discounts before they arrive
-- Zero cost to the program or institution
-- One less thing for your GME office to worry about during onboarding
-
-We're already working with residency programs in ${lead.state === 'NY' ? 'the New York metro area' : lead.state === 'MA' ? 'Boston' : lead.state === 'CA' ? 'California' : 'major metro areas'} and would love to extend this to your residents.
+For ${lead.orgName || 'your program'}, this means:
+- Zero cost to the program, institution, and residents
+- We negotiate lease terms on behalf of each resident, securing rates 15-25% below market average
+- Furnished and unfurnished options from pre-screened, vetted landlords near ${lead.orgName || 'your hospital'}
+- End-to-end managed process: housing search, landlord vetting, negotiation, and placement
+- Branded housing portal where incoming residents can browse available options
+- Minimal administrative lift - your team shares the incoming cohort list, we handle everything else
 
 Would 15 minutes work to walk through how it works? https://calendly.com/sweetlease/university-partnership
 
@@ -406,7 +403,7 @@ Best regards,
 Terrell Gilbert`,
   },
   {
-    subject: 'Quick follow-up  - resident housing at {{orgName}}',
+    subject: 'Following up - resident housing at {{orgName}}',
     body: (lead: GenerateEmailRequest['lead']) => `Hi ${lead.name?.split(' ')[0] || 'there'},
 
 Following up on my note about housing support for your incoming residents.
@@ -427,7 +424,7 @@ Best regards,
 Terrell Gilbert`,
   },
   {
-    subject: 'How one program saved residents $3,200/year on housing',
+    subject: 'Resident housing savings - quick overview',
     body: (lead: GenerateEmailRequest['lead']) => `Hi ${lead.name?.split(' ')[0] || 'there'},
 
 One more note on this  - wanted to share a concrete example.
@@ -450,19 +447,18 @@ Terrell Gilbert`,
 // ── BENEFITS PLATFORM SEQUENCES ──
 const BENEFITS_SEQUENCES = [
   {
-    subject: 'New LSA category your clients are asking about',
-    body: (lead: GenerateEmailRequest['lead']) => `Hi ${lead.name?.split(' ')[0] || 'there'},
+    subject: 'Housing as an employee benefit - {{orgName}}',
+    body: (lead: GenerateEmailRequest['lead']) => `Dear ${lead.name || 'there'},
 
-I'm reaching out because ${lead.orgName || 'your platform'} is one of the leaders in employee benefits, and we've built something that fits naturally into your marketplace.
-
-SweetLease is a housing benefit. Employees who rent  - especially those relocating  - get access to group-negotiated rent discounts that save $100-300/month. It works like a buying group for housing.
+My name is Terrell Gilbert with SweetLease. SweetLease is a rental listing and negotiation platform founded in 2026 with the goal of making renting more accessible. We aggregate renter demand by geography and negotiate group rates with landlords, creating a housing benefit that fits naturally into employee benefits marketplaces.
 
 For ${lead.orgName || 'your platform'}, this means:
-- A new benefit category that no other LSA/benefits platform offers yet
-- High engagement  - housing is a top-3 expense for every employee
-- Simple integration  - we handle the negotiation, your platform gets a new category
+- A new benefit category that no other LSA or benefits platform offers yet
+- High engagement - housing is a top-3 expense for every employee
+- Simple integration - we handle all negotiation and landlord relationships
+- Employees save $100-$300 per month on rent through group negotiation
 
-We're looking for one benefits platform partner to launch with. Given ${lead.orgName || 'your'} position in the market, you'd be first to offer this.
+We are looking for one benefits platform partner to launch with. Given ${lead.orgName || 'your'} position in the market, you would be first to offer this category.
 
 Would 20 minutes work to explore the partnership model? https://calendly.com/sweetlease/employer-intro
 
@@ -472,7 +468,7 @@ Best regards,
 Terrell Gilbert`,
   },
   {
-    subject: 'Housing is the benefit gap  - here\'s the data',
+    subject: 'Following up - housing benefit partnership',
     body: (lead: GenerateEmailRequest['lead']) => `Hi ${lead.name?.split(' ')[0] || 'there'},
 
 Following up on my note about adding housing as a benefit category on ${lead.orgName || 'your platform'}.
@@ -495,7 +491,7 @@ Best regards,
 Terrell Gilbert`,
   },
   {
-    subject: 'Last note  - partnership window closing',
+    subject: 'Closing the loop',
     body: (lead: GenerateEmailRequest['lead']) => `Hi ${lead.name?.split(' ')[0] || 'there'},
 
 Last note on this  - we're finalizing our benefits platform partnership for Q2 launch and I wanted to give ${lead.orgName || 'your team'} a final opportunity to explore it.
@@ -516,19 +512,17 @@ Terrell Gilbert`,
 // ── GRADUATE HOUSING SEQUENCES ──
 const GRADUATE_HOUSING_SEQUENCES = [
   {
-    subject: 'Free off-campus housing resource for {{orgName}} students',
-    body: (lead: GenerateEmailRequest['lead']) => `Hi ${lead.name?.split(' ')[0] || 'there'},
+    subject: 'Off-campus housing resource - {{orgName}}',
+    body: (lead: GenerateEmailRequest['lead']) => `Dear ${lead.name || 'there'},
 
-I'm reaching out because ${lead.orgName || 'your university'}'s students face some of the highest off-campus housing costs in the country, and we've built a tool that directly addresses this.
-
-SweetLease helps students save 5-15% on rent through group negotiation. We aggregate demand from students at the same school and negotiate directly with landlords in the neighborhoods around campus.
+My name is Terrell Gilbert with SweetLease. SweetLease is a rental listing and negotiation platform founded in 2026 with the goal of making renting more accessible. We partner with universities to provide students with a curated housing resource, negotiating directly with landlords to secure rates well below what students would find on their own.
 
 For ${lead.orgName || 'your housing office'}:
-- Zero cost  - we're a free resource you can recommend to students
+- Zero cost - we are a free resource you can recommend to students
+- We negotiate lease terms on behalf of students, securing rates 15-25% below market average
 - Pre-vetted landlords within commuting distance of campus
 - Especially valuable for grad and international students arriving mid-year
-
-We're already working with housing offices at universities in ${lead.state === 'NY' ? 'New York' : lead.state === 'CA' ? 'California' : lead.state === 'MA' ? 'Massachusetts' : 'major metro areas'} and would love to be a resource for ${lead.orgName || 'your'} students too.
+- Branded housing portal for your program where students can browse options
 
 Would 15 minutes work to walk through it? https://calendly.com/sweetlease/university-partnership
 
@@ -538,7 +532,7 @@ Best regards,
 Terrell Gilbert`,
   },
   {
-    subject: 'Rent data near {{orgName}}  - thought this would be useful',
+    subject: '{{city}} housing data - {{orgName}}',
     body: (lead: GenerateEmailRequest['lead']) => `Hi ${lead.name?.split(' ')[0] || 'there'},
 
 Following up on my note about SweetLease as a housing resource for ${lead.orgName || 'your'} students.
@@ -560,7 +554,7 @@ Best regards,
 Terrell Gilbert`,
   },
   {
-    subject: 'Closing the loop  - housing partnership with {{orgName}}',
+    subject: 'Closing the loop',
     body: (lead: GenerateEmailRequest['lead']) => `Hi ${lead.name?.split(' ')[0] || 'there'},
 
 One last note on this  - I've reached out a couple of times about SweetLease as a free off-campus housing resource for ${lead.orgName || 'your'} students.
@@ -660,11 +654,12 @@ export async function POST(request: NextRequest) {
     const template = sequences[index];
 
     let subject = template.subject
-      .replace('{{company}}', lead.company || lead.name)
-      .replace('{{university}}', lead.university || lead.name)
-      .replace('{{orgName}}', lead.orgName || lead.company || lead.name)
-      .replace('${city}', lead.city || 'your area')
-      .replace('${company}', lead.company || 'your company');
+      .replace(/\{\{company\}\}/g, lead.company || lead.name)
+      .replace(/\{\{university\}\}/g, lead.university || lead.name)
+      .replace(/\{\{orgName\}\}/g, lead.orgName || lead.company || lead.name)
+      .replace(/\{\{city\}\}/g, lead.city || 'your area')
+      .replace(/\$\{city\}/g, lead.city || 'your area')
+      .replace(/\$\{company\}/g, lead.company || 'your company');
 
     const emailBody = template.body(lead);
 
