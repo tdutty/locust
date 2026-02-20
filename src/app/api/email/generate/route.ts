@@ -50,12 +50,12 @@ Email sequence strategy for universities (5 emails):
 
 Rules:
 - Keep emails under 200 words
-- Use a professional greeting with the lead's name (e.g., "Dear [First Name] [Last Name]"). Do NOT assume titles like "Dr." unless the lead's title explicitly contains "MD", "DO", "PhD", or "Dr." — many contacts in medical settings are administrators, coordinators, or directors, not physicians.
+- Use a professional greeting with the lead's name (e.g., "Dear [First Name] [Last Name]"). Do NOT assume titles like "Dr." unless the lead's title explicitly contains "MD", "DO", "PhD", or "Dr."  - many contacts in medical settings are administrators, coordinators, or directors, not physicians.
 - Reference specific details (city, property count, company, relocations, enrollment, off-campus %)
 - ALWAYS offer TWO CTA options: a primary Calendly link AND a softer alternative for people who don't want a meeting
   - Primary Calendly links: https://calendly.com/sweetlease/intro (landlords), https://calendly.com/sweetlease/employer-intro (employers), or https://calendly.com/sweetlease/university-partnership (universities/residency/grad housing)
-  - Soft alternatives: reference the ATTACHED partnership overview, one-pager, case study, or market report. Always frame documents as "I have attached" — never ask them to reply for it. NEVER link to sweetlease.com/partners.
-- Sign off with just "Best regards," and "Terrell Gilbert" on the next line. Do NOT include "SweetLease" in the sign-off text — the email signature with logo and company info is appended automatically.
+  - Soft alternatives: reference the ATTACHED partnership overview, one-pager, case study, or market report. Always frame documents as "I have attached"  - never ask them to reply for it. NEVER link to sweetlease.com/partners.
+- Sign off with just "Best regards," and "Terrell Gilbert" on the next line. Do NOT include "SweetLease" in the sign-off text  - the email signature with logo and company info is appended automatically.
 - IMPORTANT: When mentioning cost, emphasize that the service is FREE for the recipient's organization/program. We are waiving any fees as part of our partnership outreach. Never mention a $99.99 fee or any cost to the end user in outreach emails.
 - Tone: Professional, polished, and business-appropriate. Write like a senior business development executive. Use complete sentences, proper grammar, and a respectful tone. Avoid slang, casual phrases, and colloquialisms.
 - This is COLD outreach. You do NOT know the recipient. Never say "I know you" or "I noticed you" or presume any familiarity with their situation. Do not assume their pain points or claim knowledge of their challenges. Let the recipient decide if it applies.
@@ -82,7 +82,7 @@ These are W-2 employed tenants, pre-vetted by Fortune 500 companies, ready to si
 
 Want to see how it works? I can show you in 15 minutes: https://calendly.com/sweetlease/intro
 
-If a call is not ideal right now, I have attached a one-pager that covers how it works for landlords like you — takes 2 minutes to read.
+If a call is not ideal right now, I have attached a one-pager that covers how it works for landlords like you  - takes 2 minutes to read.
 
 Best regards,
 Terrell Gilbert`,
@@ -103,7 +103,7 @@ Last month, we placed 47 relocating employees in ${lead.city || 'Texas'} propert
 
 Would it make sense to chat for 15 minutes? https://calendly.com/sweetlease/intro
 
-No time for a call? I have attached a summary document with everything you need to know — takes 2 minutes to read.
+No time for a call? I have attached a summary document with everything you need to know  - takes 2 minutes to read.
 
 Best regards,
 Terrell Gilbert`,
@@ -126,7 +126,7 @@ Our landlord partners in ${lead.city || 'your area'} are averaging 14-day fills 
 
 Worth a 15-minute call to explore? https://calendly.com/sweetlease/intro
 
-I have also attached a quick case study from a landlord in your market — worth a look if you are short on time.
+I have also attached a quick case study from a landlord in your market  - worth a look if you are short on time.
 
 Best regards,
 Terrell Gilbert`,
@@ -163,7 +163,7 @@ That's it. No long-term contracts, no listing fees.
 
 Interested? https://calendly.com/sweetlease/intro
 
-Not ready for a call? I have attached the details — takes 2 minutes to read.
+Not ready for a call? I have attached the details  - takes 2 minutes to read.
 
 Best regards,
 Terrell Gilbert`,
@@ -188,7 +188,7 @@ We're already partnered with HR teams at Tesla, Apple, and Bank of America.
 
 Would it be helpful to explore this? I can walk through it in 15 minutes: https://calendly.com/sweetlease/employer-intro
 
-If a meeting does not work, I have attached a 2-page overview you can share with your team — takes 2 minutes to read.
+If a meeting does not work, I have attached a 2-page overview you can share with your team  - takes 2 minutes to read.
 
 Best regards,
 Terrell Gilbert`,
@@ -289,7 +289,7 @@ There's zero cost to the university. We simply want to be a resource your ${lead
 
 Would you be open to a 15-minute call? https://calendly.com/sweetlease/university-partnership
 
-If a call is not ideal right now, I have attached a one-pager you can share with your team — takes 2 minutes to read.
+If a call is not ideal right now, I have attached a one-pager you can share with your team  - takes 2 minutes to read.
 
 Best regards,
 Terrell Gilbert`,
@@ -310,7 +310,7 @@ We'd love to share a full market report for ${lead.city || 'your area'} with you
 
 Worth a quick chat? https://calendly.com/sweetlease/university-partnership
 
-I have also attached a market report for your area — worth a look if you are short on time.
+I have also attached a market report for your area  - worth a look if you are short on time.
 
 Best regards,
 Terrell Gilbert`,
@@ -389,7 +389,7 @@ const RESIDENCY_SEQUENCES = [
 
 I'm reaching out because I know ${lead.orgName || 'your program'} brings in a new class of residents every July, and finding affordable housing in ${lead.city || 'a high-cost city'} is consistently one of the biggest stressors for incoming trainees.
 
-SweetLease helps residents save 5-15% on rent through group negotiation — we aggregate demand from incoming cohorts and negotiate directly with landlords near major medical centers.
+SweetLease helps residents save 5-15% on rent through group negotiation  - we aggregate demand from incoming cohorts and negotiate directly with landlords near major medical centers.
 
 For ${lead.orgName || 'your institution'}, this means:
 - Incoming residents get pre-negotiated rent discounts before they arrive
@@ -406,14 +406,14 @@ Best regards,
 Terrell Gilbert`,
   },
   {
-    subject: 'Quick follow-up — resident housing at {{orgName}}',
+    subject: 'Quick follow-up  - resident housing at {{orgName}}',
     body: (lead: GenerateEmailRequest['lead']) => `Hi ${lead.name?.split(' ')[0] || 'there'},
 
 Following up on my note about housing support for your incoming residents.
 
 Here's the reality: a PGY-1 making $60-65K in ${lead.city || 'a major city'} is spending 40-50% of gross income on rent. That's a retention problem disguised as a housing problem.
 
-Programs that offer housing resources — even just a recommended service — see measurably better satisfaction scores from incoming classes.
+Programs that offer housing resources  - even just a recommended service  - see measurably better satisfaction scores from incoming classes.
 
 SweetLease is free to recommend. We handle everything: negotiating with landlords near ${lead.orgName || 'your hospital'}, vetting properties, and coordinating move-ins timed to your July start date.
 
@@ -430,9 +430,9 @@ Terrell Gilbert`,
     subject: 'How one program saved residents $3,200/year on housing',
     body: (lead: GenerateEmailRequest['lead']) => `Hi ${lead.name?.split(' ')[0] || 'there'},
 
-One more note on this — wanted to share a concrete example.
+One more note on this  - wanted to share a concrete example.
 
-We worked with a residency program that had 45 incoming residents in a single match cycle. By aggregating their housing demand, we negotiated average savings of $267/month across the cohort — that's $3,200/year per resident without anyone changing their housing preferences.
+We worked with a residency program that had 45 incoming residents in a single match cycle. By aggregating their housing demand, we negotiated average savings of $267/month across the cohort  - that's $3,200/year per resident without anyone changing their housing preferences.
 
 The program didn't pay anything. They simply added SweetLease to their pre-orientation materials and let us handle the rest.
 
@@ -440,7 +440,7 @@ I think we could do something similar for ${lead.orgName || 'your program'}'s in
 
 If the timing isn't right for this cycle, I'm happy to reconnect before your next match. Just let me know either way.
 
-I have attached a summary document that covers the full program — worth a look if you do not have time for a call.
+I have attached a summary document that covers the full program  - worth a look if you do not have time for a call.
 
 Best regards,
 Terrell Gilbert`,
@@ -455,12 +455,12 @@ const BENEFITS_SEQUENCES = [
 
 I'm reaching out because ${lead.orgName || 'your platform'} is one of the leaders in employee benefits, and we've built something that fits naturally into your marketplace.
 
-SweetLease is a housing benefit. Employees who rent — especially those relocating — get access to group-negotiated rent discounts that save $100-300/month. It works like a buying group for housing.
+SweetLease is a housing benefit. Employees who rent  - especially those relocating  - get access to group-negotiated rent discounts that save $100-300/month. It works like a buying group for housing.
 
 For ${lead.orgName || 'your platform'}, this means:
 - A new benefit category that no other LSA/benefits platform offers yet
-- High engagement — housing is a top-3 expense for every employee
-- Simple integration — we handle the negotiation, your platform gets a new category
+- High engagement  - housing is a top-3 expense for every employee
+- Simple integration  - we handle the negotiation, your platform gets a new category
 
 We're looking for one benefits platform partner to launch with. Given ${lead.orgName || 'your'} position in the market, you'd be first to offer this.
 
@@ -472,18 +472,18 @@ Best regards,
 Terrell Gilbert`,
   },
   {
-    subject: 'Housing is the benefit gap — here\'s the data',
+    subject: 'Housing is the benefit gap  - here\'s the data',
     body: (lead: GenerateEmailRequest['lead']) => `Hi ${lead.name?.split(' ')[0] || 'there'},
 
 Following up on my note about adding housing as a benefit category on ${lead.orgName || 'your platform'}.
 
 Some context: 35% of employees say housing costs are their #1 financial stressor, ahead of healthcare and retirement. Yet no major benefits platform offers a housing benefit beyond relocation stipends.
 
-SweetLease fills that gap. We aggregate employee demand by geography and negotiate group rates with landlords — the same leverage that corporate housing companies use, but accessible to individual employees.
+SweetLease fills that gap. We aggregate employee demand by geography and negotiate group rates with landlords  - the same leverage that corporate housing companies use, but accessible to individual employees.
 
 The model for ${lead.orgName || 'your platform'}:
 - White-label or co-branded integration
-- Zero cost to integrate — we handle all landlord relationships and negotiation
+- Zero cost to integrate  - we handle all landlord relationships and negotiation
 
 Your clients get a differentiating benefit. Their employees save real money. You add a category nobody else has.
 
@@ -495,10 +495,10 @@ Best regards,
 Terrell Gilbert`,
   },
   {
-    subject: 'Last note — partnership window closing',
+    subject: 'Last note  - partnership window closing',
     body: (lead: GenerateEmailRequest['lead']) => `Hi ${lead.name?.split(' ')[0] || 'there'},
 
-Last note on this — we're finalizing our benefits platform partnership for Q2 launch and I wanted to give ${lead.orgName || 'your team'} a final opportunity to explore it.
+Last note on this  - we're finalizing our benefits platform partnership for Q2 launch and I wanted to give ${lead.orgName || 'your team'} a final opportunity to explore it.
 
 The short version: SweetLease is a housing benefit that saves renters $100-300/month through group negotiation. We're looking for one platform partner to co-launch with, which means exclusive positioning in the housing benefit category for the launch period.
 
@@ -524,7 +524,7 @@ I'm reaching out because ${lead.orgName || 'your university'}'s students face so
 SweetLease helps students save 5-15% on rent through group negotiation. We aggregate demand from students at the same school and negotiate directly with landlords in the neighborhoods around campus.
 
 For ${lead.orgName || 'your housing office'}:
-- Zero cost — we're a free resource you can recommend to students
+- Zero cost  - we're a free resource you can recommend to students
 - Pre-vetted landlords within commuting distance of campus
 - Especially valuable for grad and international students arriving mid-year
 
@@ -538,7 +538,7 @@ Best regards,
 Terrell Gilbert`,
   },
   {
-    subject: 'Rent data near {{orgName}} — thought this would be useful',
+    subject: 'Rent data near {{orgName}}  - thought this would be useful',
     body: (lead: GenerateEmailRequest['lead']) => `Hi ${lead.name?.split(' ')[0] || 'there'},
 
 Following up on my note about SweetLease as a housing resource for ${lead.orgName || 'your'} students.
@@ -554,16 +554,16 @@ We'd be happy to:
 
 Any of those work for your office? https://calendly.com/sweetlease/university-partnership
 
-I have attached relevant materials for each option — no call needed.
+I have attached relevant materials for each option  - no call needed.
 
 Best regards,
 Terrell Gilbert`,
   },
   {
-    subject: 'Closing the loop — housing partnership with {{orgName}}',
+    subject: 'Closing the loop  - housing partnership with {{orgName}}',
     body: (lead: GenerateEmailRequest['lead']) => `Hi ${lead.name?.split(' ')[0] || 'there'},
 
-One last note on this — I've reached out a couple of times about SweetLease as a free off-campus housing resource for ${lead.orgName || 'your'} students.
+One last note on this  - I've reached out a couple of times about SweetLease as a free off-campus housing resource for ${lead.orgName || 'your'} students.
 
 If it's not the right time or not a fit, I totally understand. Housing partnerships are a newer concept and I know your office juggles a lot.
 
@@ -595,7 +595,7 @@ async function generateWithAI(lead: GenerateEmailRequest['lead'], leadType: stri
     const leadContext = leadType === 'residency'
       ? `Residency Program Contact: ${lead.name}, ${lead.title || 'GME Coordinator'} at ${lead.orgName || 'a teaching hospital'} in ${lead.city || 'unknown city'}${lead.state ? ', ' + lead.state : ''}. Organization has ${lead.orgEmployeeCount ? lead.orgEmployeeCount.toLocaleString() + ' employees' : 'unknown employee count'}. Key pain point: incoming residents struggle with housing costs in high-cost cities, affecting recruitment and retention.`
       : leadType === 'benefits-platform'
-      ? `Benefits Platform Contact: ${lead.name}, ${lead.title || 'Head of Partnerships'} at ${lead.orgName || 'a benefits platform'} in ${lead.city || 'unknown city'}${lead.state ? ', ' + lead.state : ''}. Company is in the ${lead.industry || 'HR tech/employee benefits'} space with ${lead.orgEmployeeCount ? lead.orgEmployeeCount + ' employees' : 'unknown size'}. Pitch: housing as a new LSA/benefit category — first-mover advantage.`
+      ? `Benefits Platform Contact: ${lead.name}, ${lead.title || 'Head of Partnerships'} at ${lead.orgName || 'a benefits platform'} in ${lead.city || 'unknown city'}${lead.state ? ', ' + lead.state : ''}. Company is in the ${lead.industry || 'HR tech/employee benefits'} space with ${lead.orgEmployeeCount ? lead.orgEmployeeCount + ' employees' : 'unknown size'}. Pitch: housing as a new LSA/benefit category  - first-mover advantage.`
       : leadType === 'graduate-housing'
       ? `University Housing Contact: ${lead.name}, ${lead.title || 'Director of Housing'} at ${lead.orgName || 'a university'} in ${lead.city || 'unknown city'}${lead.state ? ', ' + lead.state : ''}. Key pain point: students face high off-campus housing costs. SweetLease is a free resource the housing office can recommend.`
       : leadType === 'landlord'

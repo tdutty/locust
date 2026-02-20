@@ -250,11 +250,11 @@ export async function getReplySystemPrompt(contactType?: string): Promise<string
     case 'benefits-platform':
       audienceContext = `You are replying to an EMPLOYER or HR contact. They are interested in SweetLease as a housing benefit for their relocating employees.
 Key value props for employers:
-- Complimentary housing placement service — zero cost to the employer
+- Complimentary housing placement service  - zero cost to the employer
 - Employees save $100–$300/month on rent
 - We handle the full search, vetting, and placement process end-to-end
 - Reduces relocation friction and improves employee satisfaction
-- Quick setup — we can begin placing employees within days`;
+- Quick setup  - we can begin placing employees within days`;
       interestedRules = `For interested leads: propose a call to discuss how SweetLease can support their relocating workforce. Emphasize zero cost to employer and employee savings.`;
       break;
     case 'university':
@@ -265,14 +265,14 @@ Key value props for employers:
 Your reply should be INFORMATIVE, not salesy. Spell out the specific benefits clearly. Do NOT be overly forward or pushy. Let the value proposition speak for itself.
 
 Key benefits to highlight (use specific details, not vague summaries):
-- Zero cost to the institution — SweetLease is completely free for the program and the residents
-- Lease negotiation service — we negotiate on behalf of each resident to secure rates 15-25% below market average
+- Zero cost to the institution  - SweetLease is completely free for the program and the residents
+- Lease negotiation service  - we negotiate on behalf of each resident to secure rates 15-25% below market average
 - Furnished AND unfurnished options from our network of pre-screened, vetted landlords
-- Proximity matching — we prioritize housing near clinical sites, hospitals, and campus
+- Proximity matching  - we prioritize housing near clinical sites, hospitals, and campus
 - End-to-end managed process: housing search, landlord vetting, lease negotiation, and placement
-- Branded housing portal — a dedicated page for your program where incoming residents can browse options
+- Branded housing portal  - a dedicated page for your program where incoming residents can browse options
 - Ongoing support throughout the lease term, not just at placement
-- Minimal administrative lift — your team shares the incoming cohort list, we handle everything else
+- Minimal administrative lift  - your team shares the incoming cohort list, we handle everything else
 - Reduces housing-related stress and attrition, especially for residents relocating from out of state`;
       interestedRules = `For interested leads: explain the specific benefits in detail. Be informative, not pushy. Let them understand exactly what the service includes before suggesting a call.`;
       break;
@@ -283,7 +283,7 @@ Key value props for landlords:
 - Landlord has final say on pricing and tenant approval
 - Commission 25% below industry standard
 - We integrate their existing listings for free
-- Quick onboarding — up and running in days`;
+- Quick onboarding  - up and running in days`;
       interestedRules = `For interested leads: propose a call to walk them through the platform. Offer to integrate their existing listings for free. Emphasize the speed and quality of tenants.`;
       break;
   }
@@ -301,7 +301,7 @@ Tone and style:
 - Use complete sentences, proper grammar, and a respectful tone.
 - Avoid slang, casual phrases, colloquialisms, and excessive exclamation marks.
 - Do NOT use "I hope this finds you well" or filler greetings. Be direct and substantive.
-- If the contact name looks like an organization or department (e.g. "Tesla HR"), address them as "Dear Tesla HR" — do NOT split it.
+- If the contact name looks like an organization or department (e.g. "Tesla HR"), address them as "Dear Tesla HR"  - do NOT split it.
 
 Rules:
 - Address their specific questions or concerns directly
@@ -314,7 +314,7 @@ Rules:
 - CRITICAL: Do NOT include a signature block or sign-off. It is appended separately.
 - CRITICAL: Do NOT include any URLs, links, bullet-point lists of times, or scheduling options.
 - Keep the body to 2-3 short paragraphs (under 80 words total). End with a sentence like "I would welcome the opportunity to connect at your convenience."
-- End with "Best regards," on its own line — absolutely nothing after that`;
+- End with "Best regards," on its own line  - absolutely nothing after that`;
 }
 
 /** Generates reply with HTML body, Calendly table, and PDF link */
@@ -335,7 +335,7 @@ export async function generateReply(originalEmail: OriginalEmail): Promise<{ sub
     const cutIdx = textParagraphs.findIndex(l => {
       const t = l.trim();
       // Signature lines
-      if (/^(best regards|best,|regards,|warm regards|sincerely|cheers,|terrell gilbert|— terrell|--\s*$)/i.test(t)) return true;
+      if (/^(best regards|best,|regards,|warm regards|sincerely|cheers,|terrell gilbert| - terrell|--\s*$)/i.test(t)) return true;
       // Any line with URLs or calendly
       if (/calendly\.com|https?:\/\//i.test(t)) return true;
       // Time slots (9:00 AM CT, etc.)
@@ -366,7 +366,7 @@ export async function generateReply(originalEmail: OriginalEmail): Promise<{ sub
   };
 }
 
-/** Extracts a proper greeting name — uses full name for orgs/departments, first name for individuals */
+/** Extracts a proper greeting name  - uses full name for orgs/departments, first name for individuals */
 function getGreetingName(from: string): string {
   const lower = from.toLowerCase();
   // If it looks like a department or org name (contains HR, Team, Office, Admin, etc.), use full name
@@ -387,18 +387,18 @@ function getTypeMessaging(contactType: string) {
     case 'employer':
     case 'benefits-platform':
       return {
-        interestedHook: `SweetLease provides a complimentary housing placement service for relocating employees — saving them $100–$300 per month on rent with zero cost to your organization.`,
+        interestedHook: `SweetLease provides a complimentary housing placement service for relocating employees  - saving them $100–$300 per month on rent with zero cost to your organization.`,
         interestedCta: `I would welcome the opportunity to schedule a brief 30-minute call to discuss how SweetLease can support your relocating workforce and reduce relocation friction.`,
-        interestedOnboarding: `Integration is straightforward — we handle the entire housing search, vetting, and placement process so your HR team can stay focused on what matters.`,
-        questionHook: `Employers partnering with SweetLease offer their relocating employees a fully managed housing placement service at no cost — with average rent savings of $100–$300 per month.`,
+        interestedOnboarding: `Integration is straightforward  - we handle the entire housing search, vetting, and placement process so your HR team can stay focused on what matters.`,
+        questionHook: `Employers partnering with SweetLease offer their relocating employees a fully managed housing placement service at no cost  - with average rent savings of $100–$300 per month.`,
         questionBullets: [
-          'Completely free for your organization — zero fees, zero overhead',
+          'Completely free for your organization  - zero fees, zero overhead',
           'Employees save $100–$300/month on rent vs. searching independently',
           'Pre-vetted, quality housing options matched to employee needs',
           'We handle the full search and placement process end-to-end',
-          'Quick setup — we can begin placing employees within days',
+          'Quick setup  - we can begin placing employees within days',
         ],
-        objectionHook: `SweetLease is entirely free for employers. We handle the housing search and placement for relocating employees at zero cost to your organization, saving them an average of $100–$300 per month in rent. Many companies start with a single department as a pilot — no long-term commitment required.`,
+        objectionHook: `SweetLease is entirely free for employers. We handle the housing search and placement for relocating employees at zero cost to your organization, saving them an average of $100–$300 per month in rent. Many companies start with a single department as a pilot  - no long-term commitment required.`,
         notInterestedSeed: `For reference, we currently help employers reduce relocation friction with a complimentary housing placement service that saves relocating employees $100–$300 per month. Should your needs change in the future, we would be glad to help.`,
       };
     case 'university':
@@ -407,35 +407,35 @@ function getTypeMessaging(contactType: string) {
       return {
         interestedHook: `SweetLease is a completely free housing resource designed specifically for programs like yours. Here is what that includes:`,
         interestedCta: `If any of this sounds relevant to your program, I am happy to walk through how it would work for your specific incoming cohort.`,
-        interestedOnboarding: `To get started, your team would simply share the incoming resident list — we handle everything else from there.`,
+        interestedOnboarding: `To get started, your team would simply share the incoming resident list  - we handle everything else from there.`,
         questionHook: `SweetLease is a free, fully managed housing service built for residency programs and universities. Here is a breakdown of exactly what we provide:`,
         questionBullets: [
-          'Zero cost — completely free for your institution and your residents',
-          'Lease negotiation — we negotiate on behalf of each resident to secure rates 15–25% below market average',
+          'Zero cost  - completely free for your institution and your residents',
+          'Lease negotiation  - we negotiate on behalf of each resident to secure rates 15–25% below market average',
           'Furnished and unfurnished options from our network of pre-screened, vetted landlords',
-          'Proximity matching — we prioritize housing near clinical sites, hospitals, and campus',
+          'Proximity matching  - we prioritize housing near clinical sites, hospitals, and campus',
           'End-to-end managed process: housing search, landlord vetting, lease negotiation, and placement',
-          'Branded housing portal — a dedicated page for your program where incoming residents can browse options',
+          'Branded housing portal  - a dedicated page for your program where incoming residents can browse options',
           'Ongoing support throughout the lease term, not just at placement',
-          'Minimal administrative lift — your team shares the incoming cohort list, we handle everything else',
+          'Minimal administrative lift  - your team shares the incoming cohort list, we handle everything else',
         ],
-        objectionHook: `SweetLease is entirely free for institutions. We negotiate lease rates 15–25% below market average on behalf of residents, handle the full search-to-placement process, and provide ongoing support throughout the lease term — all with minimal administrative effort from your team. Many programs start with a single incoming cohort as a pilot — no commitment required.`,
-        notInterestedSeed: `For reference, we currently serve as a free housing resource for residency programs and universities — negotiating rates 15–25% below market, handling the full placement process, and providing ongoing lease support for incoming residents. Should your needs change in the future, we would be glad to help.`,
+        objectionHook: `SweetLease is entirely free for institutions. We negotiate lease rates 15–25% below market average on behalf of residents, handle the full search-to-placement process, and provide ongoing support throughout the lease term  - all with minimal administrative effort from your team. Many programs start with a single incoming cohort as a pilot  - no commitment required.`,
+        notInterestedSeed: `For reference, we currently serve as a free housing resource for residency programs and universities  - negotiating rates 15–25% below market, handling the full placement process, and providing ongoing lease support for incoming residents. Should your needs change in the future, we would be glad to help.`,
       };
     default: // landlord
       return {
-        interestedHook: `Our landlord partners are currently filling vacancies 3x faster than the market average, with pre-screened, employer-backed tenants — and at a commission 25% below the industry standard.`,
+        interestedHook: `Our landlord partners are currently filling vacancies 3x faster than the market average, with pre-screened, employer-backed tenants  - and at a commission 25% below the industry standard.`,
         interestedCta: `I would welcome the opportunity to schedule a brief 30-minute call to walk you through the platform and discuss how we can put these results to work for your portfolio.`,
-        interestedOnboarding: `Our onboarding is quick — we integrate your existing listings at no additional cost and have you up and running in days.`,
-        questionHook: `Landlords on our platform are seeing vacancies filled in an average of 14 days — compared to 45 days through traditional channels — with tenants who come pre-screened and backed by their employers.`,
+        interestedOnboarding: `Our onboarding is quick  - we integrate your existing listings at no additional cost and have you up and running in days.`,
+        questionHook: `Landlords on our platform are seeing vacancies filled in an average of 14 days  - compared to 45 days through traditional channels  - with tenants who come pre-screened and backed by their employers.`,
         questionBullets: [
           'You have final say on pricing and tenant approval',
           'Our commission is 25% below the industry standard',
           'All tenants are pre-screened with employer-backed guarantees',
           'Average placement timeline: 14 days, compared to 45 days on traditional platforms',
-          'Quick onboarding — we integrate your existing listings at no additional cost',
+          'Quick onboarding  - we integrate your existing listings at no additional cost',
         ],
-        objectionHook: `Landlords using SweetLease are filling vacancies in 14 days on average, with zero upfront cost and a commission 25% below the industry standard. Many started with just one or two units as a pilot — no long-term commitment required.`,
+        objectionHook: `Landlords using SweetLease are filling vacancies in 14 days on average, with zero upfront cost and a commission 25% below the industry standard. Many started with just one or two units as a pilot  - no long-term commitment required.`,
         notInterestedSeed: `For reference, we are currently helping landlords fill vacancies 3x faster with employer-backed tenants at a commission 25% below the industry standard. Should your circumstances change in the future, we would be glad to help.`,
       };
   }
