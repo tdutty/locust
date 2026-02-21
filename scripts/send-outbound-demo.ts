@@ -167,6 +167,9 @@ async function main() {
           </p>
         </td></tr>
       </table>
+      <p style="margin:24px 0 0;font-size:11px;color:#94a3b8;text-align:left;">
+        If you no longer wish to receive these emails, <a href="mailto:tgilbert@sweetlease.io?subject=Unsubscribe" style="color:#94a3b8;text-decoration:underline;">unsubscribe</a>.
+      </p>
     </td></tr>
   </table>
 </body>

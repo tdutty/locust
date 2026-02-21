@@ -73,17 +73,37 @@ export async function GET(request: NextRequest) {
       ? `<p><a href="${line.trim()}">${line.trim()}</a></p>`
       : line ? `<p>${line}</p>` : '<br>'
   ).join('')}
+  <p style="margin:24px 0 0;font-size:11px;color:#94a3b8;">
+    If you no longer wish to receive these emails, <a href="mailto:tgilbert@sweetlease.io?subject=Unsubscribe" style="color:#94a3b8;text-decoration:underline;">unsubscribe</a>.
+  </p>
 </body>
 </html>
 `;
 
-        const info = await transporter.sendMail({
-          from: `"Terrell Gilbert" <${process.env.SMTP_USER}>`,
+        // Use outreach subdomain for cold outbound, primary domain for replies
+        const isOutbound = !email.subject?.startsWith('Re:');
+        const fromAddress = isOutbound
+          ? (process.env.OUTBOUND_SMTP_USER || process.env.SMTP_USER)
+          : process.env.SMTP_USER;
+
+        const mailOptions: any = {
+          from: `"Terrell Gilbert" <${fromAddress}>`,
           to: email.to_email,
           subject: email.subject,
           text: email.body,
           html: htmlBody,
-        });
+          headers: {
+            'List-Unsubscribe': '<mailto:tgilbert@sweetlease.io?subject=Unsubscribe>',
+            'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+          },
+        };
+
+        // For outbound: add Reply-To so replies go to primary inbox
+        if (isOutbound) {
+          mailOptions.replyTo = `"Terrell Gilbert" <tgilbert@sweetlease.io>`;
+        }
+
+        const info = await transporter.sendMail(mailOptions);
 
         // Mark as sent
         await query(
