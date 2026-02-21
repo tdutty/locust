@@ -80,14 +80,8 @@ export async function GET(request: NextRequest) {
 </html>
 `;
 
-        // Use outreach subdomain for cold outbound, primary domain for replies
-        const isOutbound = !email.subject?.startsWith('Re:');
-        const fromAddress = isOutbound
-          ? (process.env.OUTBOUND_SMTP_USER || process.env.SMTP_USER)
-          : process.env.SMTP_USER;
-
-        const mailOptions: any = {
-          from: `"Terrell Gilbert" <${fromAddress}>`,
+        const info = await transporter.sendMail({
+          from: `"Terrell Gilbert" <${process.env.SMTP_USER}>`,
           to: email.to_email,
           subject: email.subject,
           text: email.body,
@@ -96,14 +90,7 @@ export async function GET(request: NextRequest) {
             'List-Unsubscribe': '<mailto:tgilbert@sweetlease.io?subject=Unsubscribe>',
             'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
           },
-        };
-
-        // For outbound: add Reply-To so replies go to primary inbox
-        if (isOutbound) {
-          mailOptions.replyTo = `"Terrell Gilbert" <tgilbert@sweetlease.io>`;
-        }
-
-        const info = await transporter.sendMail(mailOptions);
+        });
 
         // Mark as sent
         await query(
