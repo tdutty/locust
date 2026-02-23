@@ -179,9 +179,79 @@ async function initTables() {
     )
   `);
 
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS tracked_links (
+      id SERIAL PRIMARY KEY,
+      code TEXT UNIQUE NOT NULL,
+      destination_url TEXT NOT NULL,
+      contact_id INTEGER REFERENCES contacts(id) ON DELETE SET NULL,
+      scheduled_email_id INTEGER REFERENCES scheduled_emails(id) ON DELETE SET NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS link_clicks (
+      id SERIAL PRIMARY KEY,
+      tracked_link_id INTEGER REFERENCES tracked_links(id) ON DELETE CASCADE,
+      clicked_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      user_agent TEXT,
+      ip_address TEXT
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS listings (
+      id SERIAL PRIMARY KEY,
+      rentcast_id TEXT UNIQUE,
+      address TEXT NOT NULL,
+      city TEXT NOT NULL,
+      state TEXT NOT NULL,
+      zip_code TEXT,
+      property_type TEXT,
+      bedrooms INTEGER,
+      bathrooms REAL,
+      sqft INTEGER,
+      listed_price REAL,
+      days_on_market INTEGER,
+      listed_date TEXT,
+      listing_url TEXT,
+      owner_name TEXT,
+      owner_type TEXT,
+      owner_phone TEXT,
+      owner_email TEXT,
+      estimated_vacancy_cost REAL,
+      imported_to_contacts INTEGER DEFAULT 0,
+      contact_id INTEGER REFERENCES contacts(id),
+      source TEXT DEFAULT 'rentcast',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_listings_city_state ON listings(city, state)`).catch(() => {});
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_listings_dom ON listings(days_on_market)`).catch(() => {});
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS contact_sequences (
+      id SERIAL PRIMARY KEY,
+      contact_id INTEGER NOT NULL REFERENCES contacts(id) ON DELETE CASCADE,
+      contact_type TEXT NOT NULL,
+      current_step INTEGER NOT NULL DEFAULT 1,
+      max_steps INTEGER NOT NULL,
+      status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active','paused','completed','stopped')),
+      last_sent_at TIMESTAMPTZ,
+      next_send_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
   // Indexes for fast lookups
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_contacts_email ON contacts(email)`).catch(() => {});
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_response_log_from_email ON response_log(from_email)`).catch(() => {});
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_tracked_links_code ON tracked_links(code)`).catch(() => {});
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_sequences_status_next ON contact_sequences(status, next_send_at)`).catch(() => {});
 
   initialized = true;
 }

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
 import { query } from '@/lib/db';
+import { wrapLinksForTracking } from '@/lib/link-tracking';
+import { getMaxSteps, calculateNextBusinessDay } from '@/lib/email-templates';
 
 function getTransporter() {
   const user = process.env.SMTP_USER;
@@ -80,12 +82,15 @@ export async function GET(request: NextRequest) {
 </html>
 `;
 
+        // Wrap links for click tracking
+        const trackedHtml = await wrapLinksForTracking(htmlBody, email.contact_id, email.id);
+
         const info = await transporter.sendMail({
           from: `"Terrell Gilbert" <${process.env.SMTP_USER}>`,
           to: email.to_email,
           subject: email.subject,
           text: email.body,
-          html: htmlBody,
+          html: trackedHtml,
           headers: {
             'List-Unsubscribe': '<mailto:tgilbert@sweetlease.io?subject=Unsubscribe>',
             'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
@@ -107,6 +112,27 @@ export async function GET(request: NextRequest) {
           );
         } catch (logErr) {
           console.error('Failed to log scheduled email:', logErr);
+        }
+
+        // Create follow-up sequence if this is Email #1 for this contact
+        if (email.contact_id && email.lead_type) {
+          try {
+            const existingSeq = await query(
+              'SELECT id FROM contact_sequences WHERE contact_id = $1 LIMIT 1',
+              [email.contact_id]
+            );
+            if (existingSeq.rows.length === 0) {
+              const maxSteps = getMaxSteps(email.lead_type);
+              const nextSendAt = calculateNextBusinessDay(new Date(), 4);
+              await query(
+                `INSERT INTO contact_sequences (contact_id, contact_type, current_step, max_steps, last_sent_at, next_send_at)
+                 VALUES ($1, $2, 1, $3, NOW(), $4)`,
+                [email.contact_id, email.lead_type, maxSteps, nextSendAt.toISOString()]
+              );
+            }
+          } catch (seqErr) {
+            console.error('Failed to create sequence:', seqErr);
+          }
         }
 
         sent++;

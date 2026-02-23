@@ -140,6 +140,13 @@ export async function GET(request: NextRequest) {
               `UPDATE contacts SET status = $1, updated_at = NOW() WHERE id = $2`,
               [newStatus, contact.id]
             );
+
+            // Stop any active follow-up sequence for this contact
+            await query(
+              `UPDATE contact_sequences SET status = 'stopped', updated_at = NOW()
+               WHERE contact_id = $1 AND status = 'active'`,
+              [contact.id]
+            ).catch(err => console.error('Failed to stop sequence:', err));
           }
         }
 

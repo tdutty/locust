@@ -21,6 +21,7 @@ import {
   Bell,
   SearchCheck,
   Scale,
+  Radar,
 } from 'lucide-react';
 
 interface User {
@@ -38,6 +39,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/dashboard/pipeline': 'Pipeline',
   '/dashboard/reports': 'Reports',
   '/dashboard/contacts': 'Contacts',
+  '/dashboard/scraper': 'Listing Scraper',
   '/dashboard/legal': 'Lease Review',
   '/dashboard/settings': 'Settings',
 };
@@ -187,6 +189,7 @@ export default function DashboardLayout({
             <NavLink href="/dashboard/employers" icon={<Building2 className="w-4 h-4" />} label="Employers" pathname={pathname} />
             <NavLink href="/dashboard/universities" icon={<GraduationCap className="w-4 h-4" />} label="Universities" pathname={pathname} />
             <NavLink href="/dashboard/contacts" icon={<SearchCheck className="w-4 h-4" />} label="Contacts" pathname={pathname} />
+            <NavLink href="/dashboard/scraper" icon={<Radar className="w-4 h-4" />} label="Scraper" pathname={pathname} />
           </SidebarSection>
 
           {/* Legal Section */}
