@@ -4,11 +4,23 @@ import { query } from '@/lib/db';
 import { wrapLinksForTracking } from '@/lib/link-tracking';
 import { getMaxSteps, calculateNextBusinessDay } from '@/lib/email-templates';
 
+// Outbound cold emails use Resend SMTP (outreach.sweetlease.io subdomain)
+// Replies/inbox emails still use Porkbun (tgilbert@sweetlease.io)
 function getTransporter() {
+  const resendKey = process.env.RESEND_API_KEY;
+  if (resendKey) {
+    return nodemailer.createTransport({
+      host: 'smtp.resend.com',
+      port: 465,
+      secure: true,
+      auth: { user: 'resend', pass: resendKey },
+    });
+  }
+  // Fallback to Porkbun if Resend not configured
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASSWORD;
   if (!user || !pass) {
-    throw new Error('SMTP_USER and SMTP_PASSWORD environment variables are required');
+    throw new Error('RESEND_API_KEY or SMTP_USER/SMTP_PASSWORD required');
   }
   return nodemailer.createTransport({
     host: process.env.SMTP_HOST || 'smtp.porkbun.com',
@@ -85,8 +97,13 @@ export async function GET(request: NextRequest) {
         // Wrap links for click tracking
         const trackedHtml = await wrapLinksForTracking(htmlBody, email.contact_id, email.id);
 
+        const fromAddress = process.env.RESEND_API_KEY
+          ? '"Terrell Gilbert" <tgilbert@outreach.sweetlease.io>'
+          : `"Terrell Gilbert" <${process.env.SMTP_USER}>`;
+
         const info = await transporter.sendMail({
-          from: `"Terrell Gilbert" <${process.env.SMTP_USER}>`,
+          from: fromAddress,
+          replyTo: 'tgilbert@sweetlease.io',
           to: email.to_email,
           subject: email.subject,
           text: email.body,
