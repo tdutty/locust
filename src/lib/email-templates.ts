@@ -645,42 +645,53 @@ export async function generateWithAI(
  * Build full outbound HTML email with signature and unsubscribe link.
  */
 export function buildOutboundHtml(body: string): string {
+  // Convert plain text body to styled HTML paragraphs
+  const lines = body.split('\n').map(line => {
+    if (!line.trim()) return '';
+    if (line.includes('https://')) {
+      const url = line.trim().match(/https?:\/\/\S+/)?.[0] || line.trim();
+      const textBefore = line.trim().replace(url, '').trim();
+      if (textBefore) {
+        return `<p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#1a1a1a;">${textBefore}<br><a href="${url}" style="color:#EA580C;text-decoration:none;">${url}</a></p>`;
+      }
+      return `<p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#1a1a1a;"><a href="${url}" style="color:#EA580C;text-decoration:none;">${url}</a></p>`;
+    }
+    if (line.trim().startsWith('- ')) {
+      return `<p style="margin:0 0 4px;padding-left:12px;font-size:15px;line-height:1.7;color:#333;">\u2022 ${line.trim().slice(2)}</p>`;
+    }
+    if (line.trim().match(/^\d+\.\s/)) {
+      return `<p style="margin:0 0 4px;padding-left:12px;font-size:15px;line-height:1.7;color:#333;">${line.trim()}</p>`;
+    }
+    if (line.trim() === 'Best regards,') {
+      return `<p style="margin:0 0 2px;font-size:15px;line-height:1.7;color:#1a1a1a;">Best regards,</p>`;
+    }
+    if (line.trim() === 'Terrell Gilbert') {
+      return `<p style="margin:0 0 20px;font-size:15px;line-height:1.7;color:#1a1a1a;"><strong>Terrell Gilbert</strong></p>`;
+    }
+    return `<p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#1a1a1a;">${line}</p>`;
+  }).join('');
+
   return `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
-<body style="font-family:Arial,sans-serif;margin:0;padding:0;background-color:#ffffff;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;padding:20px;">
-    <tr><td>
-      ${body.split('\n').map(line => {
-        if (!line.trim()) return '';
-        if (line.includes('https://')) {
-          const url = line.trim().match(/https?:\/\/\S+/)?.[0] || line.trim();
-          return `<p style="margin:10px 0;font-size:15px;line-height:1.6;color:#333;"><a href="${url}" style="color:#EA580C;text-decoration:none;">${url}</a></p>`;
-        }
-        if (line.trim().startsWith('- ')) {
-          return `<p style="margin:4px 0 4px 16px;font-size:15px;line-height:1.6;color:#333;">&#8226; ${line.trim().slice(2)}</p>`;
-        }
-        return `<p style="margin:10px 0;font-size:15px;line-height:1.6;color:#333;">${line}</p>`;
-      }).join('')}
-      <table cellpadding="0" cellspacing="0" border="0" style="margin-top:24px;border-top:1px solid #e2e8f0;padding-top:16px;">
-        <tr><td style="vertical-align:top;font-family:Arial,sans-serif;">
-          <p style="margin:0 0 8px 0;font-size:20px;font-weight:700;letter-spacing:-0.02em;line-height:1;">
-            <span style="color:#EA580C;">SWEET</span><span style="color:#1a1a1a;">LEASE</span>
-          </p>
-          <p style="margin:0;font-size:14px;font-weight:600;color:#1a1a1a;">Terrell Gilbert</p>
-          <p style="margin:2px 0 0;font-size:12px;color:#64748b;">Account Executive</p>
-          <p style="margin:6px 0 0;font-size:12px;">
-            <a href="https://sweetlease.io" style="color:#EA580C;text-decoration:none;">sweetlease.io</a>
-            <span style="color:#cbd5e1;margin:0 6px;">|</span>
-            <a href="mailto:tgilbert@sweetlease.io" style="color:#EA580C;text-decoration:none;">tgilbert@sweetlease.io</a>
-          </p>
-        </td></tr>
-      </table>
-      <p style="margin:24px 0 0;font-size:11px;color:#94a3b8;text-align:left;">
-        If you no longer wish to receive these emails, <a href="mailto:tgilbert@sweetlease.io?subject=Unsubscribe" style="color:#94a3b8;text-decoration:underline;">unsubscribe</a>.
+<body style="margin:0;padding:0;background-color:#ffffff;">
+  <div style="max-width:580px;margin:0 auto;padding:24px 16px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.7;color:#1a1a1a;">
+    ${lines}
+    <div style="border-top:1px solid #e2e8f0;padding-top:16px;margin-top:4px;">
+      <p style="margin:0 0 6px;font-size:18px;font-weight:700;letter-spacing:-0.01em;">
+        <span style="color:#EA580C;">SWEET</span><span style="color:#1a1a1a;">LEASE</span>
       </p>
-    </td></tr>
-  </table>
+      <p style="margin:0;font-size:13px;color:#64748b;">Account Executive</p>
+      <p style="margin:6px 0 0;font-size:13px;">
+        <a href="https://sweetlease.io" style="color:#EA580C;text-decoration:none;">sweetlease.io</a>
+        <span style="color:#cbd5e1;margin:0 4px;">\u00b7</span>
+        <a href="mailto:tgilbert@sweetlease.io" style="color:#EA580C;text-decoration:none;">tgilbert@sweetlease.io</a>
+      </p>
+    </div>
+    <p style="margin:20px 0 0;font-size:11px;color:#94a3b8;">
+      If you no longer wish to receive these emails, <a href="mailto:tgilbert@sweetlease.io?subject=Unsubscribe" style="color:#94a3b8;text-decoration:underline;">unsubscribe</a>.
+    </p>
+  </div>
 </body>
 </html>`;
 }

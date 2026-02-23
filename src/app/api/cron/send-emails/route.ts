@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
 import { query } from '@/lib/db';
 import { wrapLinksForTracking } from '@/lib/link-tracking';
-import { getMaxSteps, calculateNextBusinessDay } from '@/lib/email-templates';
+import { getMaxSteps, calculateNextBusinessDay, buildOutboundHtml } from '@/lib/email-templates';
 
 // Outbound cold emails use Resend SMTP (outreach.sweetlease.io subdomain)
 // Replies/inbox emails still use Porkbun (tgilbert@sweetlease.io)
@@ -71,28 +71,7 @@ export async function GET(request: NextRequest) {
 
     for (const email of result.rows) {
       try {
-        const htmlBody = email.html_body || `
-<!DOCTYPE html>
-<html>
-<head>
-  <style>
-    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; }
-    p { margin: 10px 0; }
-    a { color: #16a34a; }
-  </style>
-</head>
-<body>
-  ${email.body.split('\n').map((line: string) =>
-    line.includes('https://')
-      ? `<p><a href="${line.trim()}">${line.trim()}</a></p>`
-      : line ? `<p>${line}</p>` : '<br>'
-  ).join('')}
-  <p style="margin:24px 0 0;font-size:11px;color:#94a3b8;">
-    If you no longer wish to receive these emails, <a href="mailto:tgilbert@sweetlease.io?subject=Unsubscribe" style="color:#94a3b8;text-decoration:underline;">unsubscribe</a>.
-  </p>
-</body>
-</html>
-`;
+        const htmlBody = email.html_body || buildOutboundHtml(email.body);
 
         // Wrap links for click tracking
         const trackedHtml = await wrapLinksForTracking(htmlBody, email.contact_id, email.id);
