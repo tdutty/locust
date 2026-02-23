@@ -50,12 +50,12 @@ export async function POST(request: NextRequest) {
       <p style="margin:0 0 8px 0;font-size:20px;font-weight:700;letter-spacing:-0.02em;line-height:1;">
         <span style="color:#EA580C;">SWEET</span><span style="color:#1a1a1a;">LEASE</span>
       </p>
-      <p style="margin:0;font-size:14px;font-weight:600;color:#1a1a1a;">Terrell Gilbert</p>
+      <p style="margin:0;font-size:14px;font-weight:600;color:#1a1a1a;">Robert Gilbert</p>
       <p style="margin:2px 0 0;font-size:12px;color:#64748b;">Account Executive</p>
       <p style="margin:6px 0 0;font-size:12px;">
         <a href="https://sweetlease.io" style="color:#EA580C;text-decoration:none;">sweetlease.io</a>
         <span style="color:#cbd5e1;margin:0 6px;">|</span>
-        <a href="mailto:tgilbert@sweetlease.io" style="color:#EA580C;text-decoration:none;">tgilbert@sweetlease.io</a>
+        <a href="mailto:rgilbert@sweetlease.io" style="color:#EA580C;text-decoration:none;">rgilbert@sweetlease.io</a>
       </p>
     </td>
   </tr>
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
 
     // Send email
     const info = await transporter.sendMail({
-      from: `"Terrell Gilbert" <${process.env.SMTP_USER}>`,
+      from: `"Robert Gilbert" <${process.env.SMTP_USER}>`,
       to,
       subject,
       text: emailBody,

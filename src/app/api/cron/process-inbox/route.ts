@@ -122,7 +122,29 @@ export async function GET(request: NextRequest) {
         const contact = contactResult.rows[0];
         matched++;
 
-        // 5. Skip spam/system — log but no action
+        // 5a. Handle unsubscribe requests
+        if (email.subject?.toLowerCase().includes('unsubscribe')) {
+          await query(
+            `UPDATE contacts SET status = 'disqualified', notes = COALESCE(notes, '') || ' [Unsubscribed]', updated_at = NOW() WHERE id = $1`,
+            [contact.id]
+          );
+          // Stop any active sequence
+          await query(
+            `UPDATE contact_sequences SET status = 'stopped', updated_at = NOW() WHERE contact_id = $1 AND status = 'active'`,
+            [contact.id]
+          ).catch(() => {});
+          // Cancel any pending emails
+          await query(
+            `UPDATE scheduled_emails SET status = 'cancelled' WHERE contact_id = $1 AND status = 'pending'`,
+            [contact.id]
+          ).catch(() => {});
+          await logResponse(email, contact.id, null, null, 'unsubscribed');
+          await markProcessed(cacheKey);
+          processed++;
+          continue;
+        }
+
+        // 5b. Skip spam/system — log but no action
         if (email.classification === 'spam' || email.classification === 'system') {
           await logResponse(email, contact.id, null, null, `skipped_${email.classification}`);
           await markProcessed(cacheKey);

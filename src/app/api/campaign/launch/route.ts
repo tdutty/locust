@@ -42,7 +42,7 @@ We're already partnered with HR teams at major employers across ${lead.city || '
 Would it be helpful to explore how this could benefit your relocating employees? I can share a brief overview in 15 minutes.
 
 Best,
-Terrell Gilbert
+Robert Gilbert
 SweetLease | Corporate Housing Solutions`,
   },
   {
@@ -62,7 +62,7 @@ Would a quick call make sense to explore if this could help ${lead.company}'s te
 https://calendly.com/sweetlease/employer-intro
 
 Best,
-Terrell Gilbert
+Robert Gilbert
 SweetLease`,
   },
   {
@@ -83,7 +83,7 @@ I'd love to share more details and explore if similar results are possible for $
 15 minutes work for you? https://calendly.com/sweetlease/employer-intro
 
 Best,
-Terrell Gilbert
+Robert Gilbert
 SweetLease`,
   },
   {
@@ -104,7 +104,7 @@ If C, here's the 30-second version: SweetLease gives your relocating employees f
 Worth a quick chat?
 
 Best,
-Terrell Gilbert
+Robert Gilbert
 SweetLease`,
   },
   {
@@ -120,7 +120,7 @@ If things change or you'd like to explore this down the road, I'm always happy t
 Wishing you and the team continued success!
 
 Best,
-Terrell Gilbert
+Robert Gilbert
 SweetLease`,
   },
 ];
@@ -284,7 +284,7 @@ export async function POST(request: NextRequest) {
 </html>`;
 
         const info = await transporter.sendMail({
-          from: `"Terrell Gilbert" <${process.env.SMTP_USER}>`,
+          from: `"Robert Gilbert" <${process.env.SMTP_USER}>`,
           to: employer.contact_email,
           subject,
           text: emailBody,

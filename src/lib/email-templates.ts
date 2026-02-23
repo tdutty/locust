@@ -50,12 +50,12 @@ Rules:
 - ALWAYS offer TWO CTA options: a primary Calendly link AND a softer alternative for people who don't want a meeting
   - Primary Calendly links: https://calendly.com/sweetlease/intro (landlords), https://calendly.com/sweetlease/employer-intro (employers), or https://calendly.com/sweetlease/university-partnership (universities/residency/grad housing)
   - Soft alternatives: reference the ATTACHED partnership overview, one-pager, case study, or market report. Always frame documents as "I have attached"  - never ask them to reply for it. NEVER link to sweetlease.com/partners.
-- Sign off with just "Best regards," and "Terrell Gilbert" on the next line. Do NOT include "SweetLease" in the sign-off text  - the email signature with logo and company info is appended automatically.
+- Sign off with just "Best regards," and "Robert Gilbert" on the next line. Do NOT include "SweetLease" in the sign-off text  - the email signature with logo and company info is appended automatically.
 - IMPORTANT: When mentioning cost, emphasize that the service is FREE for the recipient's organization/program. We are waiving any fees as part of our partnership outreach. Never mention a $99.99 fee or any cost to the end user in outreach emails.
 - Tone: Professional, polished, and business-appropriate. Write like a senior business development executive. Use complete sentences, proper grammar, and a respectful tone. Avoid slang, casual phrases, and colloquialisms.
 - This is COLD outreach. You do NOT know the recipient. Never say "I know you" or "I noticed you" or presume any familiarity with their situation. Do not assume their pain points or claim knowledge of their challenges. Let the recipient decide if it applies.
 - Never use "I hope this finds you well" or similar filler greetings. Get to the point quickly.
-- Opening: Start with a brief, one-sentence introduction of who you are and why you're reaching out (e.g., "My name is Terrell Gilbert with SweetLease, and I'm reaching out regarding [specific reason relevant to their role]."). Keep it to one sentence, then immediately move into the value proposition. No fluff, no market stats preamble.
+- Opening: Start with a brief, one-sentence introduction of who you are and why you're reaching out (e.g., "My name is Robert Gilbert with SweetLease, and I'm reaching out regarding [specific reason relevant to their role]."). Keep it to one sentence, then immediately move into the value proposition. No fluff, no market stats preamble.
 - The email should read as if addressed to someone in their specific role. Use the lead's title and organization context to tailor the message to what matters to THEM in their position, not a generic pitch.
 - Never use exclamation marks excessively
 - Vary subject lines - make them specific, professional, and relevant to the recipient's role`;
@@ -65,7 +65,7 @@ export const LANDLORD_SEQUENCES = [
     subject: 'Corporate relocation tenants in {{city}}',
     body: (lead: LeadInfo) => `Dear ${lead.name},
 
-My name is Terrell Gilbert with SweetLease. SweetLease is a rental listing platform founded in 2026 with the goal of making renting more accessible. We connect property managers with pre-screened, employer-backed tenants who are actively relocating and ready to sign.
+My name is Robert Gilbert with SweetLease. SweetLease is a rental listing platform founded in 2026 with the goal of making renting more accessible. We connect property managers with pre-screened, employer-backed tenants who are actively relocating and ready to sign.
 
 We partner with HR departments at companies relocating employees to ${lead.city || 'your area'}. When their employees need housing, we match them with property managers like you first.
 
@@ -78,7 +78,7 @@ Would it be helpful to explore this? I can walk through it in 15 minutes: https:
 If a call is not ideal right now, I have attached a one-pager that covers how it works - takes 2 minutes to read.
 
 Best regards,
-Terrell Gilbert`,
+Robert Gilbert`,
   },
   {
     subject: 'Employer-backed tenant placement',
@@ -99,7 +99,7 @@ Would it make sense to chat for 15 minutes? https://calendly.com/sweetlease/intr
 No time for a call? I have attached a summary document with everything you need to know  - takes 2 minutes to read.
 
 Best regards,
-Terrell Gilbert`,
+Robert Gilbert`,
   },
   {
     subject: '{{city}} rental market - corporate tenant demand',
@@ -122,7 +122,7 @@ Worth a 15-minute call to explore? https://calendly.com/sweetlease/intro
 I have also attached a quick case study from a landlord in your market  - worth a look if you are short on time.
 
 Best regards,
-Terrell Gilbert`,
+Robert Gilbert`,
   },
   {
     subject: 'Following up - {{city}} tenant placement',
@@ -137,7 +137,7 @@ Either way, no hard feelings. Just let me know.
 If the timing is better later this year, I'm happy to reconnect then.
 
 Best regards,
-Terrell Gilbert`,
+Robert Gilbert`,
   },
   {
     subject: 'Closing the loop',
@@ -159,7 +159,7 @@ Interested? https://calendly.com/sweetlease/intro
 Not ready for a call? I have attached the details  - takes 2 minutes to read.
 
 Best regards,
-Terrell Gilbert`,
+Robert Gilbert`,
   },
 ];
 
@@ -168,7 +168,7 @@ export const EMPLOYER_SEQUENCES = [
     subject: 'Employee housing placement - {{company}}',
     body: (lead: LeadInfo) => `Dear ${lead.name || 'there'},
 
-My name is Terrell Gilbert with SweetLease. SweetLease is a rental listing and negotiation platform founded in 2026 with the goal of making renting more accessible. We provide a complimentary housing placement service for companies with relocating employees, handling the full search and lease negotiation process at no cost to your organization.
+My name is Robert Gilbert with SweetLease. SweetLease is a rental listing and negotiation platform founded in 2026 with the goal of making renting more accessible. We provide a complimentary housing placement service for companies with relocating employees, handling the full search and lease negotiation process at no cost to your organization.
 
 When ${lead.company || 'your'} employees relocate, we connect them with pre-vetted, move-in ready properties before they hit the public market and negotiate lease terms on their behalf. Employees typically save $100-$300 per month on rent compared to searching independently.
 
@@ -184,7 +184,7 @@ Would it be helpful to explore this? I can walk through it in 15 minutes: https:
 If a meeting does not work, I have attached a 2-page overview you can share with your team - takes 2 minutes to read.
 
 Best regards,
-Terrell Gilbert`,
+Robert Gilbert`,
   },
   {
     subject: 'Housing support for relocating employees',
@@ -203,7 +203,7 @@ Would a quick call make sense? https://calendly.com/sweetlease/employer-intro
 If you would rather skip the call, I have attached a 2-page summary covering how we work with HR teams.
 
 Best regards,
-Terrell Gilbert`,
+Robert Gilbert`,
   },
   {
     subject: 'Employee relocation housing - quick overview',
@@ -225,7 +225,7 @@ I'd love to share more details and explore if similar results are possible for $
 I have also attached the full case study for your reference.
 
 Best regards,
-Terrell Gilbert`,
+Robert Gilbert`,
   },
   {
     subject: 'Following up - {{company}} employee housing',
@@ -245,7 +245,7 @@ If C, here's the 30-second version: SweetLease gives your relocating employees f
 Worth a quick chat?
 
 Best regards,
-Terrell Gilbert`,
+Robert Gilbert`,
   },
   {
     subject: 'Closing the loop',
@@ -260,7 +260,7 @@ If things change or you'd like to explore this down the road, I'm always happy t
 Wishing you and the team continued success!
 
 Best regards,
-Terrell Gilbert`,
+Robert Gilbert`,
   },
 ];
 
@@ -269,7 +269,7 @@ export const UNIVERSITY_SEQUENCES = [
     subject: 'Off-campus housing resource - {{university}}',
     body: (lead: LeadInfo) => `Dear ${lead.name || 'there'},
 
-My name is Terrell Gilbert with SweetLease. SweetLease is a rental listing and negotiation platform founded in 2026 with the goal of making renting more accessible. We partner with universities to provide students with a curated housing resource, negotiating directly with landlords to secure rates well below what students would find on their own.
+My name is Robert Gilbert with SweetLease. SweetLease is a rental listing and negotiation platform founded in 2026 with the goal of making renting more accessible. We partner with universities to provide students with a curated housing resource, negotiating directly with landlords to secure rates well below what students would find on their own.
 
 For ${lead.university || 'your university'} students specifically:
 - Zero cost to the university and to students
@@ -285,7 +285,7 @@ Would you be open to a 15-minute call? https://calendly.com/sweetlease/universit
 If a call is not ideal right now, I have attached a one-pager you can share with your team - takes 2 minutes to read.
 
 Best regards,
-Terrell Gilbert`,
+Robert Gilbert`,
   },
   {
     subject: '{{city}} housing data for {{university}} students',
@@ -306,7 +306,7 @@ Worth a quick chat? https://calendly.com/sweetlease/university-partnership
 I have also attached a market report for your area  - worth a look if you are short on time.
 
 Best regards,
-Terrell Gilbert`,
+Robert Gilbert`,
   },
   {
     subject: 'International student housing - {{university}}',
@@ -328,7 +328,7 @@ Could we schedule 15 minutes to discuss? https://calendly.com/sweetlease/univers
 I have attached an overview of how we support international students at other schools.
 
 Best regards,
-Terrell Gilbert`,
+Robert Gilbert`,
   },
   {
     subject: 'Graduate housing partnership - {{university}}',
@@ -350,7 +350,7 @@ Interested in learning more? https://calendly.com/sweetlease/university-partners
 I have attached a sample of the co-branded housing guide for your reference.
 
 Best regards,
-Terrell Gilbert`,
+Robert Gilbert`,
   },
   {
     subject: 'Housing fair - {{university}}',
@@ -370,7 +370,7 @@ Would it be possible to discuss getting involved in your next student housing ev
 If it is easier, just reply with the date of your next housing fair and I will send over a formal participation request.
 
 Best regards,
-Terrell Gilbert`,
+Robert Gilbert`,
   },
 ];
 
@@ -379,7 +379,7 @@ export const RESIDENCY_SEQUENCES = [
     subject: 'Housing resource for incoming {{orgName}} residents',
     body: (lead: LeadInfo) => `Dear ${lead.name || 'there'},
 
-My name is Terrell Gilbert with SweetLease. SweetLease is a rental listing and negotiation platform founded in 2026 with the goal of making renting more accessible. We work with residency programs to help incoming medical residents find quality housing near their clinical sites, negotiating lease terms on their behalf to secure below-market rates.
+My name is Robert Gilbert with SweetLease. SweetLease is a rental listing and negotiation platform founded in 2026 with the goal of making renting more accessible. We work with residency programs to help incoming medical residents find quality housing near their clinical sites, negotiating lease terms on their behalf to secure below-market rates.
 
 For ${lead.orgName || 'your program'}, this means:
 - Zero cost to the program, institution, and residents
@@ -394,7 +394,7 @@ Would 15 minutes work to walk through how it works? https://calendly.com/sweetle
 If a call does not work with your schedule, I have attached a short overview you can share with your GME team.
 
 Best regards,
-Terrell Gilbert`,
+Robert Gilbert`,
   },
   {
     subject: 'Following up - resident housing at {{orgName}}',
@@ -415,7 +415,7 @@ Worth a quick call? https://calendly.com/sweetlease/university-partnership
 I have also attached a one-pager you can drop straight into your welcome packet.
 
 Best regards,
-Terrell Gilbert`,
+Robert Gilbert`,
   },
   {
     subject: 'Resident housing savings - quick overview',
@@ -434,7 +434,7 @@ If the timing isn't right for this cycle, I'm happy to reconnect before your nex
 I have attached a summary document that covers the full program  - worth a look if you do not have time for a call.
 
 Best regards,
-Terrell Gilbert`,
+Robert Gilbert`,
   },
 ];
 
@@ -443,7 +443,7 @@ export const BENEFITS_SEQUENCES = [
     subject: 'Housing as an employee benefit - {{orgName}}',
     body: (lead: LeadInfo) => `Dear ${lead.name || 'there'},
 
-My name is Terrell Gilbert with SweetLease. SweetLease is a rental listing and negotiation platform founded in 2026 with the goal of making renting more accessible. We aggregate renter demand by geography and negotiate group rates with landlords, creating a housing benefit that fits naturally into employee benefits marketplaces.
+My name is Robert Gilbert with SweetLease. SweetLease is a rental listing and negotiation platform founded in 2026 with the goal of making renting more accessible. We aggregate renter demand by geography and negotiate group rates with landlords, creating a housing benefit that fits naturally into employee benefits marketplaces.
 
 For ${lead.orgName || 'your platform'}, this means:
 - A new benefit category that no other LSA or benefits platform offers yet
@@ -458,7 +458,7 @@ Would 20 minutes work to explore the partnership model? https://calendly.com/swe
 If a meeting does not make sense yet, I have attached a short deck on the integration model.
 
 Best regards,
-Terrell Gilbert`,
+Robert Gilbert`,
   },
   {
     subject: 'Following up - housing benefit partnership',
@@ -481,7 +481,7 @@ Can we explore this for 20 minutes? https://calendly.com/sweetlease/employer-int
 I have attached the full housing benefit research with the partnership model for your review.
 
 Best regards,
-Terrell Gilbert`,
+Robert Gilbert`,
   },
   {
     subject: 'Closing the loop',
@@ -498,7 +498,7 @@ Either way, no hard feelings. Just let me know.
 https://calendly.com/sweetlease/employer-intro
 
 Best regards,
-Terrell Gilbert`,
+Robert Gilbert`,
   },
 ];
 
@@ -507,7 +507,7 @@ export const GRADUATE_HOUSING_SEQUENCES = [
     subject: 'Off-campus housing resource - {{orgName}}',
     body: (lead: LeadInfo) => `Dear ${lead.name || 'there'},
 
-My name is Terrell Gilbert with SweetLease. SweetLease is a rental listing and negotiation platform founded in 2026 with the goal of making renting more accessible. We partner with universities to provide students with a curated housing resource, negotiating directly with landlords to secure rates well below what students would find on their own.
+My name is Robert Gilbert with SweetLease. SweetLease is a rental listing and negotiation platform founded in 2026 with the goal of making renting more accessible. We partner with universities to provide students with a curated housing resource, negotiating directly with landlords to secure rates well below what students would find on their own.
 
 For ${lead.orgName || 'your housing office'}:
 - Zero cost - we are a free resource you can recommend to students
@@ -521,7 +521,7 @@ Would 15 minutes work to walk through it? https://calendly.com/sweetlease/univer
 If a call is not ideal right now, I have attached a quick overview you can share with your team.
 
 Best regards,
-Terrell Gilbert`,
+Robert Gilbert`,
   },
   {
     subject: '{{city}} housing data - {{orgName}}',
@@ -543,7 +543,7 @@ Any of those work for your office? https://calendly.com/sweetlease/university-pa
 I have attached relevant materials for each option  - no call needed.
 
 Best regards,
-Terrell Gilbert`,
+Robert Gilbert`,
   },
   {
     subject: 'Closing the loop',
@@ -558,7 +558,7 @@ If you'd like to revisit this before the next academic cycle (when incoming stud
 Either way, wishing you and the ${lead.orgName || 'your university'} team a great semester.
 
 Best regards,
-Terrell Gilbert`,
+Robert Gilbert`,
   },
 ];
 
@@ -665,8 +665,8 @@ export function buildOutboundHtml(body: string): string {
     if (line.trim() === 'Best regards,') {
       return `<p style="margin:0 0 2px;font-size:15px;line-height:1.7;color:#1a1a1a;">Best regards,</p>`;
     }
-    if (line.trim() === 'Terrell Gilbert') {
-      return `<p style="margin:0 0 20px;font-size:15px;line-height:1.7;color:#1a1a1a;"><strong>Terrell Gilbert</strong></p>`;
+    if (line.trim() === 'Robert Gilbert') {
+      return `<p style="margin:0 0 20px;font-size:15px;line-height:1.7;color:#1a1a1a;"><strong>Robert Gilbert</strong></p>`;
     }
     return `<p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#1a1a1a;">${line}</p>`;
   }).join('');
@@ -685,11 +685,11 @@ export function buildOutboundHtml(body: string): string {
       <p style="margin:6px 0 0;font-size:13px;">
         <a href="https://sweetlease.io" style="color:#EA580C;text-decoration:none;">sweetlease.io</a>
         <span style="color:#cbd5e1;margin:0 4px;">\u00b7</span>
-        <a href="mailto:tgilbert@sweetlease.io" style="color:#EA580C;text-decoration:none;">tgilbert@sweetlease.io</a>
+        <a href="mailto:rgilbert@sweetlease.io" style="color:#EA580C;text-decoration:none;">rgilbert@sweetlease.io</a>
       </p>
     </div>
     <p style="margin:20px 0 0;font-size:11px;color:#94a3b8;">
-      If you no longer wish to receive these emails, <a href="mailto:tgilbert@sweetlease.io?subject=Unsubscribe" style="color:#94a3b8;text-decoration:underline;">unsubscribe</a>.
+      If you no longer wish to receive these emails, <a href="mailto:rgilbert@sweetlease.io?subject=Unsubscribe" style="color:#94a3b8;text-decoration:underline;">unsubscribe</a>.
     </p>
   </div>
 </body>

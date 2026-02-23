@@ -198,18 +198,18 @@ function buildSignatureHtml(): string {
             <p style="margin:0 0 8px 0;font-size:20px;font-weight:700;letter-spacing:-0.02em;line-height:1;">
               <span style="color:#EA580C;">SWEET</span><span style="color:#1a1a1a;">LEASE</span>
             </p>
-            <p style="margin:0;font-size:14px;font-weight:600;color:#1a1a1a;">Terrell Gilbert</p>
+            <p style="margin:0;font-size:14px;font-weight:600;color:#1a1a1a;">Robert Gilbert</p>
             <p style="margin:2px 0 0;font-size:12px;color:#64748b;">Account Executive</p>
             <p style="margin:6px 0 0;font-size:12px;">
               <a href="https://sweetlease.io" style="color:#EA580C;text-decoration:none;">sweetlease.io</a>
               <span style="color:#cbd5e1;margin:0 6px;">|</span>
-              <a href="mailto:tgilbert@sweetlease.io" style="color:#EA580C;text-decoration:none;">tgilbert@sweetlease.io</a>
+              <a href="mailto:rgilbert@sweetlease.io" style="color:#EA580C;text-decoration:none;">rgilbert@sweetlease.io</a>
             </p>
           </td>
         </tr>
       </table>
       <p style="margin:24px 0 0;font-size:11px;color:#94a3b8;text-align:left;">
-        If you no longer wish to receive these emails, <a href="mailto:tgilbert@sweetlease.io?subject=Unsubscribe" style="color:#94a3b8;text-decoration:underline;">unsubscribe</a>.
+        If you no longer wish to receive these emails, <a href="mailto:rgilbert@sweetlease.io?subject=Unsubscribe" style="color:#94a3b8;text-decoration:underline;">unsubscribe</a>.
       </p>`;
 }
 
@@ -291,7 +291,7 @@ Key value props for landlords:
       break;
   }
 
-  return `You are writing a professional reply on behalf of Terrell Gilbert, Account Executive at SweetLease.
+  return `You are writing a professional reply on behalf of Robert Gilbert, Account Executive at SweetLease.
 
 SweetLease connects independent landlords with relocating corporate employees.
 

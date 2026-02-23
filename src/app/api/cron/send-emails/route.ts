@@ -5,7 +5,7 @@ import { wrapLinksForTracking } from '@/lib/link-tracking';
 import { getMaxSteps, calculateNextBusinessDay, buildOutboundHtml } from '@/lib/email-templates';
 
 // Outbound cold emails use Resend SMTP (outreach.sweetlease.io subdomain)
-// Replies/inbox emails still use Porkbun (tgilbert@sweetlease.io)
+// Replies/inbox emails still use Porkbun (rgilbert@sweetlease.io)
 function getTransporter() {
   const resendKey = process.env.RESEND_API_KEY;
   if (resendKey) {
@@ -77,18 +77,18 @@ export async function GET(request: NextRequest) {
         const trackedHtml = await wrapLinksForTracking(htmlBody, email.contact_id, email.id);
 
         const fromAddress = process.env.RESEND_API_KEY
-          ? '"Terrell Gilbert" <tgilbert@outreach.sweetlease.io>'
-          : `"Terrell Gilbert" <${process.env.SMTP_USER}>`;
+          ? '"Robert Gilbert" <rgilbert@outreach.sweetlease.io>'
+          : `"Robert Gilbert" <${process.env.SMTP_USER}>`;
 
         const info = await transporter.sendMail({
           from: fromAddress,
-          replyTo: 'tgilbert@sweetlease.io',
+          replyTo: 'rgilbert@sweetlease.io',
           to: email.to_email,
           subject: email.subject,
           text: email.body,
           html: trackedHtml,
           headers: {
-            'List-Unsubscribe': '<mailto:tgilbert@sweetlease.io?subject=Unsubscribe>',
+            'List-Unsubscribe': '<mailto:rgilbert@sweetlease.io?subject=Unsubscribe>',
             'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
           },
         });
