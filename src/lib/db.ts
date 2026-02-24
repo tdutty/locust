@@ -247,6 +247,23 @@ async function initTables() {
     )
   `);
 
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS meeting_bookings (
+      id SERIAL PRIMARY KEY,
+      calendly_event_id TEXT UNIQUE,
+      attendee_name TEXT NOT NULL,
+      attendee_email TEXT NOT NULL,
+      event_type TEXT NOT NULL DEFAULT 'landlord',
+      scheduled_at TIMESTAMPTZ NOT NULL,
+      calendly_event_uri TEXT,
+      tavus_conversation_id TEXT,
+      tavus_conversation_url TEXT,
+      status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','active','completed','cancelled')),
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
   // Indexes for fast lookups
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_contacts_email ON contacts(email)`).catch(() => {});
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_response_log_from_email ON response_log(from_email)`).catch(() => {});
