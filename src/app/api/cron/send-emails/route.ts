@@ -74,7 +74,18 @@ export async function GET(request: NextRequest) {
         const htmlBody = email.html_body || buildOutboundHtml(email.body);
 
         // Wrap links for click tracking
-        const trackedHtml = await wrapLinksForTracking(htmlBody, email.contact_id, email.id);
+        let trackedHtml = await wrapLinksForTracking(htmlBody, email.contact_id, email.id);
+
+        // Inject instant meeting link for contacts with a contact_id
+        if (email.contact_id) {
+          const meetingUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://locust-m7ng3.ondigitalocean.app'}/api/meeting/book-link/${email.contact_id}`;
+          const meetingCta = `<p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#1a1a1a;">Or, skip the scheduling \u2014 <a href="${meetingUrl}" style="color:#EA580C;text-decoration:none;font-weight:600;">talk to our team now</a> (instant video call).</p>`;
+          // Insert before the signature divider
+          trackedHtml = trackedHtml.replace(
+            '<div style="border-top:1px solid #e2e8f0;padding-top:16px;margin-top:4px;">',
+            `${meetingCta}<div style="border-top:1px solid #e2e8f0;padding-top:16px;margin-top:4px;">`
+          );
+        }
 
         const fromAddress = process.env.RESEND_API_KEY
           ? '"Robert Gilbert" <rgilbert@outreach.sweetlease.io>'

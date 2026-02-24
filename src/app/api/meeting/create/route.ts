@@ -4,6 +4,19 @@ import { query } from '@/lib/db';
 const TAVUS_API_KEY = process.env.TAVUS_API_KEY;
 const TAVUS_PERSONA_ID = process.env.TAVUS_PERSONA_ID || 'pae953fafc44';
 const TAVUS_REPLICA_ID = process.env.TAVUS_REPLICA_ID || 'r1a4e22fa0d9';
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://locust-m7ng3.ondigitalocean.app';
+
+/**
+ * Fetch with 1 retry on 5xx errors, 1-second backoff.
+ */
+async function fetchWithRetry(url: string, options: RequestInit): Promise<Response> {
+  const response = await fetch(url, options);
+  if (response.status >= 500) {
+    await new Promise(r => setTimeout(r, 1000));
+    return fetch(url, options);
+  }
+  return response;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -104,25 +117,25 @@ export async function POST(request: NextRequest) {
       contextParts.push(`They booked a ${booking.event_type} meeting. You do not have context on what specific email they received, so start with discovery questions.`);
     }
 
-    // Add audience-specific guidance
+    // Add audience-specific guidance with structured qualification objectives
     if (booking.event_type === 'landlord') {
-      contextParts.push('They are a landlord or property manager. Focus on vacancy fill rates, tenant quality, and the success fee model. Ask about their portfolio and current vacancy challenges.');
+      contextParts.push('They are a landlord or property manager. Focus on vacancy fill rates, tenant quality, and the success fee model. QUALIFICATION OBJECTIVES: 1) Ask about portfolio size (how many units). 2) Ask about current vacancy rate or time-to-fill. 3) Understand current tenant sourcing process (what platforms they use, do they have a leasing team). 4) Determine timeline -- are they looking to fill units now or planning ahead? Ask these naturally throughout the conversation, not as a checklist.');
     } else if (booking.event_type === 'employer') {
-      contextParts.push('They are from HR, People Ops, or handle employee relocations. Focus on the free service, employee rent savings, and relocation streamlining. Ask about their relocation volume and current process.');
+      contextParts.push('They are from HR, People Ops, or handle employee relocations. Focus on the free service, employee rent savings, and relocation streamlining. QUALIFICATION OBJECTIVES: 1) Ask about relocation volume (how many employees relocate per year). 2) Understand current relocation process (do they use a relo company, what tools). 3) Ask about biggest pain points with current housing process. 4) Determine timeline -- upcoming hiring wave, Q1 planning, etc. Ask these naturally, not as a checklist.');
     } else if (booking.event_type === 'university') {
-      contextParts.push('They are from a university housing office. Focus on zero cost, student savings, international student support, and the branded portal. Ask about their student housing challenges.');
+      contextParts.push('They are from a university housing office. Focus on zero cost, student savings, international student support, and the branded portal. QUALIFICATION OBJECTIVES: 1) Ask about student body size and what percentage lives off-campus. 2) Understand current housing resource process (do they have a housing portal, recommended landlord list). 3) Ask about biggest housing challenges (affordability, international students, supply). 4) Determine timeline -- orientation season, academic calendar milestones. Ask these naturally, not as a checklist.');
     } else if (booking.event_type === 'residency') {
-      contextParts.push('They are from a medical residency program. Focus on zero cost, resident housing cost burden, and move-in coordination for July starts. Ask about their incoming cohort size.');
+      contextParts.push('They are from a medical residency program. Focus on zero cost, resident housing cost burden, and move-in coordination for July starts. QUALIFICATION OBJECTIVES: 1) Ask about incoming cohort size (how many residents per year). 2) Understand current housing resources provided (welcome packet, recommended list, nothing). 3) Ask about the biggest housing complaints from incoming residents. 4) Determine timeline -- Match Day is in March, residents need housing by late June. Ask these naturally, not as a checklist.');
     } else if (booking.event_type === 'benefits-platform') {
-      contextParts.push('They are from a benefits or LSA platform. Focus on the new benefit category, first-mover advantage, and white-label integration.');
+      contextParts.push('They are from a benefits or LSA platform. Focus on the new benefit category, first-mover advantage, and white-label integration. QUALIFICATION OBJECTIVES: 1) Ask about their employee/client count (how many companies on the platform, total employees served). 2) Understand current benefits stack (what categories they offer today). 3) Ask about integration approach (API, embedded, white-label). 4) Determine timeline -- product roadmap, next benefits enrollment period. Ask these naturally, not as a checklist.');
     }
 
     // Short greeting -- just a warm "hey". The rest comes naturally in conversation.
     // Tavus fires this once the participant joins the call.
     const greeting = `Hey ${firstName}.`;
 
-    // Create Tavus conversation
-    const tavusResponse = await fetch('https://tavusapi.com/v2/conversations', {
+    // Create Tavus conversation with retry
+    const tavusResponse = await fetchWithRetry('https://tavusapi.com/v2/conversations', {
       method: 'POST',
       headers: {
         'x-api-key': TAVUS_API_KEY,
@@ -134,10 +147,12 @@ export async function POST(request: NextRequest) {
         conversation_name: `SweetLease - ${booking.attendee_name} (${booking.event_type})`,
         conversational_context: contextParts.join(' '),
         custom_greeting: greeting,
+        callback_url: `${APP_URL}/api/webhooks/tavus`,
         properties: {
           max_call_duration: 900,
           participant_left_timeout: 60,
           participant_absent_timeout: 300,
+          enable_closed_captions: true,
         },
       }),
     });
@@ -160,6 +175,28 @@ export async function POST(request: NextRequest) {
        WHERE id = $3`,
       [tavusData.conversation_id, tavusData.conversation_url, bookingId]
     );
+
+    // Log meeting_started to activity_log if a pipeline deal exists
+    if (contactInfo) {
+      try {
+        const dealResult = await query(
+          `SELECT id FROM pipeline_deals WHERE contact_id = $1 LIMIT 1`,
+          [contactInfo.id]
+        );
+        if (dealResult.rows.length > 0) {
+          await query(
+            `INSERT INTO activity_log (deal_id, activity_type, description, metadata)
+             VALUES ($1, $2, $3, $4)`,
+            [
+              dealResult.rows[0].id,
+              'meeting_started',
+              `AI video meeting started with ${booking.attendee_name}`,
+              JSON.stringify({ conversation_id: tavusData.conversation_id, event_type: booking.event_type }),
+            ]
+          );
+        }
+      } catch {}
+    }
 
     return NextResponse.json({
       conversation_url: tavusData.conversation_url,

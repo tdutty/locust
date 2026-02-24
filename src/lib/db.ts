@@ -264,11 +264,37 @@ async function initTables() {
     )
   `);
 
+  // Add contact_id column to existing meeting_bookings tables
+  await pool.query(`ALTER TABLE meeting_bookings ADD COLUMN IF NOT EXISTS contact_id INTEGER`).catch(() => {});
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS conversation_analytics (
+      id SERIAL PRIMARY KEY,
+      conversation_id TEXT UNIQUE NOT NULL,
+      booking_id INTEGER REFERENCES meeting_bookings(id) ON DELETE SET NULL,
+      contact_id INTEGER REFERENCES contacts(id) ON DELETE SET NULL,
+      duration_seconds INTEGER,
+      transcript TEXT,
+      outcome TEXT CHECK(outcome IN ('interested','needs_followup','objection','not_interested','no_show','technical_issue')),
+      sentiment TEXT,
+      engagement_score REAL,
+      key_topics TEXT,
+      objections TEXT,
+      next_steps TEXT,
+      shutdown_reason TEXT,
+      perception_data JSONB,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
   // Indexes for fast lookups
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_contacts_email ON contacts(email)`).catch(() => {});
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_response_log_from_email ON response_log(from_email)`).catch(() => {});
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_tracked_links_code ON tracked_links(code)`).catch(() => {});
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_sequences_status_next ON contact_sequences(status, next_send_at)`).catch(() => {});
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_conv_analytics_booking ON conversation_analytics(booking_id)`).catch(() => {});
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_conv_analytics_contact ON conversation_analytics(contact_id)`).catch(() => {});
 
   initialized = true;
 }
