@@ -117,15 +117,9 @@ export async function POST(request: NextRequest) {
       contextParts.push('They are from a benefits or LSA platform. Focus on the new benefit category, first-mover advantage, and white-label integration.');
     }
 
-    // Build a warm, personalized greeting
-    let greeting = '';
-    if (contactInfo?.org_name && lastEmailSubject) {
-      greeting = `Hey ${firstName}, thanks for hopping on. Really glad we could connect. So, I know I reached out about how we might be able to help ${contactInfo.org_name}... but honestly, before I get into any of that, I would love to just hear from you. What caught your eye, and what is going on on your end?`;
-    } else if (contactInfo?.org_name) {
-      greeting = `Hey ${firstName}, thanks for taking the time today. I really appreciate it. So I am Robert with SweetLease, and I am excited to chat with you about what we could potentially do together with ${contactInfo.org_name}. But first, tell me a little about yourself and what you are working on.`;
-    } else {
-      greeting = `Hey ${firstName}, great to meet you. Thanks for carving out some time. I am Robert with SweetLease. Before I jump into anything, I would genuinely love to just hear what is going on with you and what made you want to hop on a call.`;
-    }
+    // Short greeting -- just a warm "hey". The rest comes naturally in conversation.
+    // Tavus fires this once the participant joins the call.
+    const greeting = `Hey ${firstName}.`;
 
     // Create Tavus conversation
     const tavusResponse = await fetch('https://tavusapi.com/v2/conversations', {
