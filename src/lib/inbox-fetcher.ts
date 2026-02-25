@@ -12,8 +12,10 @@ export interface Email {
   date: string;
   isRead: boolean;
   isStarred: boolean;
-  classification: 'interested' | 'objection' | 'not_interested' | 'question' | 'spam' | 'system';
+  classification: 'interested' | 'objection' | 'not_interested' | 'question' | 'referral' | 'contract_request' | 'document_received' | 'spam' | 'system';
   priority: 'high' | 'medium' | 'low';
+  hasAttachments: boolean;
+  attachmentNames: string[];
 }
 
 export function getImapConfig() {
@@ -32,15 +34,50 @@ export function getImapConfig() {
   };
 }
 
-export function classifyEmail(subject: string, body: string): { classification: Email['classification']; priority: Email['priority'] } {
+export function classifyEmail(subject: string, body: string, opts?: { hasAttachments?: boolean; attachmentNames?: string[] }): { classification: Email['classification']; priority: Email['priority'] } {
   const lowerSubject = subject.toLowerCase();
   const lowerBody = body.toLowerCase();
   const combined = `${lowerSubject} ${lowerBody}`;
+
+  // Check for signed document returns (attachments + signing language)
+  const hasDocAttachment = opts?.hasAttachments && opts.attachmentNames?.some(name => {
+    const lower = name.toLowerCase();
+    return lower.endsWith('.pdf') || lower.endsWith('.docx') || lower.endsWith('.doc');
+  });
+  const signingKeywords = combined.includes('signed') || combined.includes('executed') ||
+      combined.includes('attached') || combined.includes('here is the') ||
+      combined.includes('here are the') || combined.includes('returning the') ||
+      combined.includes('completed nda') || combined.includes('completed contract') ||
+      combined.includes('fully executed') || combined.includes('countersigned');
+  if (hasDocAttachment && signingKeywords) {
+    return { classification: 'document_received', priority: 'high' };
+  }
+
+  // Check for contract/NDA/security document requests (before interested — higher-signal action)
+  if (combined.includes('nda') || combined.includes('non-disclosure') || combined.includes('contract') ||
+      combined.includes('msa') || combined.includes('master service agreement') ||
+      combined.includes('security questionnaire') || combined.includes('soc 2') || combined.includes('soc2') ||
+      combined.includes('vendor assessment') || combined.includes('data processing agreement') ||
+      combined.includes('legal team') || combined.includes('legal review') ||
+      combined.includes('procurement requires') || combined.includes('procurement process') ||
+      combined.includes('terms of service') || combined.includes('send us your terms') ||
+      combined.includes('send over a contract') || combined.includes('listing agreement')) {
+    return { classification: 'contract_request', priority: 'high' };
+  }
 
   // Check for interested signals
   if (combined.includes('interested') || combined.includes('tell me more') || combined.includes('schedule') ||
       combined.includes('meeting') || combined.includes('call me') || combined.includes('sounds good')) {
     return { classification: 'interested', priority: 'high' };
+  }
+
+  // Check for referral signals (someone pointing us to another decision-maker)
+  if (combined.includes('talk to') || combined.includes('reach out to') ||
+      combined.includes('contact my') || combined.includes('not the right person') ||
+      combined.includes('cc my') || combined.includes('put you in touch') ||
+      combined.includes('handles that') || combined.includes('decision maker') ||
+      combined.includes('refer you') || combined.includes('forward this to')) {
+    return { classification: 'referral', priority: 'high' };
   }
 
   // Check for objections
@@ -112,7 +149,13 @@ export async function fetchEmails(folder: string = 'INBOX', limit: number = 50):
 
                 const htmlContent = typeof parsed.html === 'string' ? parsed.html : '';
                 const body = parsed.text || htmlContent.replace(/<[^>]*>/g, '') || '';
-                const { classification, priority } = classifyEmail(parsed.subject || '', body);
+
+                // Extract attachment info
+                const attachments = parsed.attachments || [];
+                const hasAttachments = attachments.length > 0;
+                const attachmentNames = attachments.map(a => a.filename || 'unnamed').filter(Boolean);
+
+                const { classification, priority } = classifyEmail(parsed.subject || '', body, { hasAttachments, attachmentNames });
 
                 emails.push({
                   id: seqno.toString(),
@@ -126,6 +169,8 @@ export async function fetchEmails(folder: string = 'INBOX', limit: number = 50):
                   isStarred: false,
                   classification,
                   priority,
+                  hasAttachments,
+                  attachmentNames,
                 });
               } catch (parseErr) {
                 console.error('Error parsing email:', parseErr);
@@ -167,7 +212,13 @@ export async function classifyWithAI(emails: Email[]): Promise<Email[]> {
       max_tokens: 1024,
       messages: [{
         role: 'user',
-        content: `Classify these sales response emails. For each, return classification (interested/objection/not_interested/question/spam/system) and priority (high/medium/low).
+        content: `Classify these sales response emails. For each, return classification (interested/objection/not_interested/question/referral/contract_request/document_received/spam/system) and priority (high/medium/low).
+
+A "referral" classification means the sender is directing us to another person — e.g. "talk to Sarah", "reach out to our HR director", "CC my manager", "I'm not the right person, contact..."
+
+A "contract_request" classification means the sender is requesting legal/contract documents — e.g. "we need an NDA", "send over a contract", "our legal team needs to review", "do you have an MSA?", "security questionnaire required", "procurement process requires...", "send us your terms"
+
+A "document_received" classification means the sender is returning signed/executed documents — e.g. "here is the signed NDA", "attached is the executed contract", "returning the completed agreement". Usually has PDF/DOCX attachments.
 
 ${emailSummaries}
 

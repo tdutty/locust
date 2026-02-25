@@ -37,7 +37,7 @@ async function initTables() {
       company TEXT,
       contact_id INTEGER,
       type TEXT NOT NULL CHECK(type IN ('landlord', 'employer', 'university', 'residency', 'benefits-platform', 'graduate-housing')),
-      stage TEXT NOT NULL DEFAULT 'lead' CHECK(stage IN ('lead', 'contacted', 'qualified', 'proposal', 'negotiation', 'closed')),
+      stage TEXT NOT NULL DEFAULT 'lead' CHECK(stage IN ('lead', 'contacted', 'qualified', 'proposal', 'contract_sent', 'security_review', 'contract_signed', 'negotiation', 'closed')),
       value REAL DEFAULT 0,
       probability INTEGER DEFAULT 10,
       notes TEXT,
@@ -53,6 +53,10 @@ async function initTables() {
   // Expand type constraint for existing pipeline_deals tables
   await pool.query(`ALTER TABLE pipeline_deals DROP CONSTRAINT IF EXISTS pipeline_deals_type_check`).catch(() => {});
   await pool.query(`ALTER TABLE pipeline_deals ADD CONSTRAINT pipeline_deals_type_check CHECK(type IN ('landlord', 'employer', 'university', 'residency', 'benefits-platform', 'graduate-housing'))`).catch(() => {});
+
+  // Expand stage constraint for existing pipeline_deals tables
+  await pool.query(`ALTER TABLE pipeline_deals DROP CONSTRAINT IF EXISTS pipeline_deals_stage_check`).catch(() => {});
+  await pool.query(`ALTER TABLE pipeline_deals ADD CONSTRAINT pipeline_deals_stage_check CHECK(stage IN ('lead', 'contacted', 'qualified', 'proposal', 'contract_sent', 'security_review', 'contract_signed', 'negotiation', 'closed'))`).catch(() => {});
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS activity_log (
@@ -106,6 +110,10 @@ async function initTables() {
 
   // Add contact_type column to existing contacts tables
   await pool.query(`ALTER TABLE contacts ADD COLUMN IF NOT EXISTS contact_type TEXT`).catch(() => {});
+
+  // Add referral tracking columns to contacts
+  await pool.query(`ALTER TABLE contacts ADD COLUMN IF NOT EXISTS referred_by INTEGER`).catch(() => {});
+  await pool.query(`ALTER TABLE contacts ADD COLUMN IF NOT EXISTS deal_id INTEGER`).catch(() => {});
 
   // Backfill contact_type for existing contacts that don't have one
   await pool.query(`
@@ -267,6 +275,18 @@ async function initTables() {
   // Add contact_id column to existing meeting_bookings tables
   await pool.query(`ALTER TABLE meeting_bookings ADD COLUMN IF NOT EXISTS contact_id INTEGER`).catch(() => {});
 
+  // Add demo walkthrough columns to meeting_bookings
+  await pool.query(`ALTER TABLE meeting_bookings ADD COLUMN IF NOT EXISTS qualification_data JSONB`).catch(() => {});
+  await pool.query(`ALTER TABLE meeting_bookings ADD COLUMN IF NOT EXISTS demo_completed_at TIMESTAMPTZ`).catch(() => {});
+
+  // Add Retell call_analysis JSONB to conversation_analytics
+  await pool.query(`ALTER TABLE conversation_analytics ADD COLUMN IF NOT EXISTS call_analysis JSONB`).catch(() => {});
+
+  // Add Retell AI phone call columns to meeting_bookings
+  await pool.query(`ALTER TABLE meeting_bookings ADD COLUMN IF NOT EXISTS attendee_phone TEXT`).catch(() => {});
+  await pool.query(`ALTER TABLE meeting_bookings ADD COLUMN IF NOT EXISTS retell_call_id TEXT`).catch(() => {});
+  await pool.query(`ALTER TABLE meeting_bookings ADD COLUMN IF NOT EXISTS booking_source TEXT DEFAULT 'calendly'`).catch(() => {});
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS conversation_analytics (
       id SERIAL PRIMARY KEY,
@@ -295,6 +315,8 @@ async function initTables() {
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_sequences_status_next ON contact_sequences(status, next_send_at)`).catch(() => {});
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_conv_analytics_booking ON conversation_analytics(booking_id)`).catch(() => {});
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_conv_analytics_contact ON conversation_analytics(contact_id)`).catch(() => {});
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_bookings_source_status ON meeting_bookings(booking_source, status)`).catch(() => {});
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_bookings_retell_call ON meeting_bookings(retell_call_id)`).catch(() => {});
 
   initialized = true;
 }

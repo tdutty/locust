@@ -45,6 +45,8 @@ function getSampleEmails(): Email[] {
       isStarred: true,
       classification: 'interested',
       priority: 'high',
+      hasAttachments: false,
+      attachmentNames: [],
     },
     {
       id: '2',
@@ -58,6 +60,8 @@ function getSampleEmails(): Email[] {
       isStarred: false,
       classification: 'question',
       priority: 'medium',
+      hasAttachments: false,
+      attachmentNames: [],
     },
     {
       id: '3',
@@ -71,6 +75,8 @@ function getSampleEmails(): Email[] {
       isStarred: false,
       classification: 'not_interested',
       priority: 'low',
+      hasAttachments: false,
+      attachmentNames: [],
     },
     {
       id: '4',
@@ -84,6 +90,8 @@ function getSampleEmails(): Email[] {
       isStarred: true,
       classification: 'interested',
       priority: 'high',
+      hasAttachments: false,
+      attachmentNames: [],
     },
     {
       id: '5',
@@ -97,6 +105,8 @@ function getSampleEmails(): Email[] {
       isStarred: false,
       classification: 'system',
       priority: 'low',
+      hasAttachments: false,
+      attachmentNames: [],
     },
     {
       id: '6',
@@ -110,6 +120,8 @@ function getSampleEmails(): Email[] {
       isStarred: false,
       classification: 'interested',
       priority: 'high',
+      hasAttachments: false,
+      attachmentNames: [],
     },
     {
       id: '7',
@@ -123,6 +135,8 @@ function getSampleEmails(): Email[] {
       isStarred: false,
       classification: 'objection',
       priority: 'medium',
+      hasAttachments: false,
+      attachmentNames: [],
     },
     {
       id: '8',
@@ -136,6 +150,8 @@ function getSampleEmails(): Email[] {
       isStarred: true,
       classification: 'interested',
       priority: 'high',
+      hasAttachments: false,
+      attachmentNames: [],
     },
   ];
 }

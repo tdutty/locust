@@ -5,7 +5,7 @@ export interface OriginalEmail {
   fromEmail: string;
   subject: string;
   body: string;
-  classification: 'interested' | 'objection' | 'not_interested' | 'question' | 'spam' | 'system';
+  classification: 'interested' | 'objection' | 'not_interested' | 'question' | 'referral' | 'contract_request' | 'document_received' | 'spam' | 'system';
   contactType?: string;
 }
 
@@ -22,6 +22,43 @@ const PDF_DOCS: Record<string, { label: string; path: string }> = {
   'benefits-platform': { label: 'SweetLease Benefits Partnership Deck', path: '/docs/sweetlease-benefits-partnership-deck.pdf' },
   'graduate-housing': { label: 'SweetLease University Housing Resource', path: '/docs/sweetlease-university-housing-resource.pdf' },
 };
+
+// Contract/legal documents mapped by contact type
+const CONTRACT_DOCS: Record<string, { label: string; path: string; docType: string }[]> = {
+  landlord: [
+    { label: 'SweetLease Mutual NDA', path: '/docs/contracts/sweetlease-nda.pdf', docType: 'nda' },
+    { label: 'SweetLease Security Overview', path: '/docs/contracts/sweetlease-security-overview.pdf', docType: 'security' },
+    { label: 'SweetLease Landlord Listing Agreement', path: '/docs/contracts/sweetlease-landlord-listing-agreement.pdf', docType: 'contract' },
+  ],
+  employer: [
+    { label: 'SweetLease Mutual NDA', path: '/docs/contracts/sweetlease-nda.pdf', docType: 'nda' },
+    { label: 'SweetLease Security Overview', path: '/docs/contracts/sweetlease-security-overview.pdf', docType: 'security' },
+    { label: 'SweetLease Employer Service Agreement', path: '/docs/contracts/sweetlease-employer-service-agreement.pdf', docType: 'contract' },
+  ],
+  'benefits-platform': [
+    { label: 'SweetLease Mutual NDA', path: '/docs/contracts/sweetlease-nda.pdf', docType: 'nda' },
+    { label: 'SweetLease Security Overview', path: '/docs/contracts/sweetlease-security-overview.pdf', docType: 'security' },
+    { label: 'SweetLease Employer Service Agreement', path: '/docs/contracts/sweetlease-employer-service-agreement.pdf', docType: 'contract' },
+    { label: 'SweetLease Data Processing Agreement', path: '/docs/contracts/sweetlease-data-processing-agreement.pdf', docType: 'procurement' },
+  ],
+  university: [
+    { label: 'SweetLease Mutual NDA', path: '/docs/contracts/sweetlease-nda.pdf', docType: 'nda' },
+    { label: 'SweetLease Security Overview', path: '/docs/contracts/sweetlease-security-overview.pdf', docType: 'security' },
+    { label: 'SweetLease Institutional Agreement', path: '/docs/contracts/sweetlease-university-institutional-agreement.pdf', docType: 'contract' },
+  ],
+  residency: [
+    { label: 'SweetLease Mutual NDA', path: '/docs/contracts/sweetlease-nda.pdf', docType: 'nda' },
+    { label: 'SweetLease Security Overview', path: '/docs/contracts/sweetlease-security-overview.pdf', docType: 'security' },
+    { label: 'SweetLease Institutional Agreement', path: '/docs/contracts/sweetlease-university-institutional-agreement.pdf', docType: 'contract' },
+  ],
+  'graduate-housing': [
+    { label: 'SweetLease Mutual NDA', path: '/docs/contracts/sweetlease-nda.pdf', docType: 'nda' },
+    { label: 'SweetLease Security Overview', path: '/docs/contracts/sweetlease-security-overview.pdf', docType: 'security' },
+    { label: 'SweetLease Institutional Agreement', path: '/docs/contracts/sweetlease-university-institutional-agreement.pdf', docType: 'contract' },
+  ],
+};
+
+export type ContractRequestType = 'nda' | 'contract' | 'security' | 'procurement' | 'all';
 
 interface CalendlySlot {
   label: string;
@@ -538,12 +575,460 @@ Respond in JSON: {"subject": "Re: ...", "body": "..."}`
   }
 }
 
+// ─── Referral Email Generators ──────────────────────────────────────────
+
+export interface ReferralInfo {
+  name: string;
+  email: string | null;
+  title?: string | null;
+  role?: string | null;
+}
+
+/** Generates a thank-you reply to the person who made the referral */
+export async function generateReferralThankYou(
+  originalEmail: OriginalEmail,
+  referralInfo: ReferralInfo,
+): Promise<{ subject: string; body: string; htmlBody: string } | null> {
+  const firstName = getGreetingName(originalEmail.from);
+  const subject = `Re: ${originalEmail.subject.replace(/^Re:\s*/i, '')}`;
+  const referredName = referralInfo.name;
+
+  // Try AI first
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (apiKey) {
+    try {
+      const client = new Anthropic({ apiKey });
+      const message = await client.messages.create({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 512,
+        system: `You are writing a brief thank-you reply on behalf of Robert Gilbert, Account Executive at SweetLease.
+The recipient referred us to ${referredName}${referralInfo.email ? ` (${referralInfo.email})` : ''}.
+Thank them warmly for the referral. Let them know we will reach out to ${referredName}.
+Position them as a valued internal champion — do NOT close them out or say goodbye.
+Keep it to 2 short paragraphs. End with "Best regards," on its own line — nothing after.
+Do NOT include URLs, scheduling, or signatures.`,
+        messages: [{
+          role: 'user',
+          content: `Write a thank-you reply to:\nFrom: ${originalEmail.from}\nSubject: ${originalEmail.subject}\nBody:\n${originalEmail.body}\n\nRespond in JSON: {"body": "..."}`
+        }],
+      });
+
+      const text = message.content[0].type === 'text' ? message.content[0].text : '';
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        const bodyText = parsed.body || text;
+        const paragraphs = bodyText.split('\n').filter((l: string) => l.trim());
+        const cutIdx = paragraphs.findIndex((l: string) => /^(best regards|regards,|sincerely)/i.test(l.trim()));
+        const bodyParagraphs = cutIdx > 0 ? paragraphs.slice(0, cutIdx) : paragraphs;
+        return {
+          subject,
+          body: bodyText,
+          htmlBody: buildFullHtmlEmail(bodyParagraphs, '', '', false),
+        };
+      }
+    } catch (err) {
+      console.error('AI referral thank-you failed, using template:', err);
+    }
+  }
+
+  // Template fallback
+  const paragraphs = [
+    `Dear ${firstName},`,
+    `Thank you for pointing us in the right direction. I will reach out to ${referredName} directly and will be sure to mention your recommendation.`,
+    `Please do not hesitate to reach out if there is anything else I can help with on your end as well.`,
+  ];
+  const body = paragraphs.join('\n\n') + '\n\nBest regards,';
+  return {
+    subject,
+    body,
+    htmlBody: buildFullHtmlEmail(paragraphs, '', '', false),
+  };
+}
+
+/** Generates a warm intro email to the referred person, mentioning the referrer by name */
+export async function generateWarmIntroEmail(
+  referralInfo: ReferralInfo,
+  referrerName: string,
+  contactType: string,
+): Promise<{ subject: string; body: string; htmlBody: string } | null> {
+  const referredFirstName = referralInfo.name.split(' ')[0];
+  const subject = `${referrerName} suggested we connect — SweetLease`;
+
+  const slots = await fetchCalendlySlots();
+  const availabilityHtml = buildAvailabilityTableHtml(slots);
+  const pdfHtml = buildPdfLinkHtml(contactType);
+
+  // Try AI first
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (apiKey) {
+    try {
+      const client = new Anthropic({ apiKey });
+      const systemPrompt = await getReplySystemPrompt(contactType);
+      const message = await client.messages.create({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 512,
+        system: systemPrompt + `\n\nIMPORTANT CONTEXT: This is a WARM INTRO email, not a cold outreach. ${referrerName} referred us to this person. Mention ${referrerName} by name in the opening. The referred person's name is ${referralInfo.name}${referralInfo.title ? `, title: ${referralInfo.title}` : ''}. Keep it to 2-3 short paragraphs. This should feel like a warm handoff, not a cold email.`,
+        messages: [{
+          role: 'user',
+          content: `Write a warm introduction email to ${referralInfo.name} (${referralInfo.email}), referred by ${referrerName}. Contact type: ${contactType}.\n\nRespond in JSON: {"body": "..."}`
+        }],
+      });
+
+      const text = message.content[0].type === 'text' ? message.content[0].text : '';
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        const paragraphs = parsed.body.split('\n').filter((l: string) => l.trim());
+        const cutIdx = paragraphs.findIndex((l: string) => /^(best regards|regards,|sincerely)/i.test(l.trim()));
+        const bodyParagraphs = cutIdx > 0 ? paragraphs.slice(0, cutIdx) : paragraphs;
+        return {
+          subject,
+          body: parsed.body,
+          htmlBody: buildFullHtmlEmail(bodyParagraphs, availabilityHtml, pdfHtml, true),
+        };
+      }
+    } catch (err) {
+      console.error('AI warm intro failed, using template:', err);
+    }
+  }
+
+  // Template fallback
+  const msg = getTypeMessaging(contactType);
+  const paragraphs = [
+    `Dear ${referredFirstName},`,
+    `Your colleague ${referrerName} suggested I reach out to you regarding SweetLease. ${msg.interestedHook}`,
+    `I would welcome the opportunity to schedule a brief conversation to discuss how this could benefit your organization.`,
+  ];
+  const body = paragraphs.join('\n\n') + '\n\nBest regards,';
+  return {
+    subject,
+    body,
+    htmlBody: buildFullHtmlEmail(paragraphs, availabilityHtml, pdfHtml, true),
+  };
+}
+
+// ─── Contract Request Handling ──────────────────────────────────────────
+
+/** Sub-classifies a contract request email to determine which documents to send */
+export async function classifyContractRequest(emailBody: string): Promise<ContractRequestType> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return 'all';
+
+  try {
+    const client = new Anthropic({ apiKey });
+    const message = await client.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 128,
+      messages: [{
+        role: 'user',
+        content: `Classify this email's document request into exactly one category:
+- "nda" — requesting an NDA or non-disclosure agreement
+- "contract" — requesting a service agreement, MSA, listing agreement, or contract terms
+- "security" — requesting security questionnaire, SOC 2, vendor assessment, or security review
+- "procurement" — requesting DPA, data processing agreement, or procurement paperwork
+- "all" — unclear or requesting multiple document types
+
+Email body:
+${emailBody}
+
+Return JSON: {"type": "nda|contract|security|procurement|all"}`
+      }],
+    });
+
+    const text = message.content[0].type === 'text' ? message.content[0].text : '';
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      const valid: ContractRequestType[] = ['nda', 'contract', 'security', 'procurement', 'all'];
+      if (valid.includes(parsed.type)) return parsed.type;
+    }
+    return 'all';
+  } catch (err) {
+    console.error('Contract request classification failed, defaulting to all:', err);
+    return 'all';
+  }
+}
+
+/** Builds styled HTML block with document download links */
+export function buildContractDocsHtml(contactType?: string, requestType?: ContractRequestType): string {
+  const type = contactType || 'landlord';
+  const docs = CONTRACT_DOCS[type] || CONTRACT_DOCS.landlord;
+  const reqType = requestType || 'all';
+
+  // Filter docs based on request type
+  const filteredDocs = reqType === 'all' ? docs : docs.filter(d => {
+    if (reqType === 'nda') return d.docType === 'nda';
+    if (reqType === 'security') return d.docType === 'security' || d.docType === 'procurement';
+    if (reqType === 'procurement') return d.docType === 'procurement' || d.docType === 'security';
+    if (reqType === 'contract') return d.docType === 'contract' || d.docType === 'nda';
+    return true;
+  });
+
+  if (filteredDocs.length === 0) return '';
+
+  const docRows = filteredDocs.map(doc => {
+    const url = `${APP_BASE_URL}${doc.path}`;
+    return `
+            <tr>
+              <td style="padding:10px 16px;border-bottom:1px solid #e5e7eb;">
+                <table cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td style="padding-right:12px;vertical-align:middle;">
+                      <div style="width:36px;height:36px;background-color:#f0fdf4;border-radius:8px;text-align:center;line-height:36px;font-size:16px;">
+                        &#128196;
+                      </div>
+                    </td>
+                    <td style="vertical-align:middle;">
+                      <p style="margin:0;font-size:14px;font-weight:600;color:#1e293b;">${doc.label}</p>
+                      <p style="margin:2px 0 0;font-size:13px;">
+                        <a href="${url}" style="color:#16a34a;font-weight:600;text-decoration:none;">Download PDF</a>
+                      </p>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>`;
+  }).join('');
+
+  return `
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0 8px;">
+        <tr>
+          <td style="background-color:#f0fdf4;border:2px solid #16a34a;border-radius:8px;overflow:hidden;">
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="padding:12px 16px;background-color:#16a34a;">
+                  <p style="margin:0;font-size:14px;font-weight:700;color:#ffffff;">Requested Documents</p>
+                </td>
+              </tr>
+              ${docRows}
+            </table>
+          </td>
+        </tr>
+      </table>`;
+}
+
+/** Generates a reply to a contract/NDA/security document request */
+export async function generateContractReply(
+  originalEmail: OriginalEmail,
+  requestType: ContractRequestType,
+): Promise<{ subject: string; body: string; htmlBody: string; source: string; docsIncluded: string[] } | null> {
+  const contactType = originalEmail.contactType || 'landlord';
+  const docs = CONTRACT_DOCS[contactType] || CONTRACT_DOCS.landlord;
+  const reqType = requestType || 'all';
+
+  // Determine which docs are included
+  const filteredDocs = reqType === 'all' ? docs : docs.filter(d => {
+    if (reqType === 'nda') return d.docType === 'nda';
+    if (reqType === 'security') return d.docType === 'security' || d.docType === 'procurement';
+    if (reqType === 'procurement') return d.docType === 'procurement' || d.docType === 'security';
+    if (reqType === 'contract') return d.docType === 'contract' || d.docType === 'nda';
+    return true;
+  });
+  const docsIncluded = filteredDocs.map(d => d.label);
+  const contractDocsHtml = buildContractDocsHtml(contactType, requestType);
+  const subject = `Re: ${originalEmail.subject.replace(/^Re:\s*/i, '')}`;
+
+  // Try AI first
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (apiKey) {
+    try {
+      const client = new Anthropic({ apiKey });
+      const message = await client.messages.create({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 512,
+        system: `You are writing a brief, professional reply on behalf of Robert Gilbert, Account Executive at SweetLease.
+The recipient has requested contract/legal documents (${requestType}). Acknowledge their request warmly and let them know the requested documents are included below.
+Offer to walk them through the terms on a call if helpful.
+Keep it to 2 short paragraphs. End with "Best regards," on its own line — nothing after.
+Do NOT list or mention specific document names. Do NOT include URLs, scheduling, or signatures.`,
+        messages: [{
+          role: 'user',
+          content: `Write a reply to:\nFrom: ${originalEmail.from}\nSubject: ${originalEmail.subject}\nBody:\n${originalEmail.body}\n\nRespond in JSON: {"body": "..."}`
+        }],
+      });
+
+      const text = message.content[0].type === 'text' ? message.content[0].text : '';
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        const bodyText = parsed.body || text;
+        const paragraphs = bodyText.split('\n').filter((l: string) => l.trim());
+        const cutIdx = paragraphs.findIndex((l: string) => /^(best regards|regards,|sincerely)/i.test(l.trim()));
+        const bodyParagraphs = cutIdx > 0 ? paragraphs.slice(0, cutIdx) : paragraphs;
+        return {
+          subject,
+          body: bodyText,
+          htmlBody: buildFullHtmlEmail(bodyParagraphs, '', contractDocsHtml, false),
+          source: 'ai',
+          docsIncluded,
+        };
+      }
+    } catch (err) {
+      console.error('AI contract reply failed, using template:', err);
+    }
+  }
+
+  // Template fallback
+  const firstName = getGreetingName(originalEmail.from);
+  const paragraphs = [
+    `Dear ${firstName},`,
+    `Thank you for your request. I have included the relevant documents below for your team's review.`,
+    `Please do not hesitate to reach out if you have any questions about the terms, or if it would be helpful to schedule a brief call to walk through them together.`,
+  ];
+  const body = paragraphs.join('\n\n') + '\n\nBest regards,';
+  return {
+    subject,
+    body,
+    htmlBody: buildFullHtmlEmail(paragraphs, '', contractDocsHtml, false),
+    source: 'template',
+    docsIncluded,
+  };
+}
+
+// ─── Document Received Handling ─────────────────────────────────────────
+
+/** Generates an acknowledgment reply to the person who returned signed documents */
+export async function generateDocumentReceivedAck(
+  originalEmail: OriginalEmail,
+): Promise<{ subject: string; body: string; htmlBody: string } | null> {
+  const firstName = getGreetingName(originalEmail.from);
+  const subject = `Re: ${originalEmail.subject.replace(/^Re:\s*/i, '')}`;
+
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (apiKey) {
+    try {
+      const client = new Anthropic({ apiKey });
+      const message = await client.messages.create({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 512,
+        system: `You are writing a brief, professional reply on behalf of Robert Gilbert, Account Executive at SweetLease.
+The recipient has returned signed contract/legal documents. Thank them for completing the paperwork promptly.
+Let them know the documents have been received and are being processed.
+Mention next steps — our team will review and countersign, and they'll receive a fully executed copy shortly.
+Keep it to 2 short paragraphs. End with "Best regards," on its own line — nothing after.
+Do NOT include URLs, scheduling, or signatures.`,
+        messages: [{
+          role: 'user',
+          content: `Write a reply to:\nFrom: ${originalEmail.from}\nSubject: ${originalEmail.subject}\nBody:\n${originalEmail.body}\n\nRespond in JSON: {"body": "..."}`
+        }],
+      });
+
+      const text = message.content[0].type === 'text' ? message.content[0].text : '';
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        const bodyText = parsed.body || text;
+        const paragraphs = bodyText.split('\n').filter((l: string) => l.trim());
+        const cutIdx = paragraphs.findIndex((l: string) => /^(best regards|regards,|sincerely)/i.test(l.trim()));
+        const bodyParagraphs = cutIdx > 0 ? paragraphs.slice(0, cutIdx) : paragraphs;
+        return {
+          subject,
+          body: bodyText,
+          htmlBody: buildFullHtmlEmail(bodyParagraphs, '', '', false),
+        };
+      }
+    } catch (err) {
+      console.error('AI document ack failed, using template:', err);
+    }
+  }
+
+  // Template fallback
+  const paragraphs = [
+    `Dear ${firstName},`,
+    `Thank you for returning the signed documents. I can confirm we have received them and they are now being reviewed by our team.`,
+    `Once processed, you will receive a fully executed copy for your records. Please do not hesitate to reach out if you have any questions in the meantime.`,
+  ];
+  const body = paragraphs.join('\n\n') + '\n\nBest regards,';
+  return {
+    subject,
+    body,
+    htmlBody: buildFullHtmlEmail(paragraphs, '', '', false),
+  };
+}
+
+/** Generates an internal notification email to admin@sweetlease.io when documents are received */
+export function generateAdminContractNotification(opts: {
+  contactName: string;
+  contactEmail: string;
+  contactType: string;
+  orgName?: string;
+  dealId: number;
+  dealStage: string;
+  emailSubject: string;
+  attachmentNames: string[];
+}): { subject: string; body: string; htmlBody: string } {
+  const subject = `[Contract Received] ${opts.contactName}${opts.orgName ? ` — ${opts.orgName}` : ''}`;
+  const body = [
+    `Signed documents received from ${opts.contactName} (${opts.contactEmail}).`,
+    ``,
+    `Deal: #${opts.dealId}`,
+    `Contact Type: ${opts.contactType}`,
+    `Organization: ${opts.orgName || 'N/A'}`,
+    `Previous Stage: ${opts.dealStage}`,
+    `New Stage: contract_signed`,
+    ``,
+    `Attachments: ${opts.attachmentNames.length > 0 ? opts.attachmentNames.join(', ') : 'None detected'}`,
+    `Original Subject: ${opts.emailSubject}`,
+    ``,
+    `Action Required: Review and countersign the documents, then send fully executed copies back to the contact.`,
+  ].join('\n');
+
+  const htmlBody = `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="font-family:Arial,sans-serif;margin:0;padding:0;background-color:#f8fafc;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;padding:20px;">
+    <tr>
+      <td>
+        <div style="background-color:#16a34a;border-radius:8px 8px 0 0;padding:16px 20px;">
+          <p style="margin:0;font-size:16px;font-weight:700;color:#ffffff;">Signed Documents Received</p>
+        </div>
+        <div style="background-color:#ffffff;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 8px 8px;padding:20px;">
+          <table width="100%" cellpadding="0" cellspacing="0">
+            <tr>
+              <td style="padding:8px 0;font-size:14px;color:#64748b;width:120px;">Contact:</td>
+              <td style="padding:8px 0;font-size:14px;font-weight:600;color:#1e293b;">${opts.contactName} (${opts.contactEmail})</td>
+            </tr>
+            <tr>
+              <td style="padding:8px 0;font-size:14px;color:#64748b;">Organization:</td>
+              <td style="padding:8px 0;font-size:14px;color:#1e293b;">${opts.orgName || 'N/A'}</td>
+            </tr>
+            <tr>
+              <td style="padding:8px 0;font-size:14px;color:#64748b;">Contact Type:</td>
+              <td style="padding:8px 0;font-size:14px;color:#1e293b;">${opts.contactType}</td>
+            </tr>
+            <tr>
+              <td style="padding:8px 0;font-size:14px;color:#64748b;">Deal:</td>
+              <td style="padding:8px 0;font-size:14px;color:#1e293b;">#${opts.dealId} (${opts.dealStage} → contract_signed)</td>
+            </tr>
+            <tr>
+              <td style="padding:8px 0;font-size:14px;color:#64748b;">Attachments:</td>
+              <td style="padding:8px 0;font-size:14px;color:#1e293b;">${opts.attachmentNames.length > 0 ? opts.attachmentNames.join(', ') : 'None detected'}</td>
+            </tr>
+          </table>
+          <div style="margin-top:16px;padding:12px 16px;background-color:#FFF7ED;border:1px solid #EA580C;border-radius:6px;">
+            <p style="margin:0;font-size:13px;font-weight:600;color:#EA580C;">Action Required</p>
+            <p style="margin:4px 0 0;font-size:13px;color:#9a3412;">Review and countersign the documents, then send fully executed copies back to the contact.</p>
+          </div>
+        </div>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+  return { subject, body, htmlBody };
+}
+
 export function getSuggestedAction(classification: string): string {
   switch (classification) {
     case 'interested': return 'Schedule a call within 24 hours to maintain momentum';
     case 'question': return 'Respond within 4 hours with helpful information';
     case 'objection': return 'Follow up in 2-3 months with a value-focused message';
     case 'not_interested': return 'Remove from active sequences, add to long-term nurture';
+    case 'contract_request': return 'Send contract/NDA documents within 2 hours';
+    case 'document_received': return 'Review and countersign documents, notify admin';
     default: return 'Review and take appropriate action';
   }
 }

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { fetchEmails, classifyWithAI, Email } from '@/lib/inbox-fetcher';
-import { generateReply, OriginalEmail } from '@/lib/reply-generator';
+import { generateReply, generateReferralThankYou, generateWarmIntroEmail, classifyContractRequest, generateContractReply, generateDocumentReceivedAck, generateAdminContractNotification, OriginalEmail, ReferralInfo } from '@/lib/reply-generator';
+import Anthropic from '@anthropic-ai/sdk';
 
 // Status rank for "only upgrade, never downgrade" logic
 const STATUS_RANK: Record<string, number> = {
@@ -17,6 +18,9 @@ const CLASSIFICATION_TO_STATUS: Record<string, string> = {
   interested: 'qualified',
   question: 'replied',
   objection: 'replied',
+  referral: 'replied',
+  contract_request: 'qualified',
+  document_received: 'qualified',
   not_interested: 'disqualified',
 };
 
@@ -25,6 +29,9 @@ const CLASSIFICATION_TO_DEAL: Record<string, { stage: string; probability: numbe
   interested: { stage: 'qualified', probability: 40, next_action: 'Schedule intro call within 24 hours' },
   question: { stage: 'contacted', probability: 25, next_action: 'Answer questions, provide value' },
   objection: { stage: 'contacted', probability: 15, next_action: 'Handle objection, follow up in 2-3 months' },
+  referral: { stage: 'qualified', probability: 30, next_action: 'Follow up with referred contact' },
+  contract_request: { stage: 'contract_sent', probability: 55, next_action: 'Follow up if unsigned after 5 business days' },
+  document_received: { stage: 'contract_signed', probability: 80, next_action: 'Review and countersign documents' },
   not_interested: { stage: 'closed', probability: 0, next_action: 'Removed from outreach' },
 };
 
@@ -43,6 +50,9 @@ const REPLY_DELAY: Record<string, number> = {
   interested: 15 * 60 * 1000,       // 15 min
   question: 30 * 60 * 1000,         // 30 min
   objection: 2 * 60 * 60 * 1000,    // 2 hours
+  referral: 20 * 60 * 1000,         // 20 min (thank-you to referrer)
+  contract_request: 10 * 60 * 1000, // 10 min — deep in funnel, respond fast
+  document_received: 5 * 60 * 1000,   // 5 min — acknowledge receipt immediately
   not_interested: 1 * 60 * 60 * 1000, // 1 hour
 };
 
@@ -147,6 +157,376 @@ export async function GET(request: NextRequest) {
         // 5b. Skip spam/system — log but no action
         if (email.classification === 'spam' || email.classification === 'system') {
           await logResponse(email, contact.id, null, null, `skipped_${email.classification}`);
+          await markProcessed(cacheKey);
+          processed++;
+          continue;
+        }
+
+        // 5c. Handle referrals — extract referred person, create contact, send warm intro + thank-you
+        if (email.classification === 'referral') {
+          const referralInfo = await extractReferralInfo(email.body, contact.name, contact.org_name);
+
+          if (referralInfo && referralInfo.email) {
+            // Check if referred contact already exists
+            const existingReferred = await query(
+              `SELECT id FROM contacts WHERE LOWER(email) = LOWER($1) LIMIT 1`,
+              [referralInfo.email]
+            );
+
+            let referredContactId: number;
+
+            if (existingReferred.rows.length > 0) {
+              referredContactId = existingReferred.rows[0].id;
+            } else {
+              // Create new contact for the referred person
+              const nameParts = referralInfo.name.split(' ');
+              const firstName = nameParts[0];
+              const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : null;
+
+              const newContact = await query(
+                `INSERT INTO contacts (first_name, last_name, name, title, email, org_name, contact_type, referred_by, status, notes)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'new', $9)
+                 RETURNING id`,
+                [
+                  firstName,
+                  lastName,
+                  referralInfo.name,
+                  referralInfo.title || null,
+                  referralInfo.email,
+                  contact.org_name || null,
+                  contact.contact_type || 'landlord',
+                  contact.id,
+                  `Referred by ${contact.name}${referralInfo.role ? `. Role: ${referralInfo.role}` : ''}`,
+                ]
+              );
+              referredContactId = newContact.rows[0].id;
+            }
+
+            // Find or create pipeline deal for original contact
+            let dealId: number;
+            const existingDeal = await query(
+              `SELECT * FROM pipeline_deals WHERE contact_id = $1 LIMIT 1`,
+              [contact.id]
+            );
+
+            const dealConfig = CLASSIFICATION_TO_DEAL['referral'];
+
+            if (existingDeal.rows.length > 0) {
+              dealId = existingDeal.rows[0].id;
+              await query(
+                `UPDATE pipeline_deals SET probability = GREATEST(probability, $1), next_action = $2, updated_at = NOW() WHERE id = $3`,
+                [dealConfig.probability, dealConfig.next_action, dealId]
+              );
+              dealsUpdated++;
+            } else {
+              const contactType = contact.contact_type || 'landlord';
+              const validTypes = ['landlord', 'employer', 'university', 'residency', 'benefits-platform', 'graduate-housing'];
+              const dealType = validTypes.includes(contactType) ? contactType : 'landlord';
+              const dealValue = DEFAULT_DEAL_VALUE[contactType] || 5000;
+
+              const newDeal = await query(
+                `INSERT INTO pipeline_deals (name, company, contact_id, type, stage, value, probability, next_action)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                 RETURNING id`,
+                [
+                  `${contact.name} - ${contact.org_name || 'Inbound'}`,
+                  contact.org_name || null,
+                  contact.id,
+                  dealType,
+                  dealConfig.stage,
+                  dealValue,
+                  dealConfig.probability,
+                  dealConfig.next_action,
+                ]
+              );
+              dealId = newDeal.rows[0].id;
+              dealsCreated++;
+            }
+
+            // Link both contacts to the deal
+            await query(`UPDATE contacts SET deal_id = $1 WHERE id = $2`, [dealId, contact.id]);
+            await query(`UPDATE contacts SET deal_id = $1 WHERE id = $2`, [dealId, referredContactId]);
+
+            // Log referral activity
+            await query(
+              `INSERT INTO activity_log (deal_id, activity_type, description, metadata)
+               VALUES ($1, $2, $3, $4)`,
+              [dealId, 'referral_received',
+               `${contact.name} referred ${referralInfo.name} (${referralInfo.email})`,
+               JSON.stringify({ referrer_id: contact.id, referred_id: referredContactId, referral_email: referralInfo.email })]
+            );
+
+            // Upgrade original contact status to 'replied'
+            const currentRank = STATUS_RANK[contact.status] ?? 0;
+            const newRank = STATUS_RANK['replied'] ?? 0;
+            if (newRank > currentRank) {
+              await query(`UPDATE contacts SET status = 'replied', updated_at = NOW() WHERE id = $1`, [contact.id]);
+            }
+
+            // Schedule thank-you reply to referrer (20 min)
+            const pendingReply = await query(
+              `SELECT id FROM scheduled_emails WHERE to_email = $1 AND status = 'pending' AND created_at > NOW() - INTERVAL '24 hours' LIMIT 1`,
+              [email.fromEmail]
+            );
+            if (pendingReply.rows.length === 0) {
+              const originalEmailObj: OriginalEmail = {
+                from: email.from,
+                fromEmail: email.fromEmail,
+                subject: email.subject,
+                body: email.body,
+                classification: email.classification,
+                contactType: contact.contact_type || 'landlord',
+              };
+              const thankYou = await generateReferralThankYou(originalEmailObj, referralInfo);
+              if (thankYou) {
+                const scheduledFor = new Date(Date.now() + REPLY_DELAY['referral']).toISOString();
+                await query(
+                  `INSERT INTO scheduled_emails (contact_id, to_email, subject, body, html_body, lead_type, scheduled_for)
+                   VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+                  [contact.id, email.fromEmail, thankYou.subject, thankYou.body, thankYou.htmlBody, contact.contact_type || 'landlord', scheduledFor]
+                );
+                repliesScheduled++;
+              }
+            }
+
+            // Schedule warm intro email to referred person (30 min — after thank-you)
+            const warmIntro = await generateWarmIntroEmail(referralInfo, contact.name, contact.contact_type || 'landlord');
+            if (warmIntro) {
+              const introScheduledFor = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+              await query(
+                `INSERT INTO scheduled_emails (contact_id, to_email, subject, body, html_body, lead_type, scheduled_for)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+                [referredContactId, referralInfo.email, warmIntro.subject, warmIntro.body, warmIntro.htmlBody, contact.contact_type || 'landlord', introScheduledFor]
+              );
+              repliesScheduled++;
+            }
+
+            // Log and mark processed
+            await logResponse(email, contact.id, dealId, null, 'referral_processed');
+            await markProcessed(cacheKey);
+            processed++;
+            continue;
+          }
+
+          // If referral extraction failed (no email found), fall through as 'question'
+          (email as any).classification = 'question';
+        }
+
+        // 5d. Handle contract/NDA/security document requests
+        if (email.classification === 'contract_request') {
+          // Sub-classify request type
+          const requestType = await classifyContractRequest(email.body);
+
+          // Upgrade contact status to 'qualified'
+          const currentRank = STATUS_RANK[contact.status] ?? 0;
+          const qualifiedRank = STATUS_RANK['qualified'] ?? 0;
+          if (qualifiedRank > currentRank) {
+            await query(`UPDATE contacts SET status = 'qualified', updated_at = NOW() WHERE id = $1`, [contact.id]);
+          }
+
+          // Stop active email sequences
+          await query(
+            `UPDATE contact_sequences SET status = 'stopped', updated_at = NOW() WHERE contact_id = $1 AND status = 'active'`,
+            [contact.id]
+          ).catch(() => {});
+
+          // Find or create pipeline deal → set stage to 'contract_sent'
+          const dealConfig = CLASSIFICATION_TO_DEAL['contract_request'];
+          let dealId: number;
+
+          const existingDeal = await query(
+            `SELECT * FROM pipeline_deals WHERE contact_id = $1 LIMIT 1`,
+            [contact.id]
+          );
+
+          if (existingDeal.rows.length > 0) {
+            dealId = existingDeal.rows[0].id;
+            await query(
+              `UPDATE pipeline_deals SET stage = $1, probability = GREATEST(probability, $2), next_action = $3, updated_at = NOW() WHERE id = $4`,
+              [dealConfig.stage, dealConfig.probability, dealConfig.next_action, dealId]
+            );
+            dealsUpdated++;
+          } else {
+            const contactType = contact.contact_type || 'landlord';
+            const validTypes = ['landlord', 'employer', 'university', 'residency', 'benefits-platform', 'graduate-housing'];
+            const dealType = validTypes.includes(contactType) ? contactType : 'landlord';
+            const dealValue = DEFAULT_DEAL_VALUE[contactType] || 5000;
+
+            const newDeal = await query(
+              `INSERT INTO pipeline_deals (name, company, contact_id, type, stage, value, probability, next_action)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+               RETURNING id`,
+              [
+                `${contact.name} - ${contact.org_name || 'Inbound'}`,
+                contact.org_name || null,
+                contact.id,
+                dealType,
+                dealConfig.stage,
+                dealValue,
+                dealConfig.probability,
+                dealConfig.next_action,
+              ]
+            );
+            dealId = newDeal.rows[0].id;
+            dealsCreated++;
+          }
+
+          // Generate and schedule contract reply with document links (10 min delay)
+          let replyScheduledId: number | null = null;
+          const pendingReply = await query(
+            `SELECT id FROM scheduled_emails WHERE to_email = $1 AND status = 'pending' AND created_at > NOW() - INTERVAL '24 hours' LIMIT 1`,
+            [email.fromEmail]
+          );
+
+          if (pendingReply.rows.length === 0) {
+            const originalEmailObj: OriginalEmail = {
+              from: email.from,
+              fromEmail: email.fromEmail,
+              subject: email.subject,
+              body: email.body,
+              classification: email.classification,
+              contactType: contact.contact_type || 'landlord',
+            };
+            const reply = await generateContractReply(originalEmailObj, requestType);
+            if (reply) {
+              const scheduledFor = new Date(Date.now() + REPLY_DELAY['contract_request']).toISOString();
+              const scheduleResult = await query(
+                `INSERT INTO scheduled_emails (contact_id, to_email, subject, body, html_body, lead_type, scheduled_for)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7)
+                 RETURNING id`,
+                [contact.id, email.fromEmail, reply.subject, reply.body, reply.htmlBody, contact.contact_type || 'landlord', scheduledFor]
+              );
+              replyScheduledId = scheduleResult.rows[0].id;
+              repliesScheduled++;
+
+              // Log contract_docs_sent to activity_log
+              await query(
+                `INSERT INTO activity_log (deal_id, activity_type, description, metadata)
+                 VALUES ($1, $2, $3, $4)`,
+                [dealId, 'contract_docs_sent',
+                 `Contract documents sent to ${email.from} (${requestType} request)`,
+                 JSON.stringify({ request_type: requestType, docs_included: reply.docsIncluded, from: email.fromEmail })]
+              );
+            }
+          }
+
+          // Log to response_log
+          await logResponse(email, contact.id, dealId, replyScheduledId, 'contract_request_processed');
+          await markProcessed(cacheKey);
+          processed++;
+          continue;
+        }
+
+        // 5e. Handle signed document returns — advance deal, ack sender, notify admin
+        if (email.classification === 'document_received') {
+          // Check if this contact has a deal in a contract stage
+          const existingDeal = await query(
+            `SELECT * FROM pipeline_deals WHERE contact_id = $1 LIMIT 1`,
+            [contact.id]
+          );
+
+          const dealConfig = CLASSIFICATION_TO_DEAL['document_received'];
+          let dealId: number;
+
+          if (existingDeal.rows.length > 0) {
+            dealId = existingDeal.rows[0].id;
+            await query(
+              `UPDATE pipeline_deals SET stage = $1, probability = GREATEST(probability, $2), next_action = $3, updated_at = NOW() WHERE id = $4`,
+              [dealConfig.stage, dealConfig.probability, dealConfig.next_action, dealId]
+            );
+            dealsUpdated++;
+          } else {
+            // Create deal if none exists
+            const contactType = contact.contact_type || 'landlord';
+            const validTypes = ['landlord', 'employer', 'university', 'residency', 'benefits-platform', 'graduate-housing'];
+            const dealType = validTypes.includes(contactType) ? contactType : 'landlord';
+            const dealValue = DEFAULT_DEAL_VALUE[contactType] || 5000;
+
+            const newDeal = await query(
+              `INSERT INTO pipeline_deals (name, company, contact_id, type, stage, value, probability, next_action)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+               RETURNING id`,
+              [
+                `${contact.name} - ${contact.org_name || 'Inbound'}`,
+                contact.org_name || null,
+                contact.id,
+                dealType,
+                dealConfig.stage,
+                dealValue,
+                dealConfig.probability,
+                dealConfig.next_action,
+              ]
+            );
+            dealId = newDeal.rows[0].id;
+            dealsCreated++;
+          }
+
+          // Cancel any pending contract follow-up emails for this contact
+          await query(
+            `UPDATE scheduled_emails SET status = 'cancelled' WHERE contact_id = $1 AND status = 'pending'`,
+            [contact.id]
+          ).catch(() => {});
+
+          // Log document received activity
+          await query(
+            `INSERT INTO activity_log (deal_id, activity_type, description, metadata)
+             VALUES ($1, $2, $3, $4)`,
+            [dealId, 'document_received',
+             `Signed documents received from ${email.from} (${email.fromEmail})`,
+             JSON.stringify({ from: email.fromEmail, attachments: email.attachmentNames || [], subject: email.subject })]
+          );
+
+          // Schedule acknowledgment reply to sender (5 min)
+          let replyScheduledId: number | null = null;
+          const pendingReply = await query(
+            `SELECT id FROM scheduled_emails WHERE to_email = $1 AND status = 'pending' AND created_at > NOW() - INTERVAL '24 hours' LIMIT 1`,
+            [email.fromEmail]
+          );
+
+          if (pendingReply.rows.length === 0) {
+            const originalEmailObj: OriginalEmail = {
+              from: email.from,
+              fromEmail: email.fromEmail,
+              subject: email.subject,
+              body: email.body,
+              classification: email.classification,
+              contactType: contact.contact_type || 'landlord',
+            };
+            const ack = await generateDocumentReceivedAck(originalEmailObj);
+            if (ack) {
+              const scheduledFor = new Date(Date.now() + REPLY_DELAY['document_received']).toISOString();
+              const scheduleResult = await query(
+                `INSERT INTO scheduled_emails (contact_id, to_email, subject, body, html_body, lead_type, scheduled_for)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7)
+                 RETURNING id`,
+                [contact.id, email.fromEmail, ack.subject, ack.body, ack.htmlBody, contact.contact_type || 'landlord', scheduledFor]
+              );
+              replyScheduledId = scheduleResult.rows[0].id;
+              repliesScheduled++;
+            }
+          }
+
+          // Send notification to admin@sweetlease.io
+          const previousStage = existingDeal.rows.length > 0 ? existingDeal.rows[0].stage : 'new';
+          const adminNotification = generateAdminContractNotification({
+            contactName: contact.name,
+            contactEmail: email.fromEmail,
+            contactType: contact.contact_type || 'landlord',
+            orgName: contact.org_name,
+            dealId,
+            dealStage: previousStage,
+            emailSubject: email.subject,
+            attachmentNames: email.attachmentNames || [],
+          });
+
+          await query(
+            `INSERT INTO scheduled_emails (to_email, subject, body, html_body, lead_type, scheduled_for)
+             VALUES ($1, $2, $3, $4, $5, NOW())`,
+            ['admin@sweetlease.io', adminNotification.subject, adminNotification.body, adminNotification.htmlBody, 'internal']
+          );
+
+          // Log to response_log
+          await logResponse(email, contact.id, dealId, replyScheduledId, 'document_received_processed');
           await markProcessed(cacheKey);
           processed++;
           continue;
@@ -300,6 +680,48 @@ export async function GET(request: NextRequest) {
       { error: error.message || 'Failed to process inbox' },
       { status: 500 }
     );
+  }
+}
+
+async function extractReferralInfo(emailBody: string, senderName: string, orgName: string | null): Promise<ReferralInfo | null> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) return null;
+
+  try {
+    const client = new Anthropic({ apiKey });
+    const message = await client.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 256,
+      messages: [{
+        role: 'user',
+        content: `Extract the referred person's contact info from this email. The sender (${senderName}${orgName ? ` at ${orgName}` : ''}) is referring us to someone else.
+
+Email body:
+${emailBody}
+
+Return JSON: {"name": "Full Name", "email": "email@domain.com or null", "title": "Job Title or null", "role": "Their role description or null"}
+
+If you cannot find a name, return {"name": null}. Set email to null if not found.`
+      }],
+    });
+
+    const text = message.content[0].type === 'text' ? message.content[0].text : '';
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      if (parsed.name) {
+        return {
+          name: parsed.name,
+          email: parsed.email || null,
+          title: parsed.title || null,
+          role: parsed.role || null,
+        };
+      }
+    }
+    return null;
+  } catch (err) {
+    console.error('Referral extraction failed:', err);
+    return null;
   }
 }
 

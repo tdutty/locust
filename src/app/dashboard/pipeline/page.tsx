@@ -31,7 +31,7 @@ interface Deal {
   name: string;
   company?: string;
   type: 'landlord' | 'employer' | 'university';
-  stage: 'lead' | 'contacted' | 'qualified' | 'proposal' | 'negotiation' | 'closed';
+  stage: 'lead' | 'contacted' | 'qualified' | 'proposal' | 'contract_sent' | 'security_review' | 'contract_signed' | 'negotiation' | 'closed';
   value: number;
   probability: number;
   notes?: string;
@@ -54,6 +54,9 @@ const STAGES = [
   { id: 'contacted', label: 'Contacted', color: 'bg-sky-500' },
   { id: 'qualified', label: 'Qualified', color: 'bg-indigo-500' },
   { id: 'proposal', label: 'Proposal', color: 'bg-blue-500' },
+  { id: 'contract_sent', label: 'Contract Sent', color: 'bg-violet-500' },
+  { id: 'security_review', label: 'Security Review', color: 'bg-purple-500' },
+  { id: 'contract_signed', label: 'Signed', color: 'bg-teal-500' },
   { id: 'negotiation', label: 'Negotiation', color: 'bg-amber-500' },
   { id: 'closed', label: 'Closed Won', color: 'bg-emerald-500' },
 ];
