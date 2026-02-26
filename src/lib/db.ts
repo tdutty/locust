@@ -7,8 +7,9 @@ const isRemote = connectionString.includes('ondigitalocean.com') || process.env.
 const pool = new Pool({
   connectionString,
   ssl: isRemote ? { rejectUnauthorized: false } : undefined,
-  max: 10,
-  idleTimeoutMillis: 30000,
+  min: 0,
+  max: 3,
+  idleTimeoutMillis: 10000,
   connectionTimeoutMillis: 5000,
 });
 
