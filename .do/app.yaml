@@ -41,7 +41,7 @@ services:
         value: "993"
         scope: RUN_AND_BUILD_TIME
       - key: IMAP_USER
-        value: support@sweetlease.io
+        value: rgilbert@sweetlease.io
         scope: RUN_AND_BUILD_TIME
       - key: IMAP_PASSWORD
         value: ${IMAP_PASSWORD}
@@ -82,4 +82,26 @@ services:
         scope: RUN_AND_BUILD_TIME
       - key: NEXT_PUBLIC_APP_URL
         value: ${APP_URL}
+        scope: RUN_AND_BUILD_TIME
+      - key: RESEND_API_KEY
+        value: ${RESEND_API_KEY}
+        type: SECRET
+        scope: RUN_AND_BUILD_TIME
+      - key: CALCOM_API_KEY
+        value: ${CALCOM_API_KEY}
+        type: SECRET
+        scope: RUN_AND_BUILD_TIME
+      - key: CALCOM_BOOKING_URL
+        value: ${CALCOM_BOOKING_URL}
+        scope: RUN_AND_BUILD_TIME
+      - key: RETELL_API_KEY
+        value: ${RETELL_API_KEY}
+        type: SECRET
+        scope: RUN_AND_BUILD_TIME
+      - key: RETELL_AGENT_ID
+        value: ${RETELL_AGENT_ID}
+        type: SECRET
+        scope: RUN_AND_BUILD_TIME
+      - key: RETELL_PHONE_NUMBER
+        value: ${RETELL_PHONE_NUMBER}
         scope: RUN_AND_BUILD_TIME

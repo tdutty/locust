@@ -35,7 +35,7 @@ export default function SettingsPage() {
     email: 'tgilbert@sweetlease.io',
     phone: '(512) 555-0100',
     title: 'Account Executive',
-    calendlyLink: 'https://calendly.com/sweetlease/intro',
+    calendlyLink: 'https://cal.com/terrell-gilbert-bnq7m3/sweetlease-intro',
   });
 
   const [emailSettings, setEmailSettings] = useState({
@@ -45,7 +45,7 @@ export default function SettingsPage() {
     smtpConfigured: false,
     imapConfigured: false,
     anthropicConfigured: false,
-    signature: `Best,\nTerrell Gilbert\nSweetLease | Batch Fulfillment for Landlords\nhttps://calendly.com/sweetlease/intro`,
+    signature: `Best,\nTerrell Gilbert\nSweetLease | Batch Fulfillment for Landlords\nhttps://cal.com/terrell-gilbert-bnq7m3/sweetlease-intro`,
   });
 
   const [notifications, setNotifications] = useState({
@@ -202,7 +202,7 @@ export default function SettingsPage() {
                   <input type="text" value={profile.title} onChange={(e) => setProfile({ ...profile, title: e.target.value })} className="input-base" />
                 </div>
                 <div className="col-span-2">
-                  <label className="block text-sm font-medium mb-1">Calendly Link</label>
+                  <label className="block text-sm font-medium mb-1">Booking Link</label>
                   <input type="url" value={profile.calendlyLink} onChange={(e) => setProfile({ ...profile, calendlyLink: e.target.value })} className="input-base" />
                 </div>
               </div>

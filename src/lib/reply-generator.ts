@@ -9,8 +9,7 @@ export interface OriginalEmail {
   contactType?: string;
 }
 
-const CALENDLY_EVENT_TYPE = 'https://api.calendly.com/event_types/9855ae1b-631d-48c4-8089-78956bd85b7d';
-const CALENDLY_SCHEDULING_URL = 'https://calendly.com/terrellgilb5/30min';
+const CALCOM_BOOKING_URL = process.env.CALCOM_BOOKING_URL || 'https://cal.com/terrell-gilbert-bnq7m3/sweetlease-intro';
 const APP_BASE_URL = 'https://locust-m7ng3.ondigitalocean.app';
 
 // PDF docs mapped by contact type
@@ -60,140 +59,18 @@ const CONTRACT_DOCS: Record<string, { label: string; path: string; docType: stri
 
 export type ContractRequestType = 'nda' | 'contract' | 'security' | 'procurement' | 'all';
 
-interface CalendlySlot {
-  label: string;
-  scheduling_url: string;
-}
-
-/** Fetches 3 real available slots from Calendly API */
-async function fetchCalendlySlots(): Promise<CalendlySlot[]> {
-  const token = process.env.CALENDLY_API_TOKEN;
-  if (!token) return [];
-
-  try {
-    const now = new Date();
-    const start = new Date(now);
-    start.setDate(start.getDate() + 1);
-    start.setHours(0, 0, 0, 0);
-    const end = new Date(start);
-    end.setDate(end.getDate() + 7);
-
-    const url = `https://api.calendly.com/event_type_available_times?event_type=${encodeURIComponent(CALENDLY_EVENT_TYPE)}&start_time=${start.toISOString()}&end_time=${end.toISOString()}`;
-    const res = await fetch(url, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    if (!res.ok) {
-      console.error('Calendly API error:', res.status);
-      return [];
-    }
-
-    const data = await res.json();
-    const available = data.collection || [];
-
-    // Pick 3 slots spread across different days for variety
-    const byDay = new Map<string, typeof available>();
-    for (const slot of available) {
-      const day = slot.start_time.slice(0, 10);
-      if (!byDay.has(day)) byDay.set(day, []);
-      byDay.get(day)!.push(slot);
-    }
-
-    // Target different times of day for variety
-    const targetHoursUTC = [15, 18, 20]; // ~9-10am, ~12-1pm, ~2-3pm CT
-    let targetIdx = 0;
-
-    const picked: CalendlySlot[] = [];
-    for (const [, daySlots] of byDay) {
-      if (picked.length >= 3) break;
-      const targetHour = targetHoursUTC[targetIdx % targetHoursUTC.length];
-      targetIdx++;
-      const slot = daySlots.reduce((best: any, s: any) => {
-        const hour = new Date(s.start_time).getUTCHours();
-        const bestHour = new Date(best.start_time).getUTCHours();
-        return Math.abs(hour - targetHour) < Math.abs(bestHour - targetHour) ? s : best;
-      });
-
-      const dt = new Date(slot.start_time);
-      const label = dt.toLocaleDateString('en-US', {
-        weekday: 'long',
-        month: 'long',
-        day: 'numeric',
-        timeZone: 'America/Chicago',
-      }) + ' at ' + dt.toLocaleTimeString('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-        timeZone: 'America/Chicago',
-      }) + ' CT';
-
-      picked.push({ label, scheduling_url: slot.scheduling_url });
-    }
-
-    return picked;
-  } catch (err) {
-    console.error('Calendly fetch failed:', err);
-    return [];
-  }
-}
-
-/** Build HTML availability table */
-function buildAvailabilityTableHtml(slots: CalendlySlot[]): string {
-  if (slots.length === 0) {
-    return `
+/** Build HTML booking button for Cal.com */
+function buildAvailabilityHtml(): string {
+  return `
       <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;">
         <tr>
           <td align="center" style="padding:16px;">
-            <a href="${CALENDLY_SCHEDULING_URL}" style="display:inline-block;background-color:#16a34a;color:#ffffff;font-size:16px;font-weight:600;text-decoration:none;padding:12px 28px;border-radius:8px;">
+            <a href="${CALCOM_BOOKING_URL}" style="display:inline-block;background-color:#16a34a;color:#ffffff;font-size:16px;font-weight:600;text-decoration:none;padding:12px 28px;border-radius:8px;">
               View Available Times
             </a>
           </td>
         </tr>
       </table>`;
-  }
-
-  const rows = slots.map((s, i) => {
-    const parts = s.label.split(' at ');
-    const day = parts[0];
-    const time = parts[1] || s.label;
-    const bgColor = i % 2 === 0 ? '#f9fafb' : '#ffffff';
-    return `
-          <tr style="background-color:${bgColor};">
-            <td style="padding:12px 16px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#374151;">
-              ${day}
-            </td>
-            <td style="padding:12px 16px;border-bottom:1px solid #e5e7eb;font-size:14px;font-weight:600;color:#111827;">
-              ${time}
-            </td>
-            <td style="padding:12px 16px;border-bottom:1px solid #e5e7eb;text-align:center;">
-              <a href="${s.scheduling_url}" style="display:inline-block;background-color:#16a34a;color:#ffffff;font-size:13px;font-weight:600;text-decoration:none;padding:8px 18px;border-radius:6px;">
-                Book
-              </a>
-            </td>
-          </tr>`;
-  }).join('');
-
-  return `
-      <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;border-radius:8px;overflow:hidden;border:1px solid #e5e7eb;">
-        <thead>
-          <tr style="background-color:#f0fdf4;">
-            <th style="padding:12px 16px;text-align:left;font-size:13px;font-weight:600;color:#166534;text-transform:uppercase;letter-spacing:0.5px;border-bottom:2px solid #16a34a;">
-              Day
-            </th>
-            <th style="padding:12px 16px;text-align:left;font-size:13px;font-weight:600;color:#166534;text-transform:uppercase;letter-spacing:0.5px;border-bottom:2px solid #16a34a;">
-              Time
-            </th>
-            <th style="padding:12px 16px;text-align:center;font-size:13px;font-weight:600;color:#166534;text-transform:uppercase;letter-spacing:0.5px;border-bottom:2px solid #16a34a;">
-              &nbsp;
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          ${rows}
-        </tbody>
-      </table>
-      <p style="margin:8px 0 0;font-size:13px;color:#6b7280;">
-        None of these work? <a href="${CALENDLY_SCHEDULING_URL}" style="color:#16a34a;font-weight:500;">View all available times</a>
-      </p>`;
 }
 
 /** Build HTML block for PDF doc link */
@@ -349,7 +226,7 @@ Rules:
 - For objections: acknowledge respectfully, provide value, suggest revisiting in the future
 - For questions: answer with specific details and data points relevant to their type (employer/university/landlord)
 - For not_interested: professionally remove them, leave the door open
-- CRITICAL: Do NOT include ANY scheduling times, dates, availability, Calendly links, or URLs of any kind. A scheduling table is appended separately.
+- CRITICAL: Do NOT include ANY scheduling times, dates, availability, booking links, or URLs of any kind. A scheduling table is appended separately.
 - CRITICAL: Do NOT mention sending a partnership overview, PDF, or document. A document link is appended separately.
 - CRITICAL: Do NOT include a signature block or sign-off. It is appended separately.
 - CRITICAL: Do NOT include any URLs, links, bullet-point lists of times, or scheduling options.
@@ -357,13 +234,12 @@ Rules:
 - End with "Best regards," on its own line  - absolutely nothing after that`;
 }
 
-/** Generates reply with HTML body, Calendly table, and PDF link */
+/** Generates reply with HTML body, Cal.com booking button, and PDF link */
 export async function generateReply(originalEmail: OriginalEmail): Promise<{ subject: string; body: string; htmlBody: string; source: string } | null> {
   if (originalEmail.classification === 'spam' || originalEmail.classification === 'system') return null;
 
   const contactType = originalEmail.contactType || 'landlord';
-  const slots = await fetchCalendlySlots();
-  const availabilityHtml = buildAvailabilityTableHtml(slots);
+  const availabilityHtml = buildAvailabilityHtml();
   const pdfHtml = buildPdfLinkHtml(contactType);
   const includeAvailability = originalEmail.classification === 'interested' || originalEmail.classification === 'question';
 
@@ -376,8 +252,8 @@ export async function generateReply(originalEmail: OriginalEmail): Promise<{ sub
       const t = l.trim();
       // Signature lines
       if (/^(best regards|best,|regards,|warm regards|sincerely|cheers,|terrell gilbert| - terrell|--\s*$)/i.test(t)) return true;
-      // Any line with URLs or calendly
-      if (/calendly\.com|https?:\/\//i.test(t)) return true;
+      // Any line with URLs or booking links
+      if (/cal\.com|https?:\/\//i.test(t)) return true;
       // Time slots (9:00 AM CT, etc.)
       if (/\d{1,2}:\d{2}\s*(AM|PM)\s*CT/i.test(t)) return true;
       // Scheduling intro lines
@@ -397,7 +273,7 @@ export async function generateReply(originalEmail: OriginalEmail): Promise<{ sub
   }
 
   // Template fallback
-  const { subject, body, paragraphs } = buildTemplateReply(originalEmail, slots);
+  const { subject, body, paragraphs } = buildTemplateReply(originalEmail);
   return {
     subject,
     body,
@@ -481,7 +357,7 @@ function getTypeMessaging(contactType: string) {
   }
 }
 
-function buildTemplateReply(email: OriginalEmail, slots: CalendlySlot[]): { subject: string; body: string; paragraphs: string[] } {
+function buildTemplateReply(email: OriginalEmail): { subject: string; body: string; paragraphs: string[] } {
   const firstName = getGreetingName(email.from);
   const subject = `Re: ${email.subject.replace(/^Re:\s*/i, '')}`;
   const contactType = email.contactType || 'landlord';
@@ -489,10 +365,7 @@ function buildTemplateReply(email: OriginalEmail, slots: CalendlySlot[]): { subj
 
   switch (email.classification) {
     case 'interested': {
-      const slotLines = slots.length > 0
-        ? slots.map(s => `- ${s.label}: ${s.scheduling_url}`).join('\n') + `\n\nAlternatively, you can view all available times here: ${CALENDLY_SCHEDULING_URL}`
-        : `You can select a convenient time here: ${CALENDLY_SCHEDULING_URL}`;
-      const body = `Dear ${firstName},\n\nThank you for your interest in SweetLease. ${msg.interestedHook}\n\n${msg.interestedCta}\n\n${msg.interestedOnboarding}\n\nBelow are several available times for a conversation:\n${slotLines}\n\nI have also included a partnership overview below for your reference.\n\nBest regards,`;
+      const body = `Dear ${firstName},\n\nThank you for your interest in SweetLease. ${msg.interestedHook}\n\n${msg.interestedCta}\n\n${msg.interestedOnboarding}\n\nYou can select a convenient time here: ${CALCOM_BOOKING_URL}\n\nI have also included a partnership overview below for your reference.\n\nBest regards,`;
       const paragraphs = [
         `Dear ${firstName},`,
         `Thank you for your interest in SweetLease. ${msg.interestedHook}`,
@@ -655,8 +528,7 @@ export async function generateWarmIntroEmail(
   const referredFirstName = referralInfo.name.split(' ')[0];
   const subject = `${referrerName} suggested we connect — SweetLease`;
 
-  const slots = await fetchCalendlySlots();
-  const availabilityHtml = buildAvailabilityTableHtml(slots);
+  const availabilityHtml = buildAvailabilityHtml();
   const pdfHtml = buildPdfLinkHtml(contactType);
 
   // Try AI first

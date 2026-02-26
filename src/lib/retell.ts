@@ -4,8 +4,7 @@ import { query } from '@/lib/db';
 const retellClient = new Retell({ apiKey: process.env.RETELL_API_KEY || '' });
 
 /**
- * Build conversational context for the Retell agent — mirrors the Tavus context logic
- * from meeting/create/route.ts but adapted for phone calls.
+ * Build conversational context for the Retell agent for phone calls.
  */
 export async function buildConversationalContext(
   booking: any,

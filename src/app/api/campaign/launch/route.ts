@@ -59,7 +59,7 @@ The result? Your employees find housing 40% faster than through traditional chan
 
 Would a quick call make sense to explore if this could help ${lead.company}'s team?
 
-https://calendly.com/sweetlease/employer-intro
+${process.env.CALCOM_BOOKING_URL || 'https://cal.com/terrell-gilbert-bnq7m3/sweetlease-intro'}
 
 Best,
 Robert Gilbert
@@ -80,7 +80,7 @@ After partnering with SweetLease:
 
 I'd love to share more details and explore if similar results are possible for ${lead.company}.
 
-15 minutes work for you? https://calendly.com/sweetlease/employer-intro
+15 minutes work for you? ${process.env.CALCOM_BOOKING_URL || 'https://cal.com/terrell-gilbert-bnq7m3/sweetlease-intro'}
 
 Best,
 Robert Gilbert
@@ -115,7 +115,7 @@ This will be my last note about SweetLease's corporate housing solution.
 
 If supporting ${lead.company} relocating employees with faster, easier housing isn't a current priority, I completely understand.
 
-If things change or you'd like to explore this down the road, I'm always happy to reconnect: https://calendly.com/sweetlease/employer-intro
+If things change or you'd like to explore this down the road, I'm always happy to reconnect: ${process.env.CALCOM_BOOKING_URL || 'https://cal.com/terrell-gilbert-bnq7m3/sweetlease-intro'}
 
 Wishing you and the team continued success!
 
