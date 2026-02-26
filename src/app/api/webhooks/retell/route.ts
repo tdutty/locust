@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     if (eventType === 'call_started') {
       await handleCallStarted(booking);
     } else if (eventType === 'call_ended') {
-      await handleCallEnded(callData, booking, contactId);
+      await handleCallEnded(callData, booking, contactId, contactType);
     } else if (eventType === 'call_analyzed') {
       await handleCallAnalyzed(callData, booking, contactId, contactType);
     } else {
@@ -70,10 +70,13 @@ async function handleCallStarted(booking: any) {
   );
 }
 
+const NO_ANSWER_REASONS = new Set(['no_answer', 'busy', 'declined', 'voicemail', 'machine_detected']);
+
 async function handleCallEnded(
   callData: any,
   booking: any,
   contactId: number | null,
+  contactType: string,
 ) {
   const callId = callData.call_id;
   const durationMs = callData.end_timestamp && callData.start_timestamp
@@ -81,23 +84,32 @@ async function handleCallEnded(
     : null;
   const durationSeconds = durationMs ? Math.round(durationMs / 1000) : null;
   const disconnectReason = callData.disconnection_reason || 'unknown';
+  const wasAnswered = !NO_ANSWER_REASONS.has(disconnectReason);
+  const bookingStatus = wasAnswered ? 'completed' : 'no_show';
 
   await query(
-    `UPDATE meeting_bookings SET status = 'completed', updated_at = NOW() WHERE id = $1`,
-    [booking.id]
+    `UPDATE meeting_bookings SET status = $1, updated_at = NOW() WHERE id = $2`,
+    [bookingStatus, booking.id]
   );
 
   await query(
-    `INSERT INTO conversation_analytics (conversation_id, booking_id, contact_id, duration_seconds, shutdown_reason)
-     VALUES ($1, $2, $3, $4, $5)
+    `INSERT INTO conversation_analytics (conversation_id, booking_id, contact_id, duration_seconds, shutdown_reason, outcome)
+     VALUES ($1, $2, $3, $4, $5, $6)
      ON CONFLICT (conversation_id) DO UPDATE SET
        duration_seconds = COALESCE(EXCLUDED.duration_seconds, conversation_analytics.duration_seconds),
        shutdown_reason = EXCLUDED.shutdown_reason,
+       outcome = COALESCE(conversation_analytics.outcome, EXCLUDED.outcome),
        updated_at = NOW()`,
-    [`retell_${callId}`, booking.id, contactId, durationSeconds, disconnectReason]
+    [`retell_${callId}`, booking.id, contactId, durationSeconds, disconnectReason, wasAnswered ? null : 'no_show']
   );
 
-  console.log(`Retell call ended: ${callId}, duration=${durationSeconds}s, reason=${disconnectReason}`);
+  // If call was declined/unanswered, send missed-call email immediately
+  if (!wasAnswered && booking.attendee_email) {
+    await scheduleMissedCallEmail(booking, contactId, contactType);
+    console.log(`Retell call not answered: ${callId}, reason=${disconnectReason}, missed-call email scheduled`);
+  } else {
+    console.log(`Retell call ended: ${callId}, duration=${durationSeconds}s, reason=${disconnectReason}`);
+  }
 }
 
 async function handleCallAnalyzed(
