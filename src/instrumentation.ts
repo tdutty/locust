@@ -21,14 +21,21 @@ export async function register() {
       try {
         const url = `${BASE}${path}?secret=${encodeURIComponent(CRON_SECRET!)}`;
         const res = await fetch(url, { signal: AbortSignal.timeout(120_000) });
-        const data = await res.json();
-        console.log(`[cron] ${name} →`, JSON.stringify(data));
+        const text = await res.text();
+        try {
+          const data = JSON.parse(text);
+          console.log(`[cron] ${name} →`, JSON.stringify(data));
+        } catch {
+          console.error(`[cron] ${name} returned non-JSON (${res.status}):`, text.substring(0, 200));
+        }
       } catch (err: any) {
         console.error(`[cron] ${name} failed:`, err.message);
       }
     }
 
     // ─── Schedules ────────────────────────────────────────────────
+    let jobCount = 3;
+
     // process-inbox: every 2 minutes — check IMAP for new replies
     cron.default.schedule('*/2 * * * *', () => {
       triggerCron('process-inbox', '/api/cron/process-inbox');
@@ -44,15 +51,22 @@ export async function register() {
       triggerCron('advance-sequences', '/api/cron/advance-sequences');
     });
 
-    // trigger-calls: every 1 minute — trigger Retell outbound calls for booked meetings
-    cron.default.schedule('*/1 * * * *', () => {
-      triggerCron('trigger-calls', '/api/cron/trigger-calls');
-    });
+    // trigger-calls: only schedule if Retell is configured
+    if (process.env.RETELL_API_KEY && process.env.RETELL_AGENT_ID) {
+      cron.default.schedule('*/1 * * * *', () => {
+        triggerCron('trigger-calls', '/api/cron/trigger-calls');
+      });
+      jobCount = 4;
+    } else {
+      console.log('[cron] trigger-calls skipped — RETELL_API_KEY/RETELL_AGENT_ID not set');
+    }
 
-    console.log('[cron] Scheduler started — 4 jobs registered');
+    console.log(`[cron] Scheduler started — ${jobCount} jobs registered`);
     console.log('[cron]   process-inbox     : */2 * * * *  (every 2 min)');
     console.log('[cron]   send-emails       : */1 * * * *  (every 1 min)');
     console.log('[cron]   advance-sequences : 0 * * * *    (every hour)');
-    console.log('[cron]   trigger-calls     : */1 * * * *  (every 1 min)');
+    if (jobCount === 4) {
+      console.log('[cron]   trigger-calls     : */1 * * * *  (every 1 min)');
+    }
   }
 }
