@@ -47,15 +47,15 @@ Rules:
 - Keep emails under 200 words
 - Use a professional greeting with the lead's name (e.g., "Dear [First Name] [Last Name]"). Do NOT assume titles like "Dr." unless the lead's title explicitly contains "MD", "DO", "PhD", or "Dr."  - many contacts in medical settings are administrators, coordinators, or directors, not physicians.
 - Reference specific details (city, property count, company, relocations, enrollment, off-campus %)
-- ALWAYS offer TWO CTA options: a primary Calendly link AND a softer alternative for people who don't want a meeting
-  - Primary Calendly links: https://calendly.com/sweetlease/intro (landlords), https://calendly.com/sweetlease/employer-intro (employers), or https://calendly.com/sweetlease/university-partnership (universities/residency/grad housing)
-  - Soft alternatives: reference the ATTACHED partnership overview, one-pager, case study, or market report. Always frame documents as "I have attached"  - never ask them to reply for it. NEVER link to sweetlease.com/partners.
+- Do NOT include Cal.com or scheduling URLs in the email body. A styled CTA section with booking and demo walkthrough links is automatically appended to every email. Instead, end with a soft invitation to connect (e.g., "Would it be helpful to explore this?" or "Happy to walk you through it.").
+  - Soft alternatives: reference the ATTACHED partnership overview, one-pager, case study, or market report. Always frame documents as "I have attached" - never ask them to reply for it.
 - Sign off with just "Best regards," and "Robert Gilbert" on the next line. Do NOT include "SweetLease" in the sign-off text  - the email signature with logo and company info is appended automatically.
 - IMPORTANT: When mentioning cost, emphasize that the service is FREE for the recipient's organization/program. We are waiving any fees as part of our partnership outreach. Never mention a $99.99 fee or any cost to the end user in outreach emails.
 - Tone: Professional, polished, and business-appropriate. Write like a senior business development executive. Use complete sentences, proper grammar, and a respectful tone. Avoid slang, casual phrases, and colloquialisms.
 - This is COLD outreach. You do NOT know the recipient. Never say "I know you" or "I noticed you" or presume any familiarity with their situation. Do not assume their pain points or claim knowledge of their challenges. Let the recipient decide if it applies.
 - Never use "I hope this finds you well" or similar filler greetings. Get to the point quickly.
-- Opening: Start with a brief, one-sentence introduction of who you are and why you're reaching out (e.g., "My name is Robert Gilbert with SweetLease, and I'm reaching out regarding [specific reason relevant to their role]."). Keep it to one sentence, then immediately move into the value proposition. No fluff, no market stats preamble.
+- Opening: Start with "My name is Robert Gilbert with SweetLease." then immediately follow with the value proposition — a specific problem the recipient faces or a concrete result you deliver. No fluff after the intro, go straight into what matters to THEM.
+- Every email must reinforce our core value: we save them time and money. Weave specific numbers (e.g., "14-day fills", "$100-300/month savings", "15-25% below market") naturally throughout the email, not just in a bullet list.
 - The email should read as if addressed to someone in their specific role. Use the lead's title and organization context to tailor the message to what matters to THEM in their position, not a generic pitch.
 - Never use exclamation marks excessively
 - Vary subject lines - make them specific, professional, and relevant to the recipient's role`;
@@ -65,15 +65,15 @@ export const LANDLORD_SEQUENCES = [
     subject: 'Corporate relocation tenants in {{city}}',
     body: (lead: LeadInfo) => `Dear ${lead.name},
 
-My name is Robert Gilbert with SweetLease. SweetLease is a rental listing platform founded in 2026 with the goal of making renting more accessible. We connect property managers with pre-screened, employer-backed tenants who are actively relocating and ready to sign.
+My name is Robert Gilbert with SweetLease. Every vacant unit costs you roughly $60/day. The average independent landlord in ${lead.city || 'your market'} waits 30-45 days to fill a vacancy — that's $1,800-$2,700 in lost rent per turn.
 
-We partner with HR departments at companies relocating employees to ${lead.city || 'your area'}. When their employees need housing, we match them with property managers like you first.
+SweetLease cuts that to 14 days by connecting you with pre-screened, employer-backed tenants who are actively relocating and ready to sign.
 
-These are W-2 employed, pre-screened tenants backed by their employers, ready to sign at competitive rates. We deliver tenant signings in bulk, and our partners are averaging 14-day fills compared to 45 days on traditional platforms. Our commission is 25% below the industry standard.
+We partner with HR departments at companies moving employees to ${lead.city || 'your area'}. When their employees need housing, we match them with property managers like you first. These are W-2 employed tenants backed by their employers, ready to sign at competitive rates. Our commission is 25% below the industry standard.
 
-You maintain final say on pricing and tenant approval. We integrate your existing listings at no additional cost and the onboarding process is quick.
+You maintain final say on pricing and tenant approval. We integrate your existing listings at no additional cost.
 
-Would it be helpful to explore this? I can walk through it in 15 minutes: https://calendly.com/sweetlease/intro
+Would it be helpful to explore this? I can walk through it in 15 minutes.
 
 If a call is not ideal right now, I have attached a one-pager that covers how it works - takes 2 minutes to read.
 
@@ -94,8 +94,7 @@ SweetLease gives you that same advantage.
 
 Last month, we placed 47 relocating employees in ${lead.city || 'Texas'} properties. Average days to lease: 11.
 
-Would it make sense to chat for 15 minutes? https://calendly.com/sweetlease/intro
-
+Would it make sense to chat for 15 minutes?
 No time for a call? I have attached a summary document with everything you need to know  - takes 2 minutes to read.
 
 Best regards,
@@ -117,8 +116,7 @@ You could hire a sales team to build corporate relationships. Or you could plug 
 
 Our landlord partners in ${lead.city || 'your area'} are averaging 14-day fills with relocating employees from major companies.
 
-Worth a 15-minute call to explore? https://calendly.com/sweetlease/intro
-
+Worth a 15-minute call to explore?
 I have also attached a quick case study from a landlord in your market  - worth a look if you are short on time.
 
 Best regards,
@@ -154,8 +152,7 @@ If you'd like to be considered, here's what we need:
 
 That's it. No long-term contracts, no listing fees.
 
-Interested? https://calendly.com/sweetlease/intro
-
+Interested?
 Not ready for a call? I have attached the details  - takes 2 minutes to read.
 
 Best regards,
@@ -168,9 +165,9 @@ export const EMPLOYER_SEQUENCES = [
     subject: 'Employee housing placement - {{company}}',
     body: (lead: LeadInfo) => `Dear ${lead.name || 'there'},
 
-My name is Robert Gilbert with SweetLease. SweetLease is a rental listing and negotiation platform founded in 2026 with the goal of making renting more accessible. We provide a complimentary housing placement service for companies with relocating employees, handling the full search and lease negotiation process at no cost to your organization.
+My name is Robert Gilbert with SweetLease. Relocating employees spend an average of 6 weeks finding housing — delaying start dates, burning through temporary housing budgets, and starting their new role stressed.
 
-When ${lead.company || 'your'} employees relocate, we connect them with pre-vetted, move-in ready properties before they hit the public market and negotiate lease terms on their behalf. Employees typically save $100-$300 per month on rent compared to searching independently.
+SweetLease eliminates that. When ${lead.company || 'your'} employees relocate, we connect them with pre-vetted, move-in ready properties before they hit the public market and negotiate lease terms on their behalf. Employees typically save $100-$300 per month on rent, and average time to placed housing drops from 45 days to 14.
 
 What this means for your relocating workforce:
 - Complimentary service - zero cost to ${lead.company || 'your organization'}
@@ -179,7 +176,7 @@ What this means for your relocating workforce:
 - Dedicated support throughout the entire leasing process
 - We handle the full search, vetting, and placement end-to-end
 
-Would it be helpful to explore this? I can walk through it in 15 minutes: https://calendly.com/sweetlease/employer-intro
+Would it be helpful to explore this? I can walk through it in 15 minutes.
 
 If a meeting does not work, I have attached a 2-page overview you can share with your team - takes 2 minutes to read.
 
@@ -198,8 +195,7 @@ SweetLease solves this by giving your employees first access to a network of lan
 
 The result? Your employees find housing 40% faster than through traditional channels.
 
-Would a quick call make sense? https://calendly.com/sweetlease/employer-intro
-
+Would a quick call make sense?
 If you would rather skip the call, I have attached a 2-page summary covering how we work with HR teams.
 
 Best regards,
@@ -220,8 +216,7 @@ After partnering with SweetLease:
 
 I'd love to share more details and explore if similar results are possible for ${lead.company || 'your organization'}.
 
-15 minutes work for you? https://calendly.com/sweetlease/employer-intro
-
+15 minutes work for you?
 I have also attached the full case study for your reference.
 
 Best regards,
@@ -255,7 +250,7 @@ This will be my last note about SweetLease's corporate housing solution.
 
 If supporting ${lead.company || 'your'} relocating employees with faster, easier housing isn't a current priority, I completely understand.
 
-If things change or you'd like to explore this down the road, I'm always happy to reconnect: https://calendly.com/sweetlease/employer-intro
+If things change or you'd like to explore this down the road, I'm always happy to reconnect.
 
 Wishing you and the team continued success!
 
@@ -269,9 +264,9 @@ export const UNIVERSITY_SEQUENCES = [
     subject: 'Off-campus housing resource - {{university}}',
     body: (lead: LeadInfo) => `Dear ${lead.name || 'there'},
 
-My name is Robert Gilbert with SweetLease. SweetLease is a rental listing and negotiation platform founded in 2026 with the goal of making renting more accessible. We partner with universities to provide students with a curated housing resource, negotiating directly with landlords to secure rates well below what students would find on their own.
+My name is Robert Gilbert with SweetLease. Off-campus rents near ${lead.university || 'your campus'} have climbed 12-15% year-over-year, and students are bearing the full burden. SweetLease gives your ${lead.contactDepartment || 'housing office'} a free tool to fight back.
 
-For ${lead.university || 'your university'} students specifically:
+We negotiate directly with landlords on behalf of students, using group demand to secure rates 15-25% below market. For ${lead.university || 'your university'} students specifically:
 - Zero cost to the university and to students
 - We negotiate lease terms on behalf of students, securing rates 15-25% below market average
 - Curated, pre-vetted housing options near campus - furnished and unfurnished
@@ -280,8 +275,7 @@ For ${lead.university || 'your university'} students specifically:
 
 There is zero cost to the university. We are simply a resource your ${lead.contactDepartment || 'housing office'} can recommend to students.
 
-Would you be open to a 15-minute call? https://calendly.com/sweetlease/university-partnership
-
+Would you be open to a 15-minute call?
 If a call is not ideal right now, I have attached a one-pager you can share with your team - takes 2 minutes to read.
 
 Best regards,
@@ -301,8 +295,7 @@ SweetLease currently has ${Math.floor(Math.random() * 50 + 30)} verified listing
 
 We'd love to share a full market report for ${lead.city || 'your area'} with your team - no strings attached.
 
-Worth a quick chat? https://calendly.com/sweetlease/university-partnership
-
+Worth a quick chat?
 I have also attached a market report for your area  - worth a look if you are short on time.
 
 Best regards,
@@ -323,8 +316,7 @@ We're already supporting international students at several universities and woul
 
 This could be a great resource for your international student orientation packets and pre-arrival communications.
 
-Could we schedule 15 minutes to discuss? https://calendly.com/sweetlease/university-partnership
-
+Could we schedule 15 minutes to discuss?
 I have attached an overview of how we support international students at other schools.
 
 Best regards,
@@ -345,8 +337,7 @@ We'd love to explore a partnership with ${lead.university || 'your'} graduate st
 
 This is completely free and designed to make your students' transition easier.
 
-Interested in learning more? https://calendly.com/sweetlease/university-partnership
-
+Interested in learning more?
 I have attached a sample of the co-branded housing guide for your reference.
 
 Best regards,
@@ -365,8 +356,7 @@ SweetLease would provide:
 
 We're flexible on format - whether that's a booth at a housing fair, a 20-minute presentation during orientation, or simply being listed as a recommended resource.
 
-Would it be possible to discuss getting involved in your next student housing event? https://calendly.com/sweetlease/university-partnership
-
+Would it be possible to discuss getting involved in your next student housing event?
 If it is easier, just reply with the date of your next housing fair and I will send over a formal participation request.
 
 Best regards,
@@ -379,9 +369,9 @@ export const RESIDENCY_SEQUENCES = [
     subject: 'Housing resource for incoming {{orgName}} residents',
     body: (lead: LeadInfo) => `Dear ${lead.name || 'there'},
 
-My name is Robert Gilbert with SweetLease. SweetLease is a rental listing and negotiation platform founded in 2026 with the goal of making renting more accessible. We work with residency programs to help incoming medical residents find quality housing near their clinical sites, negotiating lease terms on their behalf to secure below-market rates.
+My name is Robert Gilbert with SweetLease. A PGY-1 making $60-65K is spending 40-50% of gross income on rent in most metro areas. For programs competing for top candidates, that's a recruitment and retention problem hiding in plain sight.
 
-For ${lead.orgName || 'your program'}, this means:
+SweetLease solves it at zero cost to your program. We help incoming residents find quality housing near their clinical sites, negotiating lease terms to secure rates 15-25% below market. For ${lead.orgName || 'your program'}, this means:
 - Zero cost to the program, institution, and residents
 - We negotiate lease terms on behalf of each resident, securing rates 15-25% below market average
 - Furnished and unfurnished options from pre-screened, vetted landlords near ${lead.orgName || 'your hospital'}
@@ -389,8 +379,7 @@ For ${lead.orgName || 'your program'}, this means:
 - Branded housing portal where incoming residents can browse available options
 - Minimal administrative lift - your team shares the incoming cohort list, we handle everything else
 
-Would 15 minutes work to walk through how it works? https://calendly.com/sweetlease/university-partnership
-
+Would 15 minutes work to walk through how it works?
 If a call does not work with your schedule, I have attached a short overview you can share with your GME team.
 
 Best regards,
@@ -410,8 +399,7 @@ SweetLease is free to recommend. We handle everything: negotiating with landlord
 
 All we'd need is a brief intro to include SweetLease in your incoming resident welcome packet or housing resource page.
 
-Worth a quick call? https://calendly.com/sweetlease/university-partnership
-
+Worth a quick call?
 I have also attached a one-pager you can drop straight into your welcome packet.
 
 Best regards,
@@ -443,9 +431,9 @@ export const BENEFITS_SEQUENCES = [
     subject: 'Housing as an employee benefit - {{orgName}}',
     body: (lead: LeadInfo) => `Dear ${lead.name || 'there'},
 
-My name is Robert Gilbert with SweetLease. SweetLease is a rental listing and negotiation platform founded in 2026 with the goal of making renting more accessible. We aggregate renter demand by geography and negotiate group rates with landlords, creating a housing benefit that fits naturally into employee benefits marketplaces.
+My name is Robert Gilbert with SweetLease. 35% of employees say housing costs are their #1 financial stressor — ahead of healthcare and retirement. Yet no major benefits platform offers a housing benefit beyond relocation stipends.
 
-For ${lead.orgName || 'your platform'}, this means:
+SweetLease fills that gap. We aggregate renter demand by geography and negotiate group rates with landlords, saving employees $100-$300/month on rent. For ${lead.orgName || 'your platform'}, this means:
 - A new benefit category that no other LSA or benefits platform offers yet
 - High engagement - housing is a top-3 expense for every employee
 - Simple integration - we handle all negotiation and landlord relationships
@@ -453,8 +441,7 @@ For ${lead.orgName || 'your platform'}, this means:
 
 We are looking for one benefits platform partner to launch with. Given ${lead.orgName || 'your'} position in the market, you would be first to offer this category.
 
-Would 20 minutes work to explore the partnership model? https://calendly.com/sweetlease/employer-intro
-
+Would 20 minutes work to explore the partnership model?
 If a meeting does not make sense yet, I have attached a short deck on the integration model.
 
 Best regards,
@@ -476,8 +463,7 @@ The model for ${lead.orgName || 'your platform'}:
 
 Your clients get a differentiating benefit. Their employees save real money. You add a category nobody else has.
 
-Can we explore this for 20 minutes? https://calendly.com/sweetlease/employer-intro
-
+Can we explore this for 20 minutes?
 I have attached the full housing benefit research with the partnership model for your review.
 
 Best regards,
@@ -495,8 +481,6 @@ If the timing isn't right, I completely understand. But if there's someone on yo
 
 Either way, no hard feelings. Just let me know.
 
-https://calendly.com/sweetlease/employer-intro
-
 Best regards,
 Robert Gilbert`,
   },
@@ -507,17 +491,16 @@ export const GRADUATE_HOUSING_SEQUENCES = [
     subject: 'Off-campus housing resource - {{orgName}}',
     body: (lead: LeadInfo) => `Dear ${lead.name || 'there'},
 
-My name is Robert Gilbert with SweetLease. SweetLease is a rental listing and negotiation platform founded in 2026 with the goal of making renting more accessible. We partner with universities to provide students with a curated housing resource, negotiating directly with landlords to secure rates well below what students would find on their own.
+My name is Robert Gilbert with SweetLease. Off-campus rents near ${lead.orgName || 'your campus'} are climbing year-over-year, and grad students — many on stipends or tight budgets — are paying the price. SweetLease is a free resource your housing office can recommend.
 
-For ${lead.orgName || 'your housing office'}:
+We negotiate directly with landlords to secure rates 15-25% below market by aggregating student demand. For ${lead.orgName || 'your housing office'}:
 - Zero cost - we are a free resource you can recommend to students
 - We negotiate lease terms on behalf of students, securing rates 15-25% below market average
 - Pre-vetted landlords within commuting distance of campus
 - Especially valuable for grad and international students arriving mid-year
 - Branded housing portal for your program where students can browse options
 
-Would 15 minutes work to walk through it? https://calendly.com/sweetlease/university-partnership
-
+Would 15 minutes work to walk through it?
 If a call is not ideal right now, I have attached a quick overview you can share with your team.
 
 Best regards,
@@ -538,8 +521,7 @@ We'd be happy to:
 - Be listed as a recommended resource on your housing website
 - Present at orientation or a housing information session
 
-Any of those work for your office? https://calendly.com/sweetlease/university-partnership
-
+Any of those work for your office?
 I have attached relevant materials for each option  - no call needed.
 
 Best regards,
@@ -563,16 +545,16 @@ Robert Gilbert`,
 ];
 
 const MAX_STEPS: Record<string, number> = {
-  landlord: 5,
-  employer: 5,
-  university: 5,
+  landlord: 3,
+  employer: 3,
+  university: 3,
   residency: 3,
   'benefits-platform': 3,
   'graduate-housing': 3,
 };
 
 export function getMaxSteps(contactType: string): number {
-  return MAX_STEPS[contactType] || 5;
+  return MAX_STEPS[contactType] || 3;
 }
 
 export function getSequenceForType(contactType: string) {
@@ -714,3 +696,137 @@ export function calculateNextBusinessDay(from: Date, days: number): Date {
   result.setUTCHours(15, 0, 0, 0);
   return result;
 }
+
+// ═══════════════════════════════════════════════
+// INSTITUTIONAL PARTNERSHIP SEQUENCES
+// For: NRMP, AAMC, ACGME, AMA, ECFMG, Intealth, EMRA
+// ═══════════════════════════════════════════════
+
+export const INSTITUTIONAL_SEQUENCES = [
+  {
+    subject: 'Housing marketplace - partnership opportunity',
+    body: (lead: LeadInfo) => `Dear ${lead.name},
+
+My name is Robert Gilbert, founder of SweetLease. We are a tech company that builds housing marketplaces. We negotiate group-rate leases with landlords on behalf of relocating professionals — aggregating demand to eliminate broker fees and secure below-market rents. We believe newly matched physicians are a perfect synergy for what we do.
+
+Every March, 38,000 newly matched residents face a 90-day scramble to find housing in unfamiliar cities. They are carrying $200,000 in medical school debt on a $63,000 salary, and the first financial hit most of them take is a $2,000-$4,000 broker fee plus above-market rent because they are signing leases sight-unseen under time pressure. No one is negotiating on their behalf.
+
+The existing resources in this space are financial products, not housing solutions. Relocation loans help residents borrow money to cover broker fees and deposits. Relocation stipends help fund the move. But none of them connect a resident to an actual apartment or negotiate better terms on their behalf. The entire pipeline feeds residents information about housing costs but hands them nothing when it is time to sign a lease.
+
+SweetLease fills that gap. We negotiate group-rate terms with vetted landlord partners across New York, Boston, Chicago, San Francisco, and Austin. Every landlord on our platform is verified, and resident data is protected. The service is offered at no cost to physicians. Residents pay zero fees and save $100-$300 per month on rent. Placements happen in 7-14 days. We believe this would be a perfect complement to the Match process.
+
+We are reaching out to ${lead.orgName || 'your organization'} to explore listing SweetLease as a recommended housing resource for matched residents. Zero cost to ${lead.orgName || 'your organization'}. Zero cost to residents. Zero operational burden. The pilot can be as simple as a link in post-Match communications. From there, we can set up a call to discuss particulars, details, or any security concerns.
+
+Would a brief call be worthwhile to discuss this?
+
+Best regards,
+Robert Gilbert`,
+  },
+  {
+    subject: 'The $5K problem no one is solving for residents',
+    body: (lead: LeadInfo) => `Dear ${lead.name?.split(' ')[0] || 'there'},
+
+Following up on my previous note about SweetLease and housing for matched residents.
+
+Here is what a typical resident loses in the relocation process: $2,500 average broker fee. $150-$300 per month in above-market rent because they cannot negotiate from across the country. $1,200 in overpaid deposits. Total: $5,000-$8,000 in avoidable costs in year one.
+
+The current solutions lend residents money to cover these costs. Relocation loans of up to $30,000 help pay for broker fees and deposits. But they do not eliminate the fees. They do not negotiate lower rent. They add debt to a population already carrying $200,000 in student loans.
+
+SweetLease takes a different approach. We negotiate in bulk with landlords on residents' behalf, using volume and guaranteed tenants to procure lower rents. All landlords are verified. Resident data is protected. The service is offered at no cost to physicians. Zero broker fees. Below-market rents. Placements in 7-14 days instead of 30-45. Relocation lenders help residents borrow $30,000 for the move. We make sure they do not need it.
+
+A partnership with ${lead.orgName || 'your organization'} would put this marketplace in front of residents at the moment they need it most. No cost to ${lead.orgName || 'your organization'}. No cost to residents. We simply need visibility.
+
+Worth a conversation?
+
+Best regards,
+Robert Gilbert`,
+  },
+  {
+    subject: 'Following up - physician housing marketplace',
+    body: (lead: LeadInfo) => `Dear ${lead.name?.split(' ')[0] || 'there'},
+
+Final note on this.
+
+38,000 physicians will match again next March. The existing resources will lend them money to cover broker fees and above-market rent. No one will negotiate those costs down on their behalf. SweetLease exists to fix that, and we are ready to serve ${lead.orgName || 'your'} residents at no cost to ${lead.orgName || 'your organization'}.
+
+If the timing is not right, I understand. If there is a more appropriate person on your team to discuss resource partnerships, I would appreciate the introduction.
+
+The offer stands whenever it becomes relevant.
+
+Best regards,
+Robert Gilbert`,
+  },
+];
+
+// Backwards-compatible aliases
+export const NRMP_SEQUENCES = INSTITUTIONAL_SEQUENCES;
+export const MEDICAL_EDUCATION_SEQUENCES = INSTITUTIONAL_SEQUENCES;
+
+// ═══════════════════════════════════════════════
+// PLATFORM & MEDIA PARTNERSHIP SEQUENCES
+// For: SDN, WCI, Doximity, Thalamus
+// ═══════════════════════════════════════════════
+
+export const PLATFORM_SEQUENCES = [
+  {
+    subject: 'Housing marketplace - partnership opportunity',
+    body: (lead: LeadInfo) => `Dear ${lead.name},
+
+My name is Robert Gilbert, founder of SweetLease. We are a tech company that builds housing marketplaces. We negotiate group-rate leases with landlords on behalf of relocating professionals — aggregating demand to eliminate broker fees and secure below-market rents. We believe newly matched physicians are a perfect synergy for what we do.
+
+Every March, 38,000 residents match and immediately face a housing scramble. They are making $63,000 against $200,000 in debt, and no one is negotiating on their behalf. The existing resources in this space lend residents money to cover broker fees and deposits, but they do not eliminate those costs. They add debt to a population already carrying $200,000 in student loans. No one is connecting residents to actual apartments or negotiating better terms on their behalf.
+
+SweetLease fills that gap. We negotiate group-rate terms with vetted landlord partners. All landlords are verified and resident data is protected. The service is offered at no cost to physicians. Zero broker fees. $100-$300 per month below market. Placements in 7-14 days. Relocation lenders help residents borrow $30,000 for the move. We make sure they do not need it.
+
+${lead.orgName || 'Your platform'} reaches physicians at exactly the right moment in this process. I think there is a natural fit. A few ideas:
+
+- A sponsored resource or content piece on the true cost of residency relocation
+- An affiliate or referral partnership with a dedicated landing page for ${lead.orgName || 'your'} audience
+- A co-branded housing guide distributed ahead of Match Day
+
+We are flexible on structure and happy to work within ${lead.orgName || 'your'} existing partnership model.
+
+Would you be open to a conversation about what this could look like?
+
+Best regards,
+Robert Gilbert`,
+  },
+  {
+    subject: '38,000 physicians need housing - content opportunity',
+    body: (lead: LeadInfo) => `Dear ${lead.name?.split(' ')[0] || 'there'},
+
+Following up on my previous note about a housing partnership with ${lead.orgName || 'your platform'}.
+
+A data point worth considering: the average relocating resident loses $5,000-$8,000 in avoidable housing costs. Broker fees, above-market rent from signing sight-unseen, and deposits they overpay because they have no negotiating leverage. This is happening to 38,000 physicians every year. The existing solutions lend them money to cover these costs. No one is eliminating them.
+
+SweetLease takes a different approach. We negotiate in bulk with landlords on residents' behalf, using volume and guaranteed tenants to procure lower rents. All landlords are verified. Resident data is protected. The service is at no cost to physicians. Zero broker fees. $100-$300 per month below market. Placements in 7-14 days instead of 30-45.
+
+${lead.orgName || 'Your platform'} already has the trust of this audience. We have the marketplace that solves the problem. Together, we can put a real solution in front of physicians at the moment they need it most.
+
+Happy to share data, resident stories, or whatever would be useful for evaluating a partnership.
+
+Best regards,
+Robert Gilbert`,
+  },
+  {
+    subject: 'Last note - physician housing partnership',
+    body: (lead: LeadInfo) => `Dear ${lead.name?.split(' ')[0] || 'there'},
+
+Final follow-up on this.
+
+Match Day 2026 is March 20. By March 21, tens of thousands of physicians will be searching for housing in unfamiliar cities. The existing resources will lend them money to cover broker fees and above-market rent. No one will negotiate those costs down on their behalf.
+
+SweetLease does. We are ready to serve ${lead.orgName || 'your'} audience at no cost to ${lead.orgName || 'your platform'}. Whether that is a content partnership, affiliate program, sponsored resource, or something else entirely, we are flexible.
+
+If the timing is not right for this cycle, no hard feelings. If there is someone else on your team better suited for this conversation, I would appreciate the introduction.
+
+Thank you for what ${lead.orgName || 'your platform'} does for the physician community.
+
+Best regards,
+Robert Gilbert`,
+  },
+];
+
+// Backwards-compatible aliases
+export const SDN_SEQUENCES = PLATFORM_SEQUENCES;
+export const WCI_SEQUENCES = PLATFORM_SEQUENCES;
