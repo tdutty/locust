@@ -549,6 +549,8 @@ const MAX_STEPS: Record<string, number> = {
   employer: 3,
   university: 3,
   residency: 3,
+  institutional: 3,
+  platform: 3,
   'benefits-platform': 3,
   'graduate-housing': 3,
 };
@@ -563,6 +565,8 @@ export function getSequenceForType(contactType: string) {
     case 'employer': return EMPLOYER_SEQUENCES;
     case 'university': return UNIVERSITY_SEQUENCES;
     case 'residency': return RESIDENCY_SEQUENCES;
+    case 'institutional': return INSTITUTIONAL_SEQUENCES;
+    case 'platform': return PLATFORM_SEQUENCES;
     case 'benefits-platform': return BENEFITS_SEQUENCES;
     case 'graduate-housing': return GRADUATE_HOUSING_SEQUENCES;
     default: return EMPLOYER_SEQUENCES;
