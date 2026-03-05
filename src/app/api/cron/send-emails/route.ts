@@ -76,10 +76,10 @@ export async function GET(request: NextRequest) {
         // Wrap links for click tracking
         let trackedHtml = await wrapLinksForTracking(htmlBody, email.contact_id, email.id);
 
-        // Inject instant meeting link for contacts with a contact_id
-        if (email.contact_id) {
-          const meetingUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://locust-m7ng3.ondigitalocean.app'}/api/meeting/book-link/${email.contact_id}`;
-          const meetingCta = `<p style="margin:0 0 16px;font-size:15px;line-height:1.7;color:#1a1a1a;">Or, skip the scheduling \u2014 <a href="${meetingUrl}" style="color:#EA580C;text-decoration:none;font-weight:600;">talk to our team now</a> (instant video call).</p>`;
+        // Inject CTA block: Schedule a Phone Call (skip if dynamic time slots already embedded)
+        if (email.contact_id && !trackedHtml.includes('data-has-slots')) {
+          const bookingUrl = 'https://cal.com/terrell-gilbert-bnq7m3/sweetlease-intro';
+          const meetingCta = `<div style="margin:24px 0 20px;padding:20px 16px;background:#faf5f0;border-radius:8px;text-align:center;"><p style="margin:0 0 16px;font-size:14px;font-weight:600;color:#1a1a1a;">Want to see if SweetLease is right for you?</p><div><a href="${bookingUrl}" style="display:inline-block;padding:14px 32px;background:#EA580C;color:#ffffff;text-decoration:none;border-radius:6px;font-size:14px;font-weight:600;">Schedule a 15-min Phone Call</a></div></div>`;
           // Insert before the signature divider
           trackedHtml = trackedHtml.replace(
             '<div style="border-top:1px solid #e2e8f0;padding-top:16px;margin-top:4px;">',
@@ -130,7 +130,7 @@ export async function GET(request: NextRequest) {
             );
             if (existingSeq.rows.length === 0) {
               const maxSteps = getMaxSteps(email.lead_type);
-              const nextSendAt = calculateNextBusinessDay(new Date(), 4);
+              const nextSendAt = calculateNextBusinessDay(new Date(), 7);
               await query(
                 `INSERT INTO contact_sequences (contact_id, contact_type, current_step, max_steps, last_sent_at, next_send_at)
                  VALUES ($1, $2, 1, $3, NOW(), $4)`,

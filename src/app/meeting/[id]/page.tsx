@@ -2,6 +2,15 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams } from 'next/navigation';
+import {
+  DEMO_CONTENT,
+  TIMELINE_OPTIONS,
+  calculateEstimate,
+  type AudienceType,
+  type QuestionOption,
+  type SlideContent,
+  type ValueProp,
+} from '@/lib/demo-content';
 
 interface Booking {
   id: number;
@@ -11,16 +20,14 @@ interface Booking {
   scheduled_at: string;
   status: string;
   tavus_conversation_url: string | null;
+  qualification_data: Record<string, any> | null;
+  demo_completed_at: string | null;
+  contact_id: number | null;
 }
 
-type MeetingState = 'loading' | 'permission_check' | 'waiting' | 'joining' | 'active' | 'ended' | 'error' | 'not_found' | 'cancelled';
+type DemoState = 'loading' | 'step_qualify' | 'step_platform' | 'step_confirm' | 'completed' | 'error' | 'not_found' | 'cancelled';
 
-interface MediaStatus {
-  camera: 'checking' | 'granted' | 'denied' | 'unavailable';
-  microphone: 'checking' | 'granted' | 'denied' | 'unavailable';
-}
-
-// ─── Icons (inline SVG to avoid extra dependency) ─────────────────────────
+// ─── Icons ───────────────────────────────────────────────────────────────
 
 function CheckCircleIcon({ className }: { className?: string }) {
   return (
@@ -37,36 +44,6 @@ function AlertCircleIcon({ className }: { className?: string }) {
       <circle cx="12" cy="12" r="10" />
       <line x1="12" y1="8" x2="12" y2="12" />
       <line x1="12" y1="16" x2="12.01" y2="16" />
-    </svg>
-  );
-}
-
-function VideoIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <polygon points="23 7 16 12 23 17 23 7" />
-      <rect x="1" y="5" width="15" height="14" rx="2" ry="2" />
-    </svg>
-  );
-}
-
-function MicIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" />
-      <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
-      <line x1="12" y1="19" x2="12" y2="23" />
-      <line x1="8" y1="23" x2="16" y2="23" />
-    </svg>
-  );
-}
-
-function GlobeIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10" />
-      <line x1="2" y1="12" x2="22" y2="12" />
-      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
     </svg>
   );
 }
@@ -100,130 +77,398 @@ function UserIcon({ className }: { className?: string }) {
   );
 }
 
-// ─── Hooks ────────────────────────────────────────────────────────────────
-
-function useMediaPermissions() {
-  const [media, setMedia] = useState<MediaStatus>({ camera: 'checking', microphone: 'checking' });
-
-  useEffect(() => {
-    async function check() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        setMedia({ camera: 'granted', microphone: 'granted' });
-        stream.getTracks().forEach(t => t.stop());
-      } catch (err: any) {
-        // Camera failed — try audio-only
-        if (err.name === 'NotAllowedError' || err.name === 'NotFoundError') {
-          try {
-            const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            setMedia({ camera: err.name === 'NotFoundError' ? 'unavailable' : 'denied', microphone: 'granted' });
-            audioStream.getTracks().forEach(t => t.stop());
-          } catch {
-            setMedia({ camera: 'denied', microphone: 'denied' });
-          }
-        } else {
-          setMedia({ camera: 'unavailable', microphone: 'unavailable' });
-        }
-      }
-    }
-    check();
-  }, []);
-
-  return media;
+function ChevronLeftIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="15 18 9 12 15 6" />
+    </svg>
+  );
 }
 
-function useWebRTCSupport() {
-  const [supported, setSupported] = useState(true);
-  useEffect(() => {
-    const ok = typeof RTCPeerConnection !== 'undefined' &&
-      typeof navigator !== 'undefined' &&
-      !!navigator.mediaDevices?.getUserMedia;
-    setSupported(ok);
-  }, []);
-  return supported;
+function ChevronRightIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="9 18 15 12 9 6" />
+    </svg>
+  );
 }
 
-// ─── Sub-components ───────────────────────────────────────────────────────
+function LockIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </svg>
+  );
+}
+
+function DollarIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="1" x2="12" y2="23" />
+      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+    </svg>
+  );
+}
+
+function ClockIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <polyline points="12 6 12 12 16 14" />
+    </svg>
+  );
+}
+
+function ShieldIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+    </svg>
+  );
+}
+
+function UsersIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  );
+}
+
+function ChartIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="20" x2="18" y2="10" />
+      <line x1="12" y1="20" x2="12" y2="4" />
+      <line x1="6" y1="20" x2="6" y2="14" />
+    </svg>
+  );
+}
+
+function BuildingIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <rect x="4" y="2" width="16" height="20" rx="2" ry="2" />
+      <path d="M9 22v-4h6v4" />
+      <line x1="8" y1="6" x2="8" y2="6" />
+      <line x1="16" y1="6" x2="16" y2="6" />
+      <line x1="12" y1="6" x2="12" y2="6" />
+      <line x1="8" y1="10" x2="8" y2="10" />
+      <line x1="16" y1="10" x2="16" y2="10" />
+      <line x1="12" y1="10" x2="12" y2="10" />
+      <line x1="8" y1="14" x2="8" y2="14" />
+      <line x1="16" y1="14" x2="16" y2="14" />
+      <line x1="12" y1="14" x2="12" y2="14" />
+    </svg>
+  );
+}
+
+const VALUE_PROP_ICONS: Record<string, (props: { className?: string }) => JSX.Element> = {
+  dollar: DollarIcon,
+  clock: ClockIcon,
+  shield: ShieldIcon,
+  users: UsersIcon,
+  chart: ChartIcon,
+  building: BuildingIcon,
+};
+
+// ─── Sub-components ──────────────────────────────────────────────────────
+
+const STEP_LABELS = ['Qualify', 'Platform Tour', 'Your Estimate'];
 
 function Logo() {
   return (
-    <div className="mb-8">
-      <span className="text-[28px] font-bold tracking-tight">
+    <div className="mb-10">
+      <span className="text-[32px] font-extrabold tracking-tight">
         <span className="text-[#EA580C]">SWEET</span>
-        <span className="text-[#1a1a1a]">LEASE</span>
+        <span className="text-slate-900">LEASE</span>
       </span>
     </div>
   );
 }
 
 function AvatarCircle({ name }: { name: string }) {
-  const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  const initials = (name || '').split(' ').map(n => n?.[0] || '').join('').toUpperCase().slice(0, 2) || '?';
   return (
-    <div className="w-20 h-20 rounded-full bg-orange-50 flex items-center justify-center mx-auto mb-5">
-      <span className="text-2xl font-bold text-[#EA580C]">{initials}</span>
+    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-orange-100 to-orange-50 flex items-center justify-center mx-auto mb-4 ring-4 ring-orange-50">
+      <span className="text-xl font-bold text-[#EA580C]">{initials}</span>
     </div>
   );
 }
 
 function StatusBadge({ label }: { label: string }) {
   return (
-    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-50 text-[#EA580C]">
+    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-orange-50 text-[#EA580C] border border-orange-100">
       {label}
     </span>
   );
 }
 
-function DeviceCheckItem({ label, status }: { label: string; status: 'checking' | 'granted' | 'denied' | 'unavailable' }) {
-  const icon = label === 'Camera' ? <VideoIcon className="w-4 h-4" /> :
-    label === 'Microphone' ? <MicIcon className="w-4 h-4" /> :
-    <GlobeIcon className="w-4 h-4" />;
-
+function ProgressBar({ current, total }: { current: number; total: number }) {
   return (
-    <div className="flex items-center justify-between py-2">
-      <div className="flex items-center gap-2.5 text-sm text-slate-700">
-        {icon}
-        {label}
+    <div className="mb-8">
+      <div className="flex items-center justify-between mb-2">
+        {STEP_LABELS.map((label, i) => (
+          <div key={i} className="flex items-center gap-1.5">
+            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 ${
+              i < current
+                ? 'bg-[#EA580C] text-white'
+                : i === current
+                ? 'bg-[#EA580C] text-white ring-4 ring-[#EA580C]/20'
+                : 'bg-slate-200 text-slate-500'
+            }`}>
+              {i < current ? (
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+              ) : (
+                i + 1
+              )}
+            </div>
+            <span className={`text-xs font-medium hidden sm:inline ${
+              i <= current ? 'text-slate-900' : 'text-slate-400'
+            }`}>{label}</span>
+          </div>
+        ))}
       </div>
-      {status === 'checking' && (
-        <div className="w-4 h-4 border-2 border-slate-200 border-t-[#EA580C] rounded-full animate-spin" />
-      )}
-      {status === 'granted' && <CheckCircleIcon className="w-5 h-5 text-emerald-500" />}
-      {(status === 'denied' || status === 'unavailable') && (
-        <div className="flex items-center gap-1.5">
-          <AlertCircleIcon className="w-5 h-5 text-red-400" />
-          <span className="text-xs text-red-400">{status === 'denied' ? 'Blocked' : 'Not found'}</span>
-        </div>
-      )}
+      <div className="h-1 bg-slate-100 rounded-full overflow-hidden">
+        <div
+          className="h-full bg-[#EA580C] rounded-full transition-all duration-500 ease-out"
+          style={{ width: `${((current) / (total - 1)) * 100}%` }}
+        />
+      </div>
     </div>
   );
 }
 
-// ─── Main component ───────────────────────────────────────────────────────
+function PillSelector({
+  options,
+  selected,
+  onSelect,
+  multiSelect = false,
+}: {
+  options: QuestionOption[];
+  selected: string | string[];
+  onSelect: (value: string | string[]) => void;
+  multiSelect?: boolean;
+}) {
+  const selectedArr = Array.isArray(selected) ? selected : selected ? [selected] : [];
 
-const EVENT_TYPE_LABEL: Record<string, string> = {
-  landlord: 'Landlord Partnership',
-  employer: 'Employer Housing Program',
-  university: 'University Partnership',
-  residency: 'Residency Program Partnership',
-  'benefits-platform': 'Benefits Platform Partnership',
-};
+  function handleClick(value: string) {
+    if (multiSelect) {
+      const newSelected = selectedArr.includes(value)
+        ? selectedArr.filter(v => v !== value)
+        : [...selectedArr, value];
+      onSelect(newSelected);
+    } else {
+      onSelect(value);
+    }
+  }
+
+  return (
+    <div className="flex flex-wrap gap-2.5 justify-center">
+      {options.map(opt => {
+        const isSelected = selectedArr.includes(opt.value);
+        return (
+          <button
+            key={opt.value}
+            onClick={() => handleClick(opt.value)}
+            className={`px-5 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 border-2 ${
+              isSelected
+                ? 'bg-[#EA580C] text-white border-[#EA580C] shadow-md shadow-orange-200/50'
+                : 'bg-white text-slate-600 border-slate-200 hover:border-[#EA580C]/40 hover:text-slate-900 hover:shadow-sm'
+            }`}
+          >
+            {opt.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function PlatformSlideshow({
+  slides,
+  onComplete,
+}: {
+  slides: SlideContent[];
+  onComplete: () => void;
+}) {
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [highestViewed, setHighestViewed] = useState(0);
+
+  function goTo(index: number) {
+    setCurrentSlide(index);
+    const newHighest = Math.max(highestViewed, index);
+    setHighestViewed(newHighest);
+    if (newHighest >= slides.length - 1) {
+      onComplete();
+    }
+  }
+
+  function next() {
+    if (currentSlide < slides.length - 1) {
+      goTo(currentSlide + 1);
+    } else {
+      onComplete();
+    }
+  }
+
+  function prev() {
+    if (currentSlide > 0) {
+      goTo(currentSlide - 1);
+    }
+  }
+
+  const slide = slides[currentSlide];
+
+  return (
+    <div>
+      {/* Browser mockup frame */}
+      <div className="rounded-2xl overflow-hidden shadow-xl border border-slate-200/80 bg-white mb-5">
+        {/* Browser chrome */}
+        <div className="bg-slate-50 px-4 py-3 flex items-center gap-3 border-b border-slate-200/80">
+          <div className="flex gap-1.5">
+            <div className="w-3 h-3 rounded-full bg-[#FF5F57]" />
+            <div className="w-3 h-3 rounded-full bg-[#FEBC2E]" />
+            <div className="w-3 h-3 rounded-full bg-[#28C840]" />
+          </div>
+          <div className="flex-1 bg-white rounded-md px-4 py-1.5 text-xs text-slate-400 text-center font-mono border border-slate-100">
+            <LockIcon className="w-3 h-3 inline-block mr-1.5 -mt-0.5 text-green-500" />
+            sweetlease.io
+          </div>
+          <div className="w-[52px]" />
+        </div>
+        {/* Screenshot */}
+        <img
+          src={slide.image}
+          alt={slide.title}
+          className="w-full h-auto block"
+        />
+      </div>
+
+      {/* Title + Highlight + Caption */}
+      <div className="mb-5 text-left">
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-xs font-bold text-[#EA580C] uppercase tracking-wider">{currentSlide + 1}/{slides.length}</span>
+          <div className="h-px flex-1 bg-slate-200" />
+        </div>
+        <h3 className="text-lg font-bold text-slate-900 mb-1">{slide.title}</h3>
+        <div className="inline-flex items-center px-2.5 py-1 rounded-md bg-emerald-50 border border-emerald-100 mb-2">
+          <span className="text-xs font-bold text-emerald-700">{slide.highlight}</span>
+        </div>
+        <p className="text-sm text-slate-500 leading-relaxed">{slide.caption}</p>
+      </div>
+
+      {/* Navigation */}
+      <div className="flex items-center justify-between">
+        <button
+          onClick={prev}
+          disabled={currentSlide === 0}
+          className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium
+                     text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-all
+                     disabled:opacity-0 disabled:pointer-events-none"
+        >
+          <ChevronLeftIcon className="w-4 h-4" /> Back
+        </button>
+
+        <div className="flex gap-2">
+          {slides.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => goTo(i)}
+              className={`h-1.5 rounded-full transition-all duration-300 ${
+                i === currentSlide ? 'w-8 bg-[#EA580C]' : 'w-1.5 bg-slate-300 hover:bg-slate-400'
+              }`}
+            />
+          ))}
+        </div>
+
+        <button
+          onClick={next}
+          className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium
+                     text-[#EA580C] hover:bg-orange-50 transition-all"
+        >
+          {currentSlide < slides.length - 1 ? 'Next' : 'Done'} <ChevronRightIcon className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ValuePropCards({ valueProps }: { valueProps: ValueProp[] }) {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
+      {valueProps.map((vp, i) => {
+        const IconComponent = VALUE_PROP_ICONS[vp.icon] || DollarIcon;
+        return (
+          <div key={i} className="text-left bg-slate-50/80 border border-slate-100 rounded-xl p-5">
+            <div className="w-10 h-10 rounded-lg bg-orange-50 flex items-center justify-center mb-3">
+              <IconComponent className="w-5 h-5 text-[#EA580C]" />
+            </div>
+            <h4 className="text-sm font-bold text-slate-900 mb-1">{vp.title}</h4>
+            <p className="text-xs text-slate-500 leading-relaxed">{vp.description}</p>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function EstimateDisplay({ value, label }: { value: number; label: string }) {
+  const [displayValue, setDisplayValue] = useState(0);
+  const animationRef = useRef<number>();
+
+  useEffect(() => {
+    const duration = 1500;
+    const startTime = Date.now();
+
+    function animate() {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplayValue(Math.round(value * eased));
+      if (progress < 1) animationRef.current = requestAnimationFrame(animate);
+    }
+
+    animationRef.current = requestAnimationFrame(animate);
+    return () => { if (animationRef.current) cancelAnimationFrame(animationRef.current); };
+  }, [value]);
+
+  const formatted = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    maximumFractionDigits: 0,
+  }).format(displayValue);
+
+  return (
+    <div className="text-center py-8 bg-gradient-to-b from-orange-50/80 to-transparent rounded-2xl mb-2">
+      <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-3">{label}</p>
+      <p className="text-6xl font-extrabold text-[#EA580C] tabular-nums tracking-tight">{formatted}</p>
+    </div>
+  );
+}
+
+// ─── Main component ──────────────────────────────────────────────────────
 
 export default function MeetingPage() {
   const params = useParams();
   const id = params.id as string;
 
   const [booking, setBooking] = useState<Booking | null>(null);
-  const [state, setState] = useState<MeetingState>('loading');
-  const [conversationUrl, setConversationUrl] = useState<string | null>(null);
+  const [state, setState] = useState<DemoState>('loading');
   const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
-  const media = useMediaPermissions();
-  const webrtcSupported = useWebRTCSupport();
-  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
+  const [painPoint, setPainPoint] = useState('');
+  const [timeline, setTimeline] = useState('');
+  const [additionalNotes, setAdditionalNotes] = useState('');
+  const [editableEmail, setEditableEmail] = useState('');
+  const [slideshowDone, setSlideshowDone] = useState(false);
 
-  const micReady = media.microphone === 'granted';
-
-  // Fetch booking details
   useEffect(() => {
     if (!id) return;
     fetch(`/api/meeting/${id}`)
@@ -234,283 +479,333 @@ export default function MeetingPage() {
       .then(data => {
         if (!data) return;
         setBooking(data);
-        if (data.status === 'cancelled') {
-          setState('cancelled');
-        } else if (data.status === 'completed') {
-          setState('ended');
-        } else if (data.tavus_conversation_url) {
-          setConversationUrl(data.tavus_conversation_url);
-          setState('active');
-        } else {
-          setState('permission_check');
-        }
+        setEditableEmail(data.attendee_email);
+        if (data.status === 'cancelled') setState('cancelled');
+        else if (data.demo_completed_at) setState('completed');
+        else setState('step_qualify');
       })
-      .catch(() => { setState('error'); setError('Failed to load meeting details.'); });
-  }, [id]);
-
-  // Transition from permission_check → waiting once media check completes
-  useEffect(() => {
-    if (state !== 'permission_check') return;
-    if (media.camera !== 'checking' && media.microphone !== 'checking') {
-      setState('waiting');
-    }
-  }, [state, media]);
-
-  // Listen for conversation end events (Tavus / Daily)
-  useEffect(() => {
-    if (state !== 'active') return;
-
-    function handleMessage(event: MessageEvent) {
-      const data = event.data;
-      if (!data) return;
-
-      // Tavus sends conversation_ended or Daily sends left-meeting
-      if (
-        data.type === 'conversation_ended' ||
-        data.type === 'left-meeting' ||
-        data.action === 'conversation-ended' ||
-        data.action === 'left-meeting'
-      ) {
-        setState('ended');
-      }
-    }
-
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, [state]);
-
-  // Join meeting
-  const joinMeeting = useCallback(async () => {
-    setState('joining');
-    try {
-      const res = await fetch('/api/meeting/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bookingId: parseInt(id) }),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || 'Failed to start meeting');
-      }
-      const data = await res.json();
-      setConversationUrl(data.conversation_url);
-      setState('active');
-    } catch (err: any) {
-      setState('error');
-      setError(err.message || 'Failed to connect to the meeting.');
-    }
+      .catch(() => { setState('error'); setError('Failed to load details.'); });
   }, [id]);
 
   const firstName = booking?.attendee_name?.split(' ')[0] || 'there';
+  const audienceType = (booking?.event_type || 'employer') as AudienceType;
+  const content = DEMO_CONTENT[audienceType] || DEMO_CONTENT.employer;
+
+  const stepIndex = { step_qualify: 0, step_platform: 1, step_confirm: 2 }[state as string] ?? -1;
+
+  const qualifyComplete = content.questions.every(q => {
+    const val = answers[q.id];
+    if (q.multiSelect) return Array.isArray(val) && val.length > 0;
+    return !!val;
+  });
+
+  const estimateValue = calculateEstimate(audienceType, answers);
+
+  const handleSubmit = useCallback(async () => {
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      const qualificationData: Record<string, any> = {
+        ...answers, pain_point: painPoint, timeline, audience_type: audienceType,
+      };
+      if (additionalNotes.trim()) qualificationData.additional_notes = additionalNotes.trim();
+
+      const res = await fetch(`/api/meeting/${id}/complete-demo`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ qualificationData, email: editableEmail }),
+      });
+      if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Failed to submit'); }
+      setState('completed');
+    } catch (err: any) {
+      setError(err.message || 'Something went wrong.');
+      setState('error');
+    } finally {
+      setSubmitting(false);
+    }
+  }, [submitting, answers, painPoint, timeline, audienceType, additionalNotes, editableEmail, id]);
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans">
-      {/* ── Active meeting: full-screen iframe ─────────────── */}
-      {state === 'active' && conversationUrl && (
-        <div className="fixed inset-0 z-50 bg-black">
-          <iframe
-            ref={iframeRef}
-            src={conversationUrl}
-            allow="camera; microphone; autoplay; display-capture"
-            className="w-full h-full border-none"
-          />
-          {/* Floating connection indicator */}
-          <div className="absolute top-4 right-4 z-[60] flex items-center gap-2 bg-black/60 backdrop-blur-sm text-white text-xs font-medium px-3 py-1.5 rounded-full">
-            <span className="relative flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
-            </span>
-            Connected
-          </div>
-        </div>
-      )}
+    <div className="min-h-screen bg-[#f8f9fb] font-sans antialiased">
+      <div className="flex items-start justify-center min-h-screen px-4 py-12">
+        <div className="max-w-[calc(100vw-2rem)] sm:max-w-2xl md:max-w-4xl lg:max-w-5xl w-full text-center">
+          <Logo />
 
-      {/* ── Non-active states ─────────────────────────────── */}
-      {state !== 'active' && (
-        <div className="flex items-center justify-center min-h-screen px-4 py-8">
-          <div className="max-w-[calc(100vw-2rem)] sm:max-w-md w-full text-center">
-            <Logo />
+          {/* Loading */}
+          {state === 'loading' && (
+            <div className="animate-fade-in py-20">
+              <div className="w-10 h-10 border-[3px] border-slate-200 border-t-[#EA580C] rounded-full animate-spin mx-auto mb-4" />
+              <p className="text-slate-400 text-sm">Loading your walkthrough...</p>
+            </div>
+          )}
 
-            {/* Loading */}
-            {state === 'loading' && (
-              <div className="animate-fade-in">
-                <div className="w-10 h-10 border-[3px] border-slate-200 border-t-[#EA580C] rounded-full animate-spin mx-auto mb-4" />
-                <p className="text-slate-500 text-[15px]">Loading meeting details...</p>
-              </div>
-            )}
+          {/* Step 1: Qualify */}
+          {state === 'step_qualify' && booking && (
+            <div key="step_qualify" className="animate-fade-in-up">
+              <ProgressBar current={0} total={3} />
 
-            {/* Permission check */}
-            {state === 'permission_check' && (
-              <div className="animate-fade-in">
-                <div className="w-10 h-10 border-[3px] border-slate-200 border-t-[#EA580C] rounded-full animate-spin mx-auto mb-4" />
-                <p className="text-slate-700 text-base font-semibold">Checking your devices...</p>
-                <p className="text-slate-500 text-sm mt-2">Please allow camera and microphone access when prompted.</p>
-              </div>
-            )}
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-8 sm:p-10 mb-6">
+                <AvatarCircle name={booking.attendee_name} />
 
-            {/* Waiting room */}
-            {state === 'waiting' && booking && (
-              <div className="animate-fade-in-up">
-                <div className="card p-8 mb-6">
-                  <AvatarCircle name={booking.attendee_name} />
+                <h1 className="text-2xl sm:text-[28px] font-extrabold text-slate-900 mb-2 leading-tight">
+                  Hi {firstName}, let&apos;s see how SweetLease<br className="hidden sm:inline" /> can work for you.
+                </h1>
 
-                  <h1 className="text-[22px] font-bold text-slate-900 mb-2">
-                    Welcome, {firstName}
-                  </h1>
+                <div className="mb-8">
+                  <StatusBadge label={content.badge} />
+                </div>
 
-                  <div className="mb-1">
-                    <StatusBadge label={EVENT_TYPE_LABEL[booking.event_type] || 'SweetLease Meeting'} />
-                  </div>
+                {/* Pain stat — prominent */}
+                <div className="bg-red-50/80 border border-red-100 rounded-xl p-6 mb-8">
+                  <p className="text-[10px] font-bold text-red-400 uppercase tracking-widest mb-1.5">The problem</p>
+                  <p className="text-lg font-bold text-slate-900 mb-1">{content.painHeadline}</p>
+                  <p className="text-sm text-red-600/80">{content.painStat}</p>
+                </div>
 
-                  <p className="text-slate-400 text-[13px] mb-6">
-                    {new Date(booking.scheduled_at).toLocaleDateString('en-US', {
-                      weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
-                      hour: 'numeric', minute: '2-digit', timeZoneName: 'short',
-                    })}
-                  </p>
-
-                  <p className="text-slate-600 text-[15px] leading-relaxed mb-6">
-                    You will be meeting with <strong>Robert Gilbert</strong>, Account Executive at SweetLease.
-                  </p>
-
-                  {/* Pre-call checklist */}
-                  <div className="bg-slate-50 rounded-lg p-4 mb-6 text-left">
-                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Pre-call check</p>
-                    <DeviceCheckItem label="Camera" status={media.camera} />
-                    <DeviceCheckItem label="Microphone" status={media.microphone} />
-                    <DeviceCheckItem label="Browser" status={webrtcSupported ? 'granted' : 'denied'} />
-                  </div>
-
-                  {!webrtcSupported && (
-                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4 text-sm text-amber-800 text-left">
-                      Your browser may not support video calls. Please use Chrome, Edge, or Safari for the best experience.
+                {/* Qualifying questions */}
+                <div className="space-y-8 mb-8">
+                  {content.questions.map(q => (
+                    <div key={q.id}>
+                      <label className="block text-sm font-semibold text-slate-700 mb-3">{q.label}</label>
+                      <PillSelector
+                        options={q.options}
+                        selected={answers[q.id] || (q.multiSelect ? [] : '')}
+                        onSelect={(val) => setAnswers(prev => ({ ...prev, [q.id]: val }))}
+                        multiSelect={q.multiSelect}
+                      />
                     </div>
+                  ))}
+                </div>
+
+                <button
+                  onClick={() => setState('step_platform')}
+                  disabled={!qualifyComplete}
+                  className="w-full bg-[#EA580C] hover:bg-[#c2410c] disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed
+                             text-white font-semibold text-base py-3.5 px-6 rounded-xl transition-all duration-200
+                             shadow-lg shadow-orange-200/30 hover:shadow-orange-300/40 disabled:shadow-none"
+                >
+                  See the Solution
+                </button>
+              </div>
+
+              <div className="flex items-center justify-center gap-2 text-slate-400 text-xs">
+                <LockIcon className="w-3.5 h-3.5" />
+                <span>Takes about 2 minutes &middot; Your data is secure</span>
+              </div>
+            </div>
+          )}
+
+          {/* Step 2: Platform Walkthrough + Value Props */}
+          {state === 'step_platform' && booking && (
+            <div key="step_platform" className="animate-fade-in-up">
+              <ProgressBar current={1} total={3} />
+
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 sm:p-10 mb-6">
+                <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 mb-1">{content.solutionHeadline}</h2>
+                <p className="text-sm text-slate-400 mb-8">Click through to see the platform in action.</p>
+
+                {/* Pain point question */}
+                <div className="mb-8 pb-8 border-b border-slate-100">
+                  <label className="block text-sm font-semibold text-slate-700 mb-3">{content.painPointQuestion}</label>
+                  <PillSelector
+                    options={content.painPointOptions}
+                    selected={painPoint}
+                    onSelect={(val) => setPainPoint(val as string)}
+                  />
+                </div>
+
+                <PlatformSlideshow
+                  slides={content.slides}
+                  onComplete={() => setSlideshowDone(true)}
+                />
+
+                {/* Value Propositions — the core pitch */}
+                <ValuePropCards valueProps={content.valueProps} />
+
+                <button
+                  onClick={() => setState('step_confirm')}
+                  disabled={!painPoint}
+                  className="w-full mt-8 bg-[#EA580C] hover:bg-[#c2410c] disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed
+                             text-white font-semibold text-base py-3.5 px-6 rounded-xl transition-all duration-200
+                             shadow-lg shadow-orange-200/30 hover:shadow-orange-300/40 disabled:shadow-none"
+                >
+                  See Your Savings
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 3: Estimate + Confirm */}
+          {state === 'step_confirm' && booking && (
+            <div key="step_confirm" className="animate-fade-in-up">
+              <ProgressBar current={2} total={3} />
+
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-8 sm:p-10 mb-6">
+                <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 mb-1">Your personalized estimate</h2>
+                <p className="text-sm text-slate-400 mb-6">Based on what you shared with us.</p>
+
+                <EstimateDisplay value={estimateValue} label={content.estimateLabel} />
+                <p className="text-xs text-slate-400 mb-2">{content.estimateDescription}</p>
+                <p className="text-xs font-semibold text-emerald-600 mb-8">{content.estimateComparison}</p>
+
+                {/* Timeline */}
+                <div className="mb-8">
+                  <label className="block text-sm font-semibold text-slate-700 mb-3">When are you looking to get started?</label>
+                  <PillSelector
+                    options={TIMELINE_OPTIONS}
+                    selected={timeline}
+                    onSelect={(val) => setTimeline(val as string)}
+                  />
+                </div>
+
+                {/* Email + Notes */}
+                <div className="bg-slate-50/80 rounded-xl p-6 mb-8 text-left space-y-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Your email</label>
+                    <input
+                      type="email"
+                      value={editableEmail}
+                      onChange={e => setEditableEmail(e.target.value)}
+                      className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-900
+                                 focus:outline-none focus:ring-2 focus:ring-[#EA580C]/20 focus:border-[#EA580C] transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
+                      Anything else Robert should know? <span className="font-normal text-slate-400">(optional)</span>
+                    </label>
+                    <textarea
+                      value={additionalNotes}
+                      onChange={e => setAdditionalNotes(e.target.value)}
+                      rows={3}
+                      placeholder="E.g., specific locations, timeline details, questions..."
+                      className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-900
+                                 placeholder:text-slate-300 resize-none
+                                 focus:outline-none focus:ring-2 focus:ring-[#EA580C]/20 focus:border-[#EA580C] transition-all"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleSubmit}
+                  disabled={submitting || !editableEmail || !timeline}
+                  className="w-full bg-[#EA580C] hover:bg-[#c2410c] disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed
+                             text-white font-semibold text-base py-3.5 px-6 rounded-xl transition-all duration-200
+                             shadow-lg shadow-orange-200/30 hover:shadow-orange-300/40 disabled:shadow-none
+                             flex items-center justify-center gap-2"
+                >
+                  {submitting ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    'Complete Walkthrough'
                   )}
+                </button>
+              </div>
+            </div>
+          )}
 
-                  <button
-                    onClick={joinMeeting}
-                    disabled={!micReady}
-                    className="w-full bg-[#EA580C] hover:bg-[#c2410c] disabled:bg-slate-300 disabled:cursor-not-allowed
-                               text-white font-semibold text-base py-3 px-6 rounded-lg transition-colors duration-200"
-                  >
-                    {micReady ? 'Join Meeting' : 'Waiting for microphone...'}
-                  </button>
+          {/* Completed */}
+          {state === 'completed' && booking && (
+            <div key="completed" className="animate-fade-in-up">
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-8 sm:p-10 mb-6">
+                <div className="w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-5 ring-4 ring-emerald-50">
+                  <CheckCircleIcon className="w-8 h-8 text-emerald-500" />
                 </div>
 
-                <p className="text-slate-400 text-xs">
-                  Powered by SweetLease &middot; sweetlease.io
+                <h1 className="text-2xl sm:text-[28px] font-extrabold text-slate-900 mb-2">
+                  Thank you, {firstName}!
+                </h1>
+                <p className="text-slate-400 text-[15px] leading-relaxed mb-8">
+                  Robert will reach out within 24 hours with a custom proposal tailored to your needs.
                 </p>
-              </div>
-            )}
 
-            {/* Joining */}
-            {state === 'joining' && (
-              <div className="animate-fade-in">
-                <div className="w-10 h-10 border-[3px] border-slate-200 border-t-[#EA580C] rounded-full animate-spin mx-auto mb-4" />
-                <p className="text-slate-900 text-base font-semibold">Connecting you with Robert...</p>
-                <p className="text-slate-500 text-sm mt-2 mb-6">This will take a few seconds.</p>
-                <div className="space-y-3 max-w-xs mx-auto">
-                  <div className="shimmer h-3 w-full rounded" />
-                  <div className="shimmer h-3 w-3/4 rounded" />
-                  <div className="shimmer h-3 w-1/2 rounded" />
-                </div>
-              </div>
-            )}
-
-            {/* Ended */}
-            {state === 'ended' && booking && (
-              <div className="animate-fade-in-up">
-                <div className="card p-8 mb-6">
-                  <div className="w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-5">
-                    <CheckCircleIcon className="w-8 h-8 text-emerald-500" />
-                  </div>
-
-                  <h1 className="text-[22px] font-bold text-slate-900 mb-2">
-                    Thank you, {firstName}!
-                  </h1>
-                  <p className="text-slate-500 text-[15px] leading-relaxed mb-6">
-                    Great connecting with you. Robert will review the conversation and follow up shortly.
-                  </p>
-
-                  {/* What happens next */}
-                  <div className="bg-slate-50 rounded-lg p-5 text-left">
-                    <p className="text-sm font-semibold text-slate-900 mb-3">What happens next</p>
-                    <div className="space-y-3">
-                      <div className="flex items-start gap-3">
-                        <MailIcon className="w-4 h-4 text-[#EA580C] mt-0.5 flex-shrink-0" />
-                        <p className="text-sm text-slate-600">
-                          <strong>Follow-up email</strong> within the hour with a summary of what we discussed.
-                        </p>
+                <div className="bg-slate-50/80 rounded-xl p-6 text-left">
+                  <p className="text-sm font-bold text-slate-900 mb-4">What happens next</p>
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center flex-shrink-0">
+                        <MailIcon className="w-4 h-4 text-[#EA580C]" />
                       </div>
-                      <div className="flex items-start gap-3">
-                        <FileTextIcon className="w-4 h-4 text-[#EA580C] mt-0.5 flex-shrink-0" />
-                        <p className="text-sm text-slate-600">
-                          <strong>Relevant materials</strong> attached based on your needs.
-                        </p>
+                      <div>
+                        <p className="text-sm font-semibold text-slate-900">Personalized follow-up email</p>
+                        <p className="text-xs text-slate-400">Within the hour summarizing your walkthrough and next steps.</p>
                       </div>
-                      <div className="flex items-start gap-3">
-                        <UserIcon className="w-4 h-4 text-[#EA580C] mt-0.5 flex-shrink-0" />
-                        <p className="text-sm text-slate-600">
-                          <strong>Robert will review</strong> the conversation and reach out with next steps.
-                        </p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center flex-shrink-0">
+                        <FileTextIcon className="w-4 h-4 text-[#EA580C]" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-slate-900">Custom proposal</p>
+                        <p className="text-xs text-slate-400">Tailored to your specific situation, portfolio size, and timeline.</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center flex-shrink-0">
+                        <UserIcon className="w-4 h-4 text-[#EA580C]" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-slate-900">Direct line to Robert</p>
+                        <p className="text-xs text-slate-400">He&apos;ll personally review your details and reach out to discuss.</p>
                       </div>
                     </div>
                   </div>
                 </div>
+              </div>
 
-                <p className="text-slate-400 text-xs">
-                  Powered by SweetLease &middot; sweetlease.io
+              <p className="text-slate-300 text-xs">
+                Powered by SweetLease &middot; sweetlease.io
+              </p>
+            </div>
+          )}
+
+          {/* Error */}
+          {state === 'error' && (
+            <div className="animate-fade-in">
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-8 sm:p-10">
+                <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
+                  <AlertCircleIcon className="w-7 h-7 text-red-400" />
+                </div>
+                <h2 className="text-lg font-bold text-slate-900 mb-2">Something went wrong</h2>
+                <p className="text-slate-400 text-sm mb-6">{error || 'Please try again.'}</p>
+                <button
+                  onClick={() => { setState('step_qualify'); setError(''); }}
+                  className="bg-[#EA580C] hover:bg-[#c2410c] text-white font-semibold text-sm py-3 px-8 rounded-xl transition-all"
+                >
+                  Try Again
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Not found */}
+          {state === 'not_found' && (
+            <div className="animate-fade-in">
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-8 sm:p-10">
+                <h2 className="text-lg font-bold text-slate-900 mb-2">Walkthrough Not Found</h2>
+                <p className="text-slate-400 text-sm">
+                  This link is invalid or has expired. Please check your email for the correct link.
                 </p>
               </div>
-            )}
+            </div>
+          )}
 
-            {/* Error */}
-            {state === 'error' && (
-              <div className="animate-fade-in">
-                <div className="card p-8">
-                  <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
-                    <AlertCircleIcon className="w-7 h-7 text-red-400" />
-                  </div>
-                  <h2 className="text-lg font-semibold text-slate-900 mb-2">Connection Issue</h2>
-                  <p className="text-slate-500 text-sm mb-5">{error || 'Something went wrong. Please try again.'}</p>
-                  <button
-                    onClick={() => { setState('waiting'); setError(''); }}
-                    className="bg-[#EA580C] hover:bg-[#c2410c] text-white font-semibold text-sm py-3 px-6 rounded-lg transition-colors duration-200"
-                  >
-                    Try Again
-                  </button>
-                </div>
+          {/* Cancelled */}
+          {state === 'cancelled' && (
+            <div className="animate-fade-in">
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-8 sm:p-10">
+                <h2 className="text-lg font-bold text-slate-900 mb-2">Session Cancelled</h2>
+                <p className="text-slate-400 text-sm">
+                  This session has been cancelled. Please check your email for an updated link.
+                </p>
               </div>
-            )}
-
-            {/* Not found */}
-            {state === 'not_found' && (
-              <div className="animate-fade-in">
-                <div className="card p-8">
-                  <h2 className="text-lg font-semibold text-slate-900 mb-2">Meeting Not Found</h2>
-                  <p className="text-slate-500 text-sm">
-                    This meeting link is invalid or has expired. Please check your email for the correct link, or book a new meeting at{' '}
-                    <a href="https://calendly.com/sweetlease" className="text-[#EA580C] hover:underline">calendly.com/sweetlease</a>.
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {/* Cancelled */}
-            {state === 'cancelled' && (
-              <div className="animate-fade-in">
-                <div className="card p-8">
-                  <h2 className="text-lg font-semibold text-slate-900 mb-2">Meeting Cancelled</h2>
-                  <p className="text-slate-500 text-sm">
-                    This meeting has been cancelled. To reschedule, visit{' '}
-                    <a href="https://calendly.com/sweetlease" className="text-[#EA580C] hover:underline">calendly.com/sweetlease</a>.
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }

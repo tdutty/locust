@@ -682,6 +682,155 @@ export function buildOutboundHtml(body: string): string {
 </html>`;
 }
 
+// ═══════════════════════════════════════════════
+// CAL.COM DYNAMIC TIME SLOTS
+// ═══════════════════════════════════════════════
+
+export interface CalcomSlot {
+  date: string;        // YYYY-MM-DD
+  time: string;        // ISO timestamp from API
+  displayTime: string; // e.g. "9:00 AM"
+}
+
+/**
+ * Fetch available Cal.com time slots for the next 3 business days.
+ * Returns up to 6 slots (2 per day), or null on failure.
+ */
+export async function fetchCalcomSlots(): Promise<CalcomSlot[] | null> {
+  const apiKey = process.env.CALCOM_API_KEY;
+  if (!apiKey) return null;
+
+  try {
+    const now = new Date();
+    const start = new Date(now);
+    start.setDate(start.getDate() + 1); // tomorrow
+
+    // Find end date: 3 business days from tomorrow
+    const end = new Date(start);
+    let bizDays = 0;
+    while (bizDays < 3) {
+      end.setDate(end.getDate() + 1);
+      const dow = end.getDay();
+      if (dow !== 0 && dow !== 6) bizDays++;
+    }
+    end.setDate(end.getDate() + 1); // extra day to fully capture last biz day
+
+    const startStr = start.toISOString().split('T')[0];
+    const endStr = end.toISOString().split('T')[0];
+
+    const url = `https://api.cal.com/v2/slots?eventTypeSlug=sweetlease-intro&username=terrell-gilbert-bnq7m3&start=${startStr}&end=${endStr}&timeZone=America/Chicago`;
+
+    const res = await fetch(url, {
+      headers: {
+        'cal-api-version': '2024-09-04',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+    });
+
+    if (!res.ok) {
+      console.error(`Cal.com API error: ${res.status} ${res.statusText}`);
+      return null;
+    }
+
+    const json = await res.json();
+    if (!json.data) return null;
+
+    // json.data shape: { "2026-03-04": [{ start: "2026-03-04T08:00:00.000-06:00" }, ...], ... }
+    const slots: CalcomSlot[] = [];
+    const sortedDates = Object.keys(json.data).sort();
+
+    for (const date of sortedDates) {
+      const daySlots = json.data[date];
+      if (!Array.isArray(daySlots) || daySlots.length === 0) continue;
+
+      // Pick 2 slots per day, spaced at least 2 hours apart
+      const picked: CalcomSlot[] = [];
+      for (const entry of daySlots) {
+        const isoTime = typeof entry === 'string' ? entry : entry.start;
+        if (!isoTime) continue;
+        const dt = new Date(isoTime);
+        // Skip if too close to a previously picked slot on this day
+        if (picked.length > 0) {
+          const prevTime = new Date(picked[picked.length - 1].time).getTime();
+          if (dt.getTime() - prevTime < 2 * 60 * 60 * 1000) continue;
+        }
+        const displayTime = dt.toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true,
+          timeZone: 'America/Chicago',
+        });
+        picked.push({ date, time: isoTime, displayTime });
+        if (picked.length >= 2) break;
+      }
+      slots.push(...picked);
+      if (slots.length >= 6) break;
+    }
+
+    return slots.length > 0 ? slots : null;
+  } catch (err) {
+    console.error('Failed to fetch Cal.com slots:', err);
+    return null;
+  }
+}
+
+/**
+ * Build styled HTML block with clickable time-slot buttons, grouped by day.
+ * Includes data-has-slots marker so send-emails skips the generic CTA.
+ */
+export function buildTimeSlotsHtml(slots: CalcomSlot[]): string {
+  const grouped: Record<string, CalcomSlot[]> = {};
+  for (const slot of slots) {
+    if (!grouped[slot.date]) grouped[slot.date] = [];
+    grouped[slot.date].push(slot);
+  }
+
+  const dayRows = Object.keys(grouped).sort().map(date => {
+    const dt = new Date(date + 'T12:00:00');
+    const dayLabel = dt.toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'numeric',
+      day: 'numeric',
+      timeZone: 'America/Chicago',
+    });
+
+    const buttons = grouped[date].map(slot => {
+      const utcTime = new Date(slot.time).toISOString();
+      const bookingUrl = `https://cal.com/terrell-gilbert-bnq7m3/sweetlease-intro?date=${slot.date}&slot=${encodeURIComponent(utcTime)}`;
+      return `<a href="${bookingUrl}" style="display:inline-block;padding:8px 14px;background:#EA580C;color:#ffffff;text-decoration:none;border-radius:5px;font-size:13px;font-weight:600;margin:0 4px 0 0;">${slot.displayTime}</a>`;
+    }).join('');
+
+    return `<tr><td style="padding:3px 0;font-size:13px;color:#1a1a1a;white-space:nowrap;vertical-align:middle;padding-right:8px;font-weight:600;">${dayLabel}</td><td style="padding:3px 0;">${buttons}</td></tr>`;
+  }).join('');
+
+  return `<div data-has-slots style="margin:24px 0 20px;padding:16px 14px;background:#faf5f0;border-radius:8px;"><p style="margin:0 0 10px;font-size:14px;font-weight:600;color:#1a1a1a;text-align:center;">Pick a time that works:</p><table cellpadding="0" cellspacing="0" style="margin:0 auto;">${dayRows}</table></div>`;
+}
+
+/**
+ * Build plain-text version of time slots for email body.
+ */
+export function buildTimeSlotsText(slots: CalcomSlot[]): string {
+  const grouped: Record<string, CalcomSlot[]> = {};
+  for (const slot of slots) {
+    if (!grouped[slot.date]) grouped[slot.date] = [];
+    grouped[slot.date].push(slot);
+  }
+
+  const lines = Object.keys(grouped).sort().map(date => {
+    const dt = new Date(date + 'T12:00:00');
+    const dayLabel = dt.toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'numeric',
+      day: 'numeric',
+      timeZone: 'America/Chicago',
+    });
+    const times = grouped[date].map(s => s.displayTime).join(' | ');
+    return `${dayLabel} — ${times}`;
+  });
+
+  return `\n\nPick a time that works:\n${lines.join('\n')}`;
+}
+
 /**
  * Calculate the next business day N business days from a given date.
  * Sets the time to 9 AM CT (15:00 UTC).
@@ -727,23 +876,19 @@ Best regards,
 Robert Gilbert`,
   },
   {
-    subject: 'The $5K problem no one is solving for residents',
-    body: (lead: LeadInfo) => `Dear ${lead.name?.split(' ')[0] || 'there'},
+    subject: 'Following up - resident housing costs',
+    body: (lead: LeadInfo) => `Hi ${lead.name?.split(' ')[0] || 'there'},
 
-Following up on my previous note about SweetLease and housing for matched residents.
+Following up on my earlier note. I know Match season keeps your team busy, so I will be brief.
 
-Here is what a typical resident loses in the relocation process: $2,500 average broker fee. $150-$300 per month in above-market rent because they cannot negotiate from across the country. $1,200 in overpaid deposits. Total: $5,000-$8,000 in avoidable costs in year one.
+Every March, 40,000+ residents scramble to sign leases in cities they have never lived in, with deadlines they cannot control. Brokers charge $2,500 knowing residents have no alternative. Landlords price above market knowing they will not push back. That is $5,000-$8,000 in avoidable costs per resident before training even starts.
 
-The current solutions lend residents money to cover these costs. Relocation loans of up to $30,000 help pay for broker fees and deposits. But they do not eliminate the fees. They do not negotiate lower rent. They add debt to a population already carrying $200,000 in student loans.
+SweetLease flips that dynamic. We aggregate residents as a tenant bloc and negotiate directly with verified landlords — eliminating broker fees, securing below-market rents, and completing placements in 7-14 days.
 
-SweetLease takes a different approach. We negotiate in bulk with landlords on residents' behalf, using volume and guaranteed tenants to procure lower rents. All landlords are verified. Resident data is protected. The service is offered at no cost to physicians. Zero broker fees. Below-market rents. Placements in 7-14 days instead of 30-45. Relocation lenders help residents borrow $30,000 for the move. We make sure they do not need it.
+${lead.orgName || 'Your organization'} pays nothing. Residents pay nothing. With a 5-minute tutorial I can show you exactly how it works and address any questions you have.
 
-A partnership with ${lead.orgName || 'your organization'} would put this marketplace in front of residents at the moment they need it most. No cost to ${lead.orgName || 'your organization'}. No cost to residents. We simply need visibility.
-
-Worth a conversation?
-
-Best regards,
-Robert Gilbert`,
+Best,
+Terrell Gilbert`,
   },
   {
     subject: 'Following up - physician housing marketplace',
@@ -796,21 +941,19 @@ Best regards,
 Robert Gilbert`,
   },
   {
-    subject: '38,000 physicians need housing - content opportunity',
-    body: (lead: LeadInfo) => `Dear ${lead.name?.split(' ')[0] || 'there'},
+    subject: 'Following up - resident housing costs',
+    body: (lead: LeadInfo) => `Hi ${lead.name?.split(' ')[0] || 'there'},
 
-Following up on my previous note about a housing partnership with ${lead.orgName || 'your platform'}.
+Following up on my earlier note. I know Match season keeps your team busy, so I will be brief.
 
-A data point worth considering: the average relocating resident loses $5,000-$8,000 in avoidable housing costs. Broker fees, above-market rent from signing sight-unseen, and deposits they overpay because they have no negotiating leverage. This is happening to 38,000 physicians every year. The existing solutions lend them money to cover these costs. No one is eliminating them.
+Every March, 40,000+ residents scramble to sign leases in cities they have never lived in, with deadlines they cannot control. Brokers charge $2,500 knowing residents have no alternative. Landlords price above market knowing they will not push back. That is $5,000-$8,000 in avoidable costs per resident before training even starts.
 
-SweetLease takes a different approach. We negotiate in bulk with landlords on residents' behalf, using volume and guaranteed tenants to procure lower rents. All landlords are verified. Resident data is protected. The service is at no cost to physicians. Zero broker fees. $100-$300 per month below market. Placements in 7-14 days instead of 30-45.
+SweetLease flips that dynamic. We aggregate residents as a tenant bloc and negotiate directly with verified landlords — eliminating broker fees, securing below-market rents, and completing placements in 7-14 days.
 
-${lead.orgName || 'Your platform'} already has the trust of this audience. We have the marketplace that solves the problem. Together, we can put a real solution in front of physicians at the moment they need it most.
+${lead.orgName || 'Your platform'} pays nothing. Residents pay nothing. With a 5-minute tutorial I can show you exactly how it works and address any questions you have.
 
-Happy to share data, resident stories, or whatever would be useful for evaluating a partnership.
-
-Best regards,
-Robert Gilbert`,
+Best,
+Terrell Gilbert`,
   },
   {
     subject: 'Last note - physician housing partnership',

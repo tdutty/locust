@@ -8,7 +8,7 @@ export async function GET(
   try {
     const { id } = await params;
     const result = await query(
-      `SELECT id, attendee_name, attendee_email, event_type, scheduled_at, status, tavus_conversation_url
+      `SELECT id, attendee_name, attendee_email, event_type, scheduled_at, status, tavus_conversation_url, qualification_data, demo_completed_at, contact_id
        FROM meeting_bookings WHERE id = $1`,
       [id]
     );

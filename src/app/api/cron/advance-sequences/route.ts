@@ -6,6 +6,9 @@ import {
   getMaxSteps,
   buildOutboundHtml,
   calculateNextBusinessDay,
+  fetchCalcomSlots,
+  buildTimeSlotsHtml,
+  buildTimeSlotsText,
   LeadInfo,
 } from '@/lib/email-templates';
 import { buildContractDocsHtml } from '@/lib/reply-generator';
@@ -124,8 +127,18 @@ export async function GET(request: NextRequest) {
           };
         }
 
-        // Build HTML
-        const htmlBody = buildOutboundHtml(emailContent.body);
+        // Fetch dynamic Cal.com time slots for follow-up emails
+        const slots = await fetchCalcomSlots();
+
+        // Build HTML and inject time-slot buttons before signature
+        let htmlBody = buildOutboundHtml(emailContent.body);
+        if (slots) {
+          const slotsHtml = buildTimeSlotsHtml(slots);
+          htmlBody = htmlBody.replace(
+            '<div style="border-top:1px solid #e2e8f0;padding-top:16px;margin-top:4px;">',
+            `${slotsHtml}<div style="border-top:1px solid #e2e8f0;padding-top:16px;margin-top:4px;">`
+          );
+        }
 
         // Schedule email for immediate pickup by send-emails cron
         await query(
