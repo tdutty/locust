@@ -888,7 +888,7 @@ SweetLease flips that dynamic. We aggregate residents as a tenant bloc and negot
 ${lead.orgName || 'Your organization'} pays nothing. Residents pay nothing. With a 5-minute tutorial I can show you exactly how it works and address any questions you have.
 
 Best,
-Terrell Gilbert`,
+Robert Gilbert`,
   },
   {
     subject: 'Following up - physician housing marketplace',
@@ -953,7 +953,7 @@ SweetLease flips that dynamic. We aggregate residents as a tenant bloc and negot
 ${lead.orgName || 'Your platform'} pays nothing. Residents pay nothing. With a 5-minute tutorial I can show you exactly how it works and address any questions you have.
 
 Best,
-Terrell Gilbert`,
+Robert Gilbert`,
   },
   {
     subject: 'Last note - physician housing partnership',

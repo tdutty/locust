@@ -35,7 +35,7 @@ SweetLease flips that dynamic. We aggregate residents as a tenant bloc and negot
 NRMP pays nothing. Residents pay nothing. With a 5-minute tutorial I can show you exactly how it works and address any questions you have.
 
 Best,
-Terrell Gilbert`;
+Robert Gilbert`;
 
   const platformBody = `Hi Bob,
 
@@ -48,7 +48,7 @@ SweetLease flips that dynamic. We aggregate residents as a tenant bloc and negot
 Doximity pays nothing. Residents pay nothing. With a 5-minute tutorial I can show you exactly how it works and address any questions you have.
 
 Best,
-Terrell Gilbert`;
+Robert Gilbert`;
 
   const slotsHtml = buildTimeSlotsHtml(slots);
 
