@@ -578,6 +578,9 @@ export async function generateWithAI(
   leadType: string,
   emailNumber: number
 ): Promise<{ subject: string; body: string } | null> {
+  // Institutional and platform sequences use hand-written templates — skip AI
+  if (leadType === 'institutional' || leadType === 'platform') return null;
+
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return null;
 
