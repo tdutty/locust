@@ -42,6 +42,8 @@ export async function buildConversationalContext(
     contextParts.push('They are from a medical residency program. Focus on zero cost, resident housing cost burden, and move-in coordination for July starts. QUALIFICATION OBJECTIVES: 1) Ask about incoming cohort size (how many residents per year). 2) Understand current housing resources provided (welcome packet, recommended list, nothing). 3) Ask about the biggest housing complaints from incoming residents. 4) Determine timeline -- Match Day is in March, residents need housing by late June. Ask these naturally, not as a checklist.');
   } else if (eventType === 'benefits-platform') {
     contextParts.push('They are from a benefits or LSA platform. Focus on the new benefit category, first-mover advantage, and white-label integration. QUALIFICATION OBJECTIVES: 1) Ask about their employee/client count (how many companies on the platform, total employees served). 2) Understand current benefits stack (what categories they offer today). 3) Ask about integration approach (API, embedded, white-label). 4) Determine timeline -- product roadmap, next benefits enrollment period. Ask these naturally, not as a checklist.');
+  } else if (eventType === 'platform') {
+    contextParts.push('They represent a media platform, online community, or content site that reaches medical residents and physicians. This is a partnership conversation, not a sales pitch to an end-user. Focus on: zero cost to the platform, audience alignment (residents need housing at Match Day), and flexible partnership models (affiliate referral link, co-branded housing resource, sponsored content, or embedded listing page). QUALIFICATION OBJECTIVES: 1) Audience size and engagement -- monthly visitors, members, subscribers, email list size. 2) How they currently monetize -- advertising, partnerships, sponsored content, affiliate programs. 3) What integration level they would prefer -- light (link/resource page) vs. deep (embedded portal, API). 4) Timeline -- can we get something live before or around Match Day (March 20)? KEY TALKING POINTS: Every March, 38,000+ residents match and scramble for housing -- their audience is living this right now. Existing solutions lend residents money for broker fees, but SweetLease eliminates those costs entirely. The platform pays nothing, residents pay nothing, SweetLease is paid by landlords. We can build a co-branded landing page or resource in days, not weeks. This is a differentiated offering no other platform provides to their physician audience. Ask these naturally throughout the conversation, not as a checklist.');
   }
 
   return contextParts.join(' ');
@@ -72,6 +74,31 @@ export async function findLastEmail(attendeeEmail: string): Promise<{ subject: s
     );
     if (result.rows.length > 0) return result.rows[0];
   } catch {}
+
+  // Domain-based fallback: find emails sent to anyone at the same domain
+  // Handles forwarded leads (e.g., Kyle@studentdoctor.net gets Laura Turner's SDN email context)
+  const domain = attendeeEmail.split('@')[1];
+  if (domain) {
+    try {
+      const result = await query(
+        `SELECT subject, body FROM email_log
+         WHERE LOWER(to_email) LIKE '%@' || $1
+         ORDER BY sent_at DESC LIMIT 1`,
+        [domain.toLowerCase()]
+      );
+      if (result.rows.length > 0) return result.rows[0];
+    } catch {}
+
+    try {
+      const result = await query(
+        `SELECT subject, body FROM scheduled_emails
+         WHERE LOWER(to_email) LIKE '%@' || $1 AND status = 'sent'
+         ORDER BY sent_at DESC LIMIT 1`,
+        [domain.toLowerCase()]
+      );
+      if (result.rows.length > 0) return result.rows[0];
+    } catch {}
+  }
 
   return null;
 }

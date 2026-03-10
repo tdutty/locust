@@ -46,7 +46,12 @@ export async function POST(request: NextRequest) {
     const attendee = attendees[0] || {};
     const attendeeName = attendee.name || 'Guest';
     const attendeeEmail = attendee.email || '';
-    const attendeePhone = attendee.phone || payload.responses?.phone?.value || '';
+    const attendeePhone =
+      attendee.phone ||
+      payload.responses?.attendeePhoneNumber ||
+      payload.responses?.phone?.value ||
+      payload.responses?.location?.optionValue ||
+      '';
     const scheduledAt = payload.startTime || new Date().toISOString();
     const uid = payload.uid || `calcom_${Date.now()}`;
     const calcomEventId = `calcom_${uid}`;
@@ -57,6 +62,7 @@ export async function POST(request: NextRequest) {
 
     if (attendeeEmail) {
       try {
+        // Direct email match
         const contactResult = await query(
           `SELECT id, contact_type FROM contacts WHERE LOWER(email) = LOWER($1) LIMIT 1`,
           [attendeeEmail]
@@ -64,6 +70,19 @@ export async function POST(request: NextRequest) {
         if (contactResult.rows.length > 0) {
           contactId = contactResult.rows[0].id;
           contactType = contactResult.rows[0].contact_type || contactType;
+        } else {
+          // Fallback: match by email domain (handles forwarded leads like Kyle@studentdoctor.net → Laura Turner)
+          const domain = attendeeEmail.split('@')[1];
+          if (domain) {
+            const domainResult = await query(
+              `SELECT id, contact_type FROM contacts WHERE LOWER(email) LIKE '%@' || $1 ORDER BY id ASC LIMIT 1`,
+              [domain.toLowerCase()]
+            );
+            if (domainResult.rows.length > 0) {
+              contactId = domainResult.rows[0].id;
+              contactType = domainResult.rows[0].contact_type || contactType;
+            }
+          }
         }
       } catch {}
     }
