@@ -154,6 +154,115 @@ export async function GET(request: NextRequest) {
           continue;
         }
 
+        // 5a-2. Check if this is a tenant-match landlord reply
+        if (email.classification === 'interested' || email.classification === 'question') {
+          const tmJobResult = await query(
+            `SELECT * FROM tenant_match_jobs WHERE $1 = ANY(matched_contact_ids) AND status IN ('outreach_started', 'matched') LIMIT 1`,
+            [contact.id]
+          );
+
+          if (tmJobResult.rows.length > 0 && email.classification === 'interested') {
+            const tmJob = tmJobResult.rows[0];
+
+            // Update job status
+            await query(
+              `UPDATE tenant_match_jobs SET status = 'landlord_responded', updated_at = NOW() WHERE id = $1`,
+              [tmJob.id]
+            );
+
+            // Get listing info for this contact
+            const listingResult = await query(
+              `SELECT * FROM listings WHERE contact_id = $1 LIMIT 1`,
+              [contact.id]
+            );
+            const listing = listingResult.rows[0];
+
+            // Fire webhook to SweetLease
+            const sweetleaseUrl = process.env.SWEETLEASE_API_URL;
+            const sweetleaseSecret = process.env.SWEETLEASE_WEBHOOK_SECRET;
+            if (sweetleaseUrl && sweetleaseSecret && listing) {
+              try {
+                await fetch(`${sweetleaseUrl}/api/tenant-match/landlord-interested`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'X-Webhook-Secret': sweetleaseSecret,
+                  },
+                  body: JSON.stringify({
+                    matchRequestId: tmJob.sweetlease_match_request_id,
+                    landlordName: contact.name,
+                    landlordEmail: contact.email,
+                    propertyAddress: listing.address,
+                    propertyCity: listing.city,
+                    propertyState: listing.state,
+                    propertyZip: listing.zip_code,
+                    propertyPrice: listing.listed_price,
+                    propertyBedrooms: listing.bedrooms,
+                    propertyBathrooms: listing.bathrooms,
+                    propertySqft: listing.sqft,
+                    daysOnMarket: listing.days_on_market,
+                  }),
+                });
+              } catch (webhookErr) {
+                console.error('Failed to notify SweetLease of landlord interest:', webhookErr);
+              }
+            }
+          }
+
+          // 5a-3. Check if this is a tenant-match-bulk landlord reply
+          if (email.classification === 'interested') {
+            const bulkSeqResult = await query(
+              `SELECT cs.id, cs.contact_type FROM contact_sequences cs
+               WHERE cs.contact_id = $1 AND cs.contact_type = 'tenant-match-bulk' AND cs.status = 'active'
+               LIMIT 1`,
+              [contact.id]
+            );
+
+            if (bulkSeqResult.rows.length > 0) {
+              // Find the pipeline deal with batch metadata
+              const dealResult = await query(
+                `SELECT metadata FROM pipeline_deals WHERE contact_id = $1 AND type = 'tenant-match-bulk' LIMIT 1`,
+                [contact.id]
+              );
+
+              const sweetleaseUrl = process.env.SWEETLEASE_API_URL;
+              const sweetleaseSecret = process.env.SWEETLEASE_WEBHOOK_SECRET;
+
+              if (dealResult.rows.length > 0 && sweetleaseUrl && sweetleaseSecret) {
+                const meta = typeof dealResult.rows[0].metadata === 'string'
+                  ? JSON.parse(dealResult.rows[0].metadata)
+                  : dealResult.rows[0].metadata;
+
+                try {
+                  await fetch(`${sweetleaseUrl}/api/tenant-match/landlord-interested`, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'X-Webhook-Secret': sweetleaseSecret,
+                    },
+                    body: JSON.stringify({
+                      batchId: meta.batchId,
+                      landlordName: contact.name,
+                      landlordEmail: contact.email,
+                      propertyAddress: meta.propertyAddress,
+                      propertyCity: meta.city,
+                      propertyState: meta.state,
+                      propertyPrice: meta.listingPrice,
+                      tenantCount: meta.tenantCount,
+                      totalAnnualValue: meta.totalAnnualValue,
+                      averageBudget: meta.averageBudget,
+                      earliestMoveIn: meta.earliestMoveIn,
+                      listingId: meta.listingId,
+                    }),
+                  });
+                } catch (webhookErr) {
+                  console.error('Failed to notify SweetLease of bulk landlord interest:', webhookErr);
+                }
+              }
+            }
+          }
+        }
+
         // 5b. Skip spam/system — log but no action
         if (email.classification === 'spam' || email.classification === 'system') {
           await logResponse(email, contact.id, null, null, `skipped_${email.classification}`);

@@ -7,7 +7,7 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '2mb',
     },
-    serverComponentsExternalPackages: ['sql.js'],
+    serverComponentsExternalPackages: ['sql.js', 'cheerio'],
   },
 }
 

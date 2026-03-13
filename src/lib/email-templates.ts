@@ -20,6 +20,19 @@ export interface LeadInfo {
   title?: string;
   orgName?: string;
   orgEmployeeCount?: number;
+  // Tenant-match specific fields
+  tenantBedrooms?: number;
+  tenantBudgetMax?: number;
+  tenantMoveIn?: string;
+  propertyAddress?: string;
+  matchJobId?: number;
+  // Bulk tenant-match aggregate fields
+  tenantCount?: number;
+  totalAnnualValue?: number;
+  averageBudget?: number;
+  earliestMoveIn?: string;
+  listingPrice?: number;
+  batchId?: string;
 }
 
 export const SYSTEM_PROMPT = `You are Locust, the AI Account Executive for SweetLease. Your job is to write cold outreach emails to landlords, employers, and university housing partners about SweetLease's corporate housing platform.
@@ -544,6 +557,114 @@ Robert Gilbert`,
   },
 ];
 
+// Tenant-match sequences — shorter, demand-driven (3 emails)
+export const TENANT_MATCH_SEQUENCES = [
+  {
+    subject: 'Pre-screened tenant for your {{city}} property',
+    body: (lead: LeadInfo) => `Dear ${lead.name},
+
+My name is Robert Gilbert with SweetLease. I am reaching out because we have a pre-screened tenant actively looking for a ${lead.tenantBedrooms || 2}-bedroom rental in ${lead.city || 'your area'} with a budget of up to $${(lead.tenantBudgetMax || 2000).toLocaleString()}/month${lead.tenantMoveIn ? `, targeting a ${lead.tenantMoveIn} move-in` : ''}.
+
+Your property at ${lead.propertyAddress || 'your listing'} appears to be a strong match. Every vacant day costs roughly $${Math.round((lead.tenantBudgetMax || 2000) / 30)}/day in lost rent — we can help fill it quickly with a verified tenant.
+
+Here is how SweetLease works: we handle tenant verification, lease negotiation, and payment processing. You maintain final say on pricing and tenant approval. There is no cost to you — our platform fee is paid by the tenant.
+
+Would it be worth a brief conversation? I can share the tenant's anonymized profile and walk you through the process in 10 minutes.
+
+Best regards,
+Robert Gilbert`,
+  },
+  {
+    subject: 'Following up — pre-screened tenant for {{city}}',
+    body: (lead: LeadInfo) => `Hi ${lead.name.split(' ')[0]},
+
+Following up on my previous note about the pre-screened tenant looking in ${lead.city || 'your area'}.
+
+A quick reminder: this is a verified tenant${lead.tenantMoveIn ? ` ready to move in ${lead.tenantMoveIn}` : ''}, budget up to $${(lead.tenantBudgetMax || 2000).toLocaleString()}/month. We handle everything — lease generation, e-signatures, and payment processing through our platform.
+
+Your property at ${lead.propertyAddress || 'your listing'} is still available based on our records. Each additional day on market represents approximately $${Math.round((lead.tenantBudgetMax || 2000) / 30)} in potential lost rent.
+
+If the timing works, I am happy to share the tenant's profile and next steps. If not, no worries at all — just let me know and I will remove you from future outreach.
+
+Best regards,
+Robert Gilbert`,
+  },
+  {
+    subject: 'Last note — tenant looking in {{city}}',
+    body: (lead: LeadInfo) => `Hi ${lead.name.split(' ')[0]},
+
+This will be my last note regarding the tenant searching for a ${lead.tenantBedrooms || 2}-bedroom in ${lead.city || 'your area'}.
+
+If the timing is not right, I completely understand. We receive new tenant matches regularly, so if you would like to be considered for future placement opportunities, just let me know.
+
+Wishing you the best with your property at ${lead.propertyAddress || 'your listing'}.
+
+Best regards,
+Robert Gilbert`,
+  },
+];
+
+export const TENANT_MATCH_BULK_SEQUENCES = [
+  {
+    subject: '{{tenantCount}} pre-screened residents for your {{city}} property',
+    body: (lead: LeadInfo) => {
+      const count = lead.tenantCount || 2;
+      const annual = lead.totalAnnualValue ? `$${Math.round(lead.totalAnnualValue).toLocaleString()}` : 'significant';
+      const avg = lead.averageBudget ? `$${Math.round(lead.averageBudget).toLocaleString()}` : 'competitive';
+      const moveIn = lead.earliestMoveIn || 'soon';
+      return `Dear ${lead.name},
+
+My name is Robert Gilbert with SweetLease. I am reaching out because we have ${count} verified medical residents actively looking for housing in ${lead.city || 'your area'} near your property at ${lead.propertyAddress || 'your listing'}.
+
+Combined, that represents ${annual} in annual lease value — pre-screened tenants with guaranteed income averaging ${avg}/month per resident${moveIn !== 'soon' ? `, targeting a ${moveIn} move-in` : ''}.
+
+Medical residents are among the most reliable tenants: stable income, long-term leases, and low turnover. Every vacant day costs roughly $${Math.round((lead.listingPrice || lead.averageBudget || 2000) / 30)}/day in lost rent — we can help fill your property quickly with verified tenants.
+
+Here is how SweetLease works: we handle tenant verification, lease negotiation, and payment processing for each resident. You maintain final say on pricing and tenant approval. There is no cost to you — our platform fee is paid by the tenants.
+
+Would it be worth a 10-minute conversation? I can share anonymized profiles and walk you through the next steps.
+
+Best regards,
+Robert Gilbert`;
+    },
+  },
+  {
+    subject: 'Quick follow-up — {{tenantCount}} residents still looking in {{city}}',
+    body: (lead: LeadInfo) => {
+      const count = lead.tenantCount || 2;
+      const vacancyCost = Math.round((lead.listingPrice || lead.averageBudget || 2000) / 30);
+      return `Hi ${lead.name.split(' ')[0]},
+
+Following up on my previous note about the ${count} pre-screened medical residents looking in ${lead.city || 'your area'}.
+
+Your property at ${lead.propertyAddress || 'your listing'} is losing roughly $${vacancyCost}/day sitting vacant. We have ${count} verified residents ready to sign — all with guaranteed income and long-term lease commitments.
+
+We handle everything: lease generation, e-signatures, payment processing, and tenant verification. You just approve the terms and tenants.
+
+If the timing works, I am happy to share the resident profiles. If not, just let me know and I will remove you from future outreach.
+
+Best regards,
+Robert Gilbert`;
+    },
+  },
+  {
+    subject: 'Last note about your {{city}} listing',
+    body: (lead: LeadInfo) => {
+      const count = lead.tenantCount || 2;
+      return `Hi ${lead.name.split(' ')[0]},
+
+This will be my last note about the ${count} medical residents looking for housing near your property at ${lead.propertyAddress || 'your listing'}.
+
+If the timing is not right, I completely understand. We regularly work with new groups of residents relocating for training, so if you would like to be considered for future placement opportunities, just let me know.
+
+Wishing you the best.
+
+Best regards,
+Robert Gilbert`;
+    },
+  },
+];
+
 const MAX_STEPS: Record<string, number> = {
   landlord: 3,
   employer: 3,
@@ -553,6 +674,8 @@ const MAX_STEPS: Record<string, number> = {
   platform: 3,
   'benefits-platform': 3,
   'graduate-housing': 3,
+  'tenant-match': 3,
+  'tenant-match-bulk': 3,
 };
 
 export function getMaxSteps(contactType: string): number {
@@ -569,6 +692,8 @@ export function getSequenceForType(contactType: string) {
     case 'platform': return PLATFORM_SEQUENCES;
     case 'benefits-platform': return BENEFITS_SEQUENCES;
     case 'graduate-housing': return GRADUATE_HOUSING_SEQUENCES;
+    case 'tenant-match': return TENANT_MATCH_SEQUENCES;
+    case 'tenant-match-bulk': return TENANT_MATCH_BULK_SEQUENCES;
     default: return EMPLOYER_SEQUENCES;
   }
 }
@@ -578,8 +703,8 @@ export async function generateWithAI(
   leadType: string,
   emailNumber: number
 ): Promise<{ subject: string; body: string } | null> {
-  // Institutional and platform sequences use hand-written templates — skip AI
-  if (leadType === 'institutional' || leadType === 'platform') return null;
+  // Institutional, platform, and tenant-match sequences use hand-written templates — skip AI
+  if (leadType === 'institutional' || leadType === 'platform' || leadType === 'tenant-match' || leadType === 'tenant-match-bulk') return null;
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) return null;
@@ -890,6 +1015,8 @@ SweetLease flips that dynamic. We aggregate residents as a tenant bloc and negot
 
 ${lead.orgName || 'Your organization'} pays nothing. Residents pay nothing. With a 5-minute tutorial I can show you exactly how it works and address any questions you have.
 
+Feel free to call me directly: (803) 724-8344.
+
 Best,
 Robert Gilbert`,
   },
@@ -903,7 +1030,7 @@ Final note on this.
 
 If the timing is not right, I understand. If there is a more appropriate person on your team to discuss resource partnerships, I would appreciate the introduction.
 
-The offer stands whenever it becomes relevant.
+The offer stands whenever it becomes relevant. You can also reach me at (803) 724-8344.
 
 Best regards,
 Robert Gilbert`,
@@ -955,6 +1082,8 @@ SweetLease flips that dynamic. We aggregate residents as a tenant bloc and negot
 
 ${lead.orgName || 'Your platform'} pays nothing. Residents pay nothing. With a 5-minute tutorial I can show you exactly how it works and address any questions you have.
 
+Feel free to call me directly: (803) 724-8344.
+
 Best,
 Robert Gilbert`,
   },
@@ -970,7 +1099,7 @@ SweetLease does. We are ready to serve ${lead.orgName || 'your'} audience at no 
 
 If the timing is not right for this cycle, no hard feelings. If there is someone else on your team better suited for this conversation, I would appreciate the introduction.
 
-Thank you for what ${lead.orgName || 'your platform'} does for the physician community.
+Thank you for what ${lead.orgName || 'your platform'} does for the physician community. You can also reach me at (803) 724-8344.
 
 Best regards,
 Robert Gilbert`,

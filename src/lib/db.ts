@@ -241,6 +241,14 @@ async function initTables() {
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_listings_city_state ON listings(city, state)`).catch(() => {});
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_listings_dom ON listings(days_on_market)`).catch(() => {});
 
+  // Add visual media + quality columns (idempotent)
+  await pool.query(`ALTER TABLE listings ADD COLUMN IF NOT EXISTS latitude REAL`).catch(() => {});
+  await pool.query(`ALTER TABLE listings ADD COLUMN IF NOT EXISTS longitude REAL`).catch(() => {});
+  await pool.query(`ALTER TABLE listings ADD COLUMN IF NOT EXISTS zillow_url TEXT`).catch(() => {});
+  await pool.query(`ALTER TABLE listings ADD COLUMN IF NOT EXISTS zillow_photos TEXT[]`).catch(() => {});
+  await pool.query(`ALTER TABLE listings ADD COLUMN IF NOT EXISTS street_view_url TEXT`).catch(() => {});
+  await pool.query(`ALTER TABLE listings ADD COLUMN IF NOT EXISTS quality_score INTEGER`).catch(() => {});
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS contact_sequences (
       id SERIAL PRIMARY KEY,
@@ -308,6 +316,35 @@ async function initTables() {
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
+
+  // Tenant match jobs — tracks search requests from SweetLease
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS tenant_match_jobs (
+      id SERIAL PRIMARY KEY,
+      sweetlease_match_request_id TEXT UNIQUE NOT NULL,
+      tenant_email TEXT NOT NULL,
+      tenant_name TEXT NOT NULL,
+      city TEXT NOT NULL,
+      state TEXT NOT NULL,
+      budget_max REAL NOT NULL,
+      budget_min REAL,
+      bedrooms INTEGER NOT NULL,
+      move_in_date TEXT,
+      status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','searching','matched','outreach_started','landlord_responded','completed','failed')),
+      matched_listing_ids INTEGER[] DEFAULT '{}',
+      matched_contact_ids INTEGER[] DEFAULT '{}',
+      sequence_ids INTEGER[] DEFAULT '{}',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_tmj_status ON tenant_match_jobs(status)`).catch(() => {});
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_tmj_city_state ON tenant_match_jobs(city, state)`).catch(() => {});
+
+  // Add tenant-match to pipeline_deals type constraint
+  await pool.query(`ALTER TABLE pipeline_deals DROP CONSTRAINT IF EXISTS pipeline_deals_type_check`).catch(() => {});
+  await pool.query(`ALTER TABLE pipeline_deals ADD CONSTRAINT pipeline_deals_type_check CHECK(type IN ('landlord', 'employer', 'university', 'residency', 'benefits-platform', 'graduate-housing', 'tenant-match'))`).catch(() => {});
 
   // Indexes for fast lookups
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_contacts_email ON contacts(email)`).catch(() => {});

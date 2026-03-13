@@ -106,6 +106,48 @@ export async function GET(request: NextRequest) {
 
         const contactType = seq.contact_type || seq.contact_type_seq || 'employer';
 
+        // For tenant-match sequences, enrich lead info with tenant/property details
+        if (contactType === 'tenant-match') {
+          const tmJob = await query(
+            `SELECT * FROM tenant_match_jobs WHERE $1 = ANY(matched_contact_ids) LIMIT 1`,
+            [seq.contact_id]
+          );
+          if (tmJob.rows.length > 0) {
+            const job = tmJob.rows[0];
+            lead.tenantBedrooms = job.bedrooms;
+            lead.tenantBudgetMax = job.budget_max;
+            lead.tenantMoveIn = job.move_in_date;
+          }
+          // Get property address from listings
+          const listing = await query(
+            `SELECT address FROM listings WHERE contact_id = $1 LIMIT 1`,
+            [seq.contact_id]
+          );
+          if (listing.rows.length > 0) {
+            lead.propertyAddress = listing.rows[0].address;
+          }
+        }
+
+        // For tenant-match-bulk sequences, enrich with aggregate demand info
+        if (contactType === 'tenant-match-bulk') {
+          const deal = await query(
+            `SELECT metadata FROM pipeline_deals WHERE contact_id = $1 AND type = 'tenant-match-bulk' LIMIT 1`,
+            [seq.contact_id]
+          );
+          if (deal.rows.length > 0 && deal.rows[0].metadata) {
+            const meta = typeof deal.rows[0].metadata === 'string'
+              ? JSON.parse(deal.rows[0].metadata)
+              : deal.rows[0].metadata;
+            lead.tenantCount = meta.tenantCount;
+            lead.totalAnnualValue = meta.totalAnnualValue;
+            lead.averageBudget = meta.averageBudget;
+            lead.earliestMoveIn = meta.earliestMoveIn;
+            lead.listingPrice = meta.listingPrice;
+            lead.propertyAddress = meta.propertyAddress;
+            lead.batchId = meta.batchId;
+          }
+        }
+
         // Try AI generation first
         let emailContent = await generateWithAI(lead, contactType, nextStep);
 
