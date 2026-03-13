@@ -3,7 +3,7 @@
  * Listings below the threshold are filtered out before sending to SweetLease.
  */
 
-export const QUALITY_THRESHOLD = 40;
+export const QUALITY_THRESHOLD = 25;
 
 interface QualityInput {
   ownerEmail: string | null;
