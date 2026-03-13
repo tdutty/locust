@@ -27,6 +27,15 @@ function buildSearchSlug(address: string, city: string, state: string, zip: stri
   return parts.replace(/[,.\s]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
 }
 
+function fetchWithProxy(url: string, headers: Record<string, string>, signal: AbortSignal): Promise<Response> {
+  const apiKey = process.env.SCRAPER_API_KEY;
+  if (apiKey) {
+    const proxyUrl = `https://api.scraperapi.com?api_key=${apiKey}&url=${encodeURIComponent(url)}&render=false`;
+    return fetch(proxyUrl, { signal, redirect: 'follow' });
+  }
+  return fetch(url, { headers, signal, redirect: 'follow' });
+}
+
 /**
  * Scrape Zillow for listing photos and URL by address.
  * Gracefully returns empty results if blocked or not found.
@@ -47,20 +56,24 @@ export async function scrapeZillowListing(
         await randomDelay(2000 * attempt, 2000 * attempt + 1000);
       }
 
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 10000);
+      const useProxy = !!process.env.SCRAPER_API_KEY;
+      if (attempt === 0) {
+        console.log(`[zillow] Scraping ${address} via ${useProxy ? 'ScraperAPI proxy' : 'direct fetch'}`);
+      }
 
-      const res = await fetch(searchUrl, {
-        headers: {
-          'User-Agent': randomUserAgent(),
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-          'Accept-Language': 'en-US,en;q=0.9',
-          'Accept-Encoding': 'gzip, deflate, br',
-          'Cache-Control': 'no-cache',
-        },
-        signal: controller.signal,
-        redirect: 'follow',
-      });
+      const controller = new AbortController();
+      const timeoutMs = useProxy ? 30000 : 10000;
+      const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+      const headers: Record<string, string> = {
+        'User-Agent': randomUserAgent(),
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Cache-Control': 'no-cache',
+      };
+
+      const res = await fetchWithProxy(searchUrl, headers, controller.signal);
 
       clearTimeout(timeout);
 
