@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
       listings = await searchListings({
         city,
         state,
-        minDaysOnMarket: 7,
+        minDaysOnMarket: 0,
         limit: 50,
       });
     } catch (err) {
