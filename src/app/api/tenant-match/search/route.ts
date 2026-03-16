@@ -9,6 +9,24 @@ const SWEETLEASE_API_URL = process.env.SWEETLEASE_API_URL;
 const SWEETLEASE_WEBHOOK_SECRET = process.env.SWEETLEASE_WEBHOOK_SECRET;
 const APOLLO_API_KEY = process.env.APOLLO_API_KEY || '';
 
+const STATE_ABBR: Record<string, string> = {
+  alabama:'AL',alaska:'AK',arizona:'AZ',arkansas:'AR',california:'CA',colorado:'CO',connecticut:'CT',
+  delaware:'DE',florida:'FL',georgia:'GA',hawaii:'HI',idaho:'ID',illinois:'IL',indiana:'IN',iowa:'IA',
+  kansas:'KS',kentucky:'KY',louisiana:'LA',maine:'ME',maryland:'MD',massachusetts:'MA',michigan:'MI',
+  minnesota:'MN',mississippi:'MS',missouri:'MO',montana:'MT',nebraska:'NE',nevada:'NV',
+  'new hampshire':'NH','new jersey':'NJ','new mexico':'NM','new york':'NY','north carolina':'NC',
+  'north dakota':'ND',ohio:'OH',oklahoma:'OK',oregon:'OR',pennsylvania:'PA','rhode island':'RI',
+  'south carolina':'SC','south dakota':'SD',tennessee:'TN',texas:'TX',utah:'UT',vermont:'VT',
+  virginia:'VA',washington:'WA','west virginia':'WV',wisconsin:'WI',wyoming:'WY',
+  'district of columbia':'DC',
+};
+
+function normalizeState(state: string): string {
+  const trimmed = state.trim();
+  if (trimmed.length === 2) return trimmed.toUpperCase();
+  return STATE_ABBR[trimmed.toLowerCase()] || trimmed;
+}
+
 export async function POST(req: NextRequest) {
   try {
     // Validate webhook secret
@@ -20,7 +38,8 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { matchRequestId, email, name, city, state, budgetMin, budgetMax, bedrooms, moveInDate } = body;
+    const { matchRequestId, email, name, city, budgetMin, budgetMax, bedrooms, moveInDate } = body;
+    const state = normalizeState(body.state || '');
 
     if (!matchRequestId || !city || !state || !budgetMax) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
