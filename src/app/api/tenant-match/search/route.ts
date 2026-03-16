@@ -107,6 +107,7 @@ export async function POST(req: NextRequest) {
       rentcastListing: typeof topCandidates[0];
       ownerName: string | null;
       ownerEmail: string | null;
+      ownerPhone: string | null;
       ownerType: string | null;
     }> = [];
 
@@ -197,6 +198,7 @@ export async function POST(req: NextRequest) {
         rentcastListing: listing,
         ownerName,
         ownerEmail,
+        ownerPhone,
         ownerType: ownerType || (ownerName ? classifyOwnerType(ownerName) : null),
       });
     }
@@ -209,6 +211,7 @@ export async function POST(req: NextRequest) {
       rentcastListing: typeof topCandidates[0];
       ownerName: string | null;
       ownerEmail: string | null;
+      ownerPhone: string | null;
       ownerType: string | null;
       zillowPhotos: string[];
       zillowUrl: string | null;
@@ -306,6 +309,7 @@ export async function POST(req: NextRequest) {
       vacancyCost: calculateVacancyCost(l.rentcastListing.price, l.rentcastListing.daysOnMarket || 0),
       ownerName: l.ownerName,
       ownerEmail: l.ownerEmail,
+      ownerPhone: l.ownerPhone,
       ownerType: l.ownerType,
       propertyType: l.rentcastListing.propertyType,
       // New visual media fields
