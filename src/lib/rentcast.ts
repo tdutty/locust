@@ -61,6 +61,9 @@ interface SearchListingsParams {
   state: string;
   minDaysOnMarket?: number;
   propertyType?: string;
+  bedrooms?: number;
+  maxPrice?: number;
+  minPrice?: number;
   limit?: number;
   status?: string;
 }
@@ -87,15 +90,21 @@ async function rentcastFetch(endpoint: string, params: Record<string, string> = 
 }
 
 export async function searchListings(params: SearchListingsParams): Promise<RentCastListing[]> {
-  const { city, state, minDaysOnMarket = 30, propertyType, limit = 50, status = 'Active' } = params;
+  const { city, state, minDaysOnMarket = 0, propertyType, bedrooms, maxPrice, minPrice, limit = 50, status = 'Active' } = params;
 
-  const data = await rentcastFetch('/listings/rental/long-term', {
+  const queryParams: Record<string, string> = {
     city,
     state,
     status,
-    propertyType: propertyType || '',
     limit: String(limit),
-  });
+  };
+
+  if (propertyType) queryParams.propertyType = propertyType;
+  if (bedrooms !== undefined) queryParams.bedrooms = String(bedrooms);
+  if (maxPrice !== undefined) queryParams.maxPrice = String(maxPrice);
+  if (minPrice !== undefined) queryParams.minPrice = String(minPrice);
+
+  const data = await rentcastFetch('/listings/rental/long-term', queryParams);
 
   // RentCast returns an array of listings
   const listings: RentCastListing[] = Array.isArray(data) ? data : [];

@@ -61,6 +61,9 @@ export async function POST(req: NextRequest) {
       listings = await searchListings({
         city,
         state,
+        bedrooms: bedrooms || undefined,
+        maxPrice: budgetMax ? Math.round(budgetMax * 1.15) : undefined, // 15% over budget to catch deals
+        minPrice: budgetMin || undefined,
         minDaysOnMarket: 0,
         limit: 50,
       });
@@ -133,13 +136,14 @@ export async function POST(req: NextRequest) {
       let ownerEmail: string | null = null;
 
       try {
-        const existingListing = await query('SELECT owner_name, owner_email FROM listings WHERE id = $1', [listingDbId]);
+        const existingListing = await query('SELECT owner_name, owner_email, owner_phone FROM listings WHERE id = $1', [listingDbId]);
         const row = existingListing.rows[0];
         ownerName = row.owner_name;
         ownerEmail = row.owner_email;
+        ownerPhone = row.owner_phone;
 
         if (!ownerName || !ownerEmail) {
-          // Get owner info from RentCast property details
+          // Step 1: Get owner info from RentCast property details
           if (!ownerName) {
             const property = await getPropertyDetails(listing.formattedAddress);
             if (property?.ownerName) {
@@ -148,27 +152,81 @@ export async function POST(req: NextRequest) {
             }
           }
 
-          // If individual owner without email, try Apollo
-          if (ownerName && !ownerEmail && classifyOwnerType(ownerName) === 'individual' && APOLLO_API_KEY) {
+          // Step 2: Try Apollo for contact info
+          if (ownerName && !ownerEmail && APOLLO_API_KEY) {
             try {
-              const apolloRes = await fetch('https://api.apollo.io/api/v1/mixed_people/search', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-Api-Key': APOLLO_API_KEY },
-                body: JSON.stringify({
-                  page: 1,
-                  per_page: 3,
-                  q_keywords: ownerName,
-                  person_locations: [`${city}, ${state}`],
-                  q_organization_keyword_tags: ['property', 'real estate', 'landlord', 'rental'],
-                }),
-              });
+              const isCorporate = classifyOwnerType(ownerName) === 'corporate';
 
-              if (apolloRes.ok) {
-                const apolloData = await apolloRes.json();
-                const people = apolloData.people || [];
-                if (people.length > 0) {
-                  ownerEmail = people[0].email || ownerEmail;
-                  ownerPhone = people[0].phone_numbers?.[0]?.raw_number || ownerPhone;
+              if (isCorporate) {
+                // Search for the company to get domain, then find contacts
+                const orgRes = await fetch('https://api.apollo.io/api/v1/mixed_companies/search', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', 'X-Api-Key': APOLLO_API_KEY },
+                  body: JSON.stringify({
+                    page: 1,
+                    per_page: 1,
+                    q_organization_name: ownerName,
+                    organization_locations: [`${city}, ${state}`],
+                    q_organization_keyword_tags: ['property', 'real estate', 'landlord', 'rental', 'management'],
+                  }),
+                });
+
+                if (orgRes.ok) {
+                  const orgData = await orgRes.json();
+                  const orgs = orgData.organizations || orgData.accounts || [];
+                  if (orgs.length > 0) {
+                    const org = orgs[0];
+                    // Use company's primary domain to construct generic email
+                    const domain = org.primary_domain || org.website_url?.replace(/https?:\/\/(www\.)?/, '').split('/')[0];
+                    if (domain) {
+                      ownerEmail = `info@${domain}`;
+                    }
+                    ownerPhone = org.phone || ownerPhone;
+
+                    // Also search for a person at this company (property manager, leasing agent)
+                    const peopleRes = await fetch('https://api.apollo.io/api/v1/mixed_people/search', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json', 'X-Api-Key': APOLLO_API_KEY },
+                      body: JSON.stringify({
+                        page: 1,
+                        per_page: 1,
+                        q_organization_domains: domain ? [domain] : undefined,
+                        person_titles: ['property manager', 'leasing', 'leasing agent', 'leasing manager', 'operations'],
+                      }),
+                    });
+
+                    if (peopleRes.ok) {
+                      const peopleData = await peopleRes.json();
+                      const people = peopleData.people || [];
+                      if (people.length > 0 && people[0].email) {
+                        ownerEmail = people[0].email;
+                        ownerPhone = people[0].phone_numbers?.[0]?.raw_number || ownerPhone;
+                        ownerName = `${people[0].first_name} ${people[0].last_name} (${ownerName})`;
+                      }
+                    }
+                  }
+                }
+              } else {
+                // Individual owner — search by name + location
+                const apolloRes = await fetch('https://api.apollo.io/api/v1/mixed_people/search', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', 'X-Api-Key': APOLLO_API_KEY },
+                  body: JSON.stringify({
+                    page: 1,
+                    per_page: 3,
+                    q_keywords: ownerName,
+                    person_locations: [`${city}, ${state}`],
+                    q_organization_keyword_tags: ['property', 'real estate', 'landlord', 'rental'],
+                  }),
+                });
+
+                if (apolloRes.ok) {
+                  const apolloData = await apolloRes.json();
+                  const people = apolloData.people || [];
+                  if (people.length > 0) {
+                    ownerEmail = people[0].email || ownerEmail;
+                    ownerPhone = people[0].phone_numbers?.[0]?.raw_number || ownerPhone;
+                  }
                 }
               }
             } catch {
