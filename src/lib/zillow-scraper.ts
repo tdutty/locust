@@ -4,6 +4,13 @@ interface ZillowResult {
   zillowUrl: string | null;
 }
 
+export interface ZillowContact {
+  agentName: string | null;
+  agentPhone: string | null;
+  brokerName: string | null;
+  propertyManager: string | null;
+}
+
 const USER_AGENTS = [
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
@@ -195,6 +202,88 @@ async function extractWithCheerio(html: string, fallbackUrl: string): Promise<{ 
   }
 
   return { photos, zillowUrl: zillowUrl || fallbackUrl };
+}
+
+/**
+ * Extract listing agent/property manager contact from a Zillow page.
+ * Uses the __NEXT_DATA__ JSON or HTML parsing to find agent name, phone, broker.
+ */
+export async function scrapeZillowContact(zillowUrl: string): Promise<ZillowContact> {
+  const result: ZillowContact = { agentName: null, agentPhone: null, brokerName: null, propertyManager: null };
+
+  if (!zillowUrl) return result;
+
+  try {
+    const controller = new AbortController();
+    const useProxy = !!process.env.SCRAPER_API_KEY;
+    const timeoutMs = useProxy ? 30000 : 10000;
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+    const headers: Record<string, string> = {
+      'User-Agent': randomUserAgent(),
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      'Accept-Language': 'en-US,en;q=0.9',
+    };
+
+    const res = await fetchWithProxy(zillowUrl, headers, controller.signal);
+    clearTimeout(timeout);
+
+    if (!res.ok) return result;
+
+    const html = await res.text();
+
+    // Strategy 1: Extract from __NEXT_DATA__ JSON
+    try {
+      const nextDataMatch = html.match(/<script[^>]*id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/);
+      if (nextDataMatch) {
+        const searchStr = nextDataMatch[1];
+
+        // Look for listing agent info
+        const agentNameMatch = searchStr.match(/"listingAgentName":"([^"]+)"/);
+        const agentPhoneMatch = searchStr.match(/"listingAgentPhone":"([^"]+)"/) || searchStr.match(/"phone":"(\+?[\d\s()-]+)"/);
+        const brokerMatch = searchStr.match(/"brokerName":"([^"]+)"/) || searchStr.match(/"listingBrokerName":"([^"]+)"/);
+        const pmMatch = searchStr.match(/"propertyManagementName":"([^"]+)"/) || searchStr.match(/"managedBy":"([^"]+)"/);
+        const buildingNameMatch = searchStr.match(/"buildingName":"([^"]+)"/);
+
+        result.agentName = agentNameMatch?.[1] || null;
+        result.agentPhone = agentPhoneMatch?.[1] || null;
+        result.brokerName = brokerMatch?.[1] || null;
+        result.propertyManager = pmMatch?.[1] || buildingNameMatch?.[1] || null;
+      }
+    } catch {
+      // JSON extraction failed
+    }
+
+    // Strategy 2: Regex patterns for phone numbers and agent names in HTML
+    if (!result.agentPhone) {
+      // Match common phone patterns near "agent", "manager", "contact", "call"
+      const phonePattern = /(?:agent|manager|contact|call|phone)[^<]{0,100}(\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4})/i;
+      const phoneMatch = html.match(phonePattern);
+      if (phoneMatch) {
+        result.agentPhone = phoneMatch[1];
+      }
+    }
+
+    if (!result.agentName) {
+      // Try cheerio for structured data
+      try {
+        const cheerio = await import('cheerio');
+        const $ = cheerio.load(html);
+        // Zillow puts agent info in specific data attributes or sections
+        const agentEl = $('[data-testid="attribution-LISTING_AGENT"] .Text-c11n-8-84-3__sc-aiai24-0').first();
+        if (agentEl.length) result.agentName = agentEl.text().trim();
+
+        const brokerEl = $('[data-testid="attribution-BROKER"] .Text-c11n-8-84-3__sc-aiai24-0').first();
+        if (brokerEl.length) result.brokerName = brokerEl.text().trim();
+      } catch {
+        // Cheerio not available or parse failed
+      }
+    }
+  } catch (err: any) {
+    console.warn(`Failed to scrape Zillow contact from ${zillowUrl}:`, err.message);
+  }
+
+  return result;
 }
 
 /**

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { searchListings, getPropertyDetails, classifyOwnerType, calculateVacancyCost } from '@/lib/rentcast';
-import { scrapeZillowListing } from '@/lib/zillow-scraper';
+import { scrapeZillowListing, scrapeZillowContact } from '@/lib/zillow-scraper';
 import { getStreetViewUrl, getStreetViewUrlByAddress } from '@/lib/street-view';
 import { scoreListingQuality, filterByQuality } from '@/lib/listing-quality';
 
@@ -235,6 +235,30 @@ export async function POST(req: NextRequest) {
           }
 
           if (!ownerType && ownerName) ownerType = classifyOwnerType(ownerName);
+
+          // Step 3: Zillow contact scraping fallback — get listing agent/property manager
+          if (!ownerName || !ownerPhone) {
+            const zillowUrlRow = await query('SELECT zillow_url FROM listings WHERE id = $1', [listingDbId]);
+            const zUrl = zillowUrlRow.rows[0]?.zillow_url;
+            if (zUrl) {
+              try {
+                const contact = await scrapeZillowContact(zUrl);
+                if (!ownerName && (contact.agentName || contact.propertyManager)) {
+                  ownerName = contact.propertyManager || contact.agentName;
+                  ownerType = contact.propertyManager ? 'corporate' : 'individual';
+                }
+                if (!ownerPhone && contact.agentPhone) {
+                  ownerPhone = contact.agentPhone;
+                }
+                if (!ownerName && contact.brokerName) {
+                  ownerName = contact.brokerName;
+                  ownerType = 'corporate';
+                }
+              } catch {
+                // Zillow contact scrape failed, continue
+              }
+            }
+          }
 
           await query(
             `UPDATE listings SET
