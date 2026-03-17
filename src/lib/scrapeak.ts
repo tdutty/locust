@@ -27,6 +27,8 @@ export interface ScrappeakListing {
   buildingName: string | null;
   phone: string | null;
   units: Array<{ price: string; beds: string }>;
+  flexRecs: Array<{ displayString: string; contentType: string }>;
+  zovInsight: { displayString: string; amenityType: string } | null;
 }
 
 interface SearchParams {
@@ -208,5 +210,7 @@ function parseResult(r: any, defaultCity: string, defaultState: string): Scrappe
     buildingName: r.buildingName || null,
     phone,
     units: (r.units || []).map((u: any) => ({ price: u.price, beds: u.beds })),
+    flexRecs: (r.listCardRecommendation?.flexFieldRecommendations || []).map((f: any) => ({ displayString: f.displayString, contentType: f.contentType })),
+    zovInsight: r.listCardRecommendation?.zovInsight ? { displayString: r.listCardRecommendation.zovInsight.displayString, amenityType: r.listCardRecommendation.zovInsight.amenityType } : null,
   };
 }

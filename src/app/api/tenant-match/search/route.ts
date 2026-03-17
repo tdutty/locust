@@ -6,7 +6,7 @@ import { searchZillowRentals } from '@/lib/zillow-search';
 import { scrapeZillowListing, scrapeZillowContact } from '@/lib/zillow-scraper';
 import { enrichProperty } from '@/lib/propertyreach';
 import { getStreetViewUrl, getStreetViewUrlByAddress } from '@/lib/street-view';
-import { scoreListingQuality, filterByQuality } from '@/lib/listing-quality';
+import { scoreListingQuality, filterByQuality, extractListingAmenities } from '@/lib/listing-quality';
 
 const SWEETLEASE_API_URL = process.env.SWEETLEASE_API_URL;
 const SWEETLEASE_WEBHOOK_SECRET = process.env.SWEETLEASE_WEBHOOK_SECRET;
@@ -41,7 +41,8 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { matchRequestId, email, name, city, budgetMin, budgetMax, bedrooms, moveInDate } = body;
+    const { matchRequestId, email, name, city, budgetMin, budgetMax, bedrooms, moveInDate, amenities } = body;
+    const tenantAmenities: string[] = amenities || [];
     const state = normalizeState(body.state || '');
 
     if (!matchRequestId || !city || !state || !budgetMax) {
@@ -92,6 +93,8 @@ export async function POST(req: NextRequest) {
       listingPhone: s.phone,
       brokerName: s.buildingName,
       buildingName: s.buildingName,
+      flexRecs: s.flexRecs,
+      zovInsight: s.zovInsight,
     }));
 
     // Fallback to direct Zillow scrape if Scrapeak returned 0
@@ -458,17 +461,34 @@ export async function POST(req: NextRequest) {
         streetViewUrl = getStreetViewUrlByAddress(l.formattedAddress, l.city, l.state, l.zipCode);
       }
 
-      // Compute quality score
+      // Extract amenity hints from Zillow data
+      const listingAmenities = extractListingAmenities({
+        flexRecs: (l as any).flexRecs,
+        zovInsight: (l as any).zovInsight,
+        buildingName: (l as any).brokerName || (l as any).buildingName,
+      });
+
+      // Compute quality + relevance score
       const { score } = scoreListingQuality({
         ownerEmail: candidate.ownerEmail,
-        zillowPhotos: zillow.photos,
+        ownerPhone: candidate.ownerPhone,
         ownerType: candidate.ownerType,
+        portfolioSize: (candidate as any).portfolioSize || 0,
+        listingPhone: (l as any).listingPhone || null,
+        zillowPhotos: zillow.photos,
         sqft: l.squareFootage || null,
         bathrooms: l.bathrooms || null,
         zip: l.zipCode || null,
         daysOnMarket: l.daysOnMarket || null,
         latitude: l.latitude || null,
         longitude: l.longitude || null,
+        price: l.price,
+        bedrooms: l.bedrooms,
+        tenantBudgetMax: budgetMax,
+        tenantBedrooms: bedrooms,
+        tenantAmenities,
+        listingAmenities,
+        buildingName: (l as any).brokerName || (l as any).buildingName || null,
       });
 
       // Persist visual media + quality score to Locust DB
