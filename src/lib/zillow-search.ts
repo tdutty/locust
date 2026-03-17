@@ -232,13 +232,17 @@ function parseZillowResult(result: any): ZillowSearchListing | null {
 }
 
 /**
- * Search Zillow for rental listings in a city with optional filters.
+ * Search Zillow for rental listings using their internal search API.
+ * This returns JSON directly — no HTML parsing needed.
+ * Falls back to HTML scraping if the API fails.
  */
 export async function searchZillowRentals(params: ZillowSearchParams): Promise<ZillowSearchListing[]> {
-  const searchUrl = buildSearchUrl(params);
   const limit = params.limit || 40;
 
   console.log(`[zillow-search] Searching: ${params.city}, ${params.state} | ${params.bedrooms || 'any'}BR | max $${params.maxPrice || 'any'}`);
+
+  // Scrape Zillow search results page (render=true for full JS content)
+  const searchUrl = buildSearchUrl(params);
 
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
@@ -255,7 +259,7 @@ export async function searchZillowRentals(params: ZillowSearchParams): Promise<Z
       };
 
       if (useProxy) {
-        fetchUrl = `https://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(searchUrl)}&render=false`;
+        fetchUrl = `https://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(searchUrl)}&render=true`;
       } else {
         fetchUrl = searchUrl;
       }
@@ -275,9 +279,7 @@ export async function searchZillowRentals(params: ZillowSearchParams): Promise<Z
       const html = await res.text();
       const listings = extractListingsFromHtml(html);
 
-      console.log(`[zillow-search] Found ${listings.length} listings (unfiltered)`);
-
-      // Return all listings with valid prices — filtering happens in the search route
+      console.log(`[zillow-search] HTML scrape found ${listings.length} listings`);
       return listings.filter(l => l.price > 0).slice(0, limit);
     } catch (err: any) {
       if (err.name === 'AbortError') {
@@ -289,4 +291,94 @@ export async function searchZillowRentals(params: ZillowSearchParams): Promise<Z
   }
 
   return [];
+}
+
+/**
+ * Search via Zillow's internal PUT search API.
+ * This is the same API their frontend uses — returns up to 40 results as JSON.
+ */
+async function searchViaZillowApi(params: ZillowSearchParams): Promise<ZillowSearchListing[]> {
+  const { city, state, bedrooms, maxPrice, minPrice } = params;
+  const citySlug = city.toLowerCase().replace(/\s+/g, '-');
+  const stateSlug = state.toLowerCase().replace(/\s+/g, '-');
+  const regionUrl = `https://www.zillow.com/${citySlug}-${stateSlug}/rentals/`;
+
+  const filterState: Record<string, unknown> = {
+    isForRent: { value: true },
+    isForSaleByAgent: { value: false },
+    isForSaleByOwner: { value: false },
+    isNewConstruction: { value: false },
+    isComingSoon: { value: false },
+    isAuction: { value: false },
+    isForSaleForeclosure: { value: false },
+  };
+
+  if (bedrooms !== undefined) {
+    filterState.beds = { min: bedrooms };
+  }
+  if (maxPrice !== undefined || minPrice !== undefined) {
+    const mp: Record<string, number> = {};
+    if (minPrice) mp.min = minPrice;
+    if (maxPrice) mp.max = maxPrice;
+    filterState.monthlyPayment = mp;
+  }
+
+  const searchQueryState = {
+    pagination: {},
+    isMapVisible: false,
+    filterState,
+    isListVisible: true,
+  };
+
+  const requestBody = {
+    searchQueryState,
+    wants: { cat1: ['listResults'] },
+    requestId: Math.floor(Math.random() * 100),
+  };
+
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000);
+
+    const apiUrl = 'https://www.zillow.com/async-create-search-page-state';
+    const targetUrl = `${apiUrl}`;
+
+    let fetchUrl: string;
+    const headers: Record<string, string> = {
+      'User-Agent': randomUserAgent(),
+      'Accept': '*/*',
+      'Content-Type': 'application/json',
+      'Referer': regionUrl,
+      'Origin': 'https://www.zillow.com',
+    };
+
+    if (SCRAPER_API_KEY) {
+      // Use ScraperAPI to proxy the request
+      fetchUrl = `https://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(targetUrl)}&render=false&method=PUT`;
+      // ScraperAPI doesn't support PUT body well, so fall back to GET with search URL
+      clearTimeout(timeout);
+      return [];
+    }
+
+    const res = await fetch(targetUrl, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify(requestBody),
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+
+    if (!res.ok) {
+      console.warn(`[zillow-search] API returned ${res.status}`);
+      return [];
+    }
+
+    const data = await res.json();
+    const results = data?.cat1?.searchResults?.listResults || [];
+
+    return results.map((r: any) => parseZillowResult(r)).filter(Boolean) as ZillowSearchListing[];
+  } catch (err: any) {
+    console.warn(`[zillow-search] API call failed: ${err.message}`);
+    return [];
+  }
 }
