@@ -12,7 +12,9 @@ import { searchRentals, getRegionId, ScrappeakListing } from '@/lib/scrapeak';
 import { enrichProperty, getLinkedProperties } from '@/lib/propertyreach';
 
 const SCRAPEAK_API_KEY = process.env.SCRAPEAK_API_KEY || '';
-const PAGES_TO_SCAN = 5;
+// Max 20 pages per scan — Zillow caps at ~page 20 anyway
+// Each page = 41 listings × 10 credits = ~820 listings for 200 credits
+const PAGES_TO_SCAN = 20;
 
 interface BuildingGroup {
   buildingName: string;
@@ -242,7 +244,7 @@ export async function scanCity(city: string, state: string, bedroomsMin?: number
 
   // Enrich top buildings via PropertyReach
   let enrichedCount = 0;
-  const topBuildings = sortedBuildings.slice(0, 15); // Top 15 portfolio landlords
+  const topBuildings = sortedBuildings.slice(0, 30); // Top 30 portfolio landlords
 
   for (const building of topBuildings) {
     try {
