@@ -71,38 +71,46 @@ export async function GET(request: NextRequest) {
 
     for (const email of result.rows) {
       try {
-        const htmlBody = email.html_body || buildOutboundHtml(email.body);
+        // For landlord outreach (tenant-match, tenant-match-bulk), send plain text only
+        // to avoid Gmail Promotions tab. All other email types get HTML.
+        const isLandlordOutreach = ['tenant-match', 'tenant-match-bulk'].includes(email.lead_type);
 
-        // Wrap links for click tracking
-        let trackedHtml = await wrapLinksForTracking(htmlBody, email.contact_id, email.id);
+        let trackedHtml: string | undefined = undefined;
+        if (!isLandlordOutreach) {
+          const htmlBody = email.html_body || buildOutboundHtml(email.body);
+          trackedHtml = await wrapLinksForTracking(htmlBody, email.contact_id, email.id);
 
-        // Inject CTA block: Schedule a Phone Call (skip if dynamic time slots already embedded)
-        if (email.contact_id && !trackedHtml.includes('data-has-slots')) {
-          const bookingUrl = 'https://cal.com/terrell-gilbert-bnq7m3/sweetlease-intro';
-          const meetingCta = `<div style="margin:24px 0 20px;padding:20px 16px;background:#faf5f0;border-radius:8px;text-align:center;"><p style="margin:0 0 16px;font-size:14px;font-weight:600;color:#1a1a1a;">Want to see if SweetLease is right for you?</p><div><a href="${bookingUrl}" style="display:inline-block;padding:14px 32px;background:#EA580C;color:#ffffff;text-decoration:none;border-radius:6px;font-size:14px;font-weight:600;">Schedule a 15-min Phone Call</a></div></div>`;
-          // Insert before the signature divider
-          trackedHtml = trackedHtml.replace(
-            '<div style="border-top:1px solid #e2e8f0;padding-top:16px;margin-top:4px;">',
-            `${meetingCta}<div style="border-top:1px solid #e2e8f0;padding-top:16px;margin-top:4px;">`
-          );
+          // Inject CTA block: Schedule a Phone Call (skip if dynamic time slots already embedded)
+          if (email.contact_id && !trackedHtml.includes('data-has-slots')) {
+            const bookingUrl = 'https://cal.com/terrell-gilbert-bnq7m3/sweetlease-intro';
+            const meetingCta = `<div style="margin:24px 0 20px;padding:20px 16px;background:#faf5f0;border-radius:8px;text-align:center;"><p style="margin:0 0 16px;font-size:14px;font-weight:600;color:#1a1a1a;">Want to see if SweetLease is right for you?</p><div><a href="${bookingUrl}" style="display:inline-block;padding:14px 32px;background:#EA580C;color:#ffffff;text-decoration:none;border-radius:6px;font-size:14px;font-weight:600;">Schedule a 15-min Phone Call</a></div></div>`;
+            trackedHtml = trackedHtml.replace(
+              '<div style="border-top:1px solid #e2e8f0;padding-top:16px;margin-top:4px;">',
+              `${meetingCta}<div style="border-top:1px solid #e2e8f0;padding-top:16px;margin-top:4px;">`
+            );
+          }
         }
 
         const fromAddress = process.env.RESEND_API_KEY
           ? '"Robert Gilbert" <rgilbert@outreach.sweetlease.io>'
           : `"Robert Gilbert" <${process.env.SMTP_USER}>`;
 
-        const info = await transporter.sendMail({
+        const mailOptions: any = {
           from: fromAddress,
           replyTo: 'rgilbert@sweetlease.io',
           to: email.to_email,
           subject: email.subject,
           text: email.body,
-          html: trackedHtml,
           headers: {
             'List-Unsubscribe': '<mailto:rgilbert@sweetlease.io?subject=Unsubscribe>',
             'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
           },
-        });
+        };
+        // Only include HTML for non-landlord outreach
+        if (trackedHtml) {
+          mailOptions.html = trackedHtml;
+        }
+        const info = await transporter.sendMail(mailOptions);
 
         // Mark as sent
         await query(
