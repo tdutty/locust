@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { searchListings, getPropertyDetails, classifyOwnerType, calculateVacancyCost } from '@/lib/rentcast';
 import { scrapeZillowListing, scrapeZillowContact } from '@/lib/zillow-scraper';
+import { enrichProperty } from '@/lib/propertyreach';
 import { getStreetViewUrl, getStreetViewUrlByAddress } from '@/lib/street-view';
 import { scoreListingQuality, filterByQuality } from '@/lib/listing-quality';
 
@@ -143,7 +144,34 @@ export async function POST(req: NextRequest) {
         ownerPhone = row.owner_phone;
 
         if (!ownerName || !ownerEmail) {
-          // Step 1: Get owner info from RentCast property details
+          // Step 0: PropertyReach skip trace + portfolio detection (primary source)
+          const zipCode = listing.zipCode || '';
+          const streetAddr = listing.addressLine1 || listing.formattedAddress.split(',')[0];
+          try {
+            const prResult = await enrichProperty(streetAddr, listing.city, listing.state, zipCode);
+            if (prResult.ownerName) ownerName = prResult.ownerName;
+            if (prResult.ownerEmail) ownerEmail = prResult.ownerEmail;
+            if (prResult.ownerPhone) ownerPhone = prResult.ownerPhone;
+            if (prResult.ownerType !== 'unknown') ownerType = prResult.ownerType === 'corporate' ? 'corporate' : 'individual';
+
+            // Store portfolio size + estimated value in listing metadata
+            if (prResult.portfolioSize > 0 || prResult.estimatedValue) {
+              await query(
+                `UPDATE listings SET
+                  portfolio_size = COALESCE($1, portfolio_size),
+                  estimated_value = COALESCE($2, estimated_value),
+                  updated_at = NOW()
+                WHERE id = $3`,
+                [prResult.portfolioSize || null, prResult.estimatedValue || null, listingDbId]
+              ).catch(() => {
+                // Columns may not exist yet — non-blocking
+              });
+            }
+          } catch (prErr) {
+            console.warn(`PropertyReach enrichment failed for ${listing.formattedAddress}:`, prErr);
+          }
+
+          // Step 1: Fallback to RentCast property details if PropertyReach didn't find owner
           if (!ownerName) {
             const property = await getPropertyDetails(listing.formattedAddress);
             if (property?.ownerName) {
@@ -152,7 +180,7 @@ export async function POST(req: NextRequest) {
             }
           }
 
-          // Step 2: Try Apollo for contact info
+          // Step 2: Fallback to Apollo for contact info if still missing email
           if (ownerName && !ownerEmail && APOLLO_API_KEY) {
             try {
               const isCorporate = classifyOwnerType(ownerName) === 'corporate';
