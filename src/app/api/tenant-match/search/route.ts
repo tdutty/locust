@@ -108,7 +108,12 @@ export async function POST(req: NextRequest) {
         minPrice: budgetMin || undefined,
         limit: 40,
       });
-      zillowListings = directResults;
+      zillowListings = directResults.map(d => ({
+        ...d,
+        listingPhone: null as string | null,
+        flexRecs: [] as Array<{ displayString: string; contentType: string }>,
+        zovInsight: null as { displayString: string; amenityType: string } | null,
+      }));
     }
 
     // Convert Zillow listings to common format
