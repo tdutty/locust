@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { searchListings, getPropertyDetails, classifyOwnerType, calculateVacancyCost } from '@/lib/rentcast';
+import { searchZillowRentals } from '@/lib/zillow-search';
 import { scrapeZillowListing, scrapeZillowContact } from '@/lib/zillow-scraper';
 import { enrichProperty } from '@/lib/propertyreach';
 import { getStreetViewUrl, getStreetViewUrlByAddress } from '@/lib/street-view';
@@ -56,36 +57,106 @@ export async function POST(req: NextRequest) {
     );
     const jobId = jobResult.rows[0].id;
 
-    // Search RentCast for listings in the tenant's city/state
-    let listings;
-    try {
-      listings = await searchListings({
-        city,
-        state,
-        bedrooms: bedrooms || undefined,
-        maxPrice: budgetMax ? Math.round(budgetMax * 1.15) : undefined, // 15% over budget to catch deals
-        minPrice: budgetMin || undefined,
-        minDaysOnMarket: 0,
-        limit: 50,
-      });
-    } catch (err) {
-      console.error('RentCast search failed:', err);
-      await query(
-        `UPDATE tenant_match_jobs SET status = 'failed', updated_at = NOW() WHERE id = $1`,
-        [jobId]
-      );
-      await callbackToSweetLease(matchRequestId, 'searching', 0);
-      return NextResponse.json({ jobId, error: 'Listing search failed' }, { status: 500 });
+    // Search Zillow first, fallback to RentCast
+    console.log(`[tenant-match] Searching Zillow for ${city}, ${state} | ${bedrooms}BR | max $${budgetMax}`);
+
+    let zillowListings = await searchZillowRentals({
+      city,
+      state,
+      bedrooms: bedrooms || undefined,
+      maxPrice: budgetMax ? Math.round(budgetMax * 1.15) : undefined,
+      minPrice: budgetMin || undefined,
+      limit: 40,
+    });
+
+    // Convert Zillow listings to common format
+    let listings: Array<{
+      id: string;
+      formattedAddress: string;
+      addressLine1: string;
+      city: string;
+      state: string;
+      zipCode: string;
+      price: number;
+      bedrooms: number;
+      bathrooms: number;
+      squareFootage: number | null;
+      latitude: number;
+      longitude: number;
+      propertyType: string | null;
+      daysOnMarket: number;
+      listingType: string;
+      listedDate: string;
+      lastSeenDate: string;
+      status: string;
+      // Zillow extras
+      zillowUrl?: string;
+      zillowPhotos?: string[];
+      listingAgent?: string | null;
+      brokerName?: string | null;
+      source: 'zillow' | 'rentcast';
+    }>;
+
+    if (zillowListings.length > 0) {
+      console.log(`[tenant-match] Zillow returned ${zillowListings.length} listings`);
+      listings = zillowListings.map(z => ({
+        id: `zillow-${z.zpid}`,
+        formattedAddress: z.address || `${z.streetAddress}, ${z.city}, ${z.state} ${z.zipCode}`,
+        addressLine1: z.streetAddress,
+        city: z.city || city,
+        state: z.state || state,
+        zipCode: z.zipCode,
+        price: z.price,
+        bedrooms: z.bedrooms,
+        bathrooms: z.bathrooms,
+        squareFootage: z.sqft,
+        latitude: z.latitude,
+        longitude: z.longitude,
+        propertyType: z.propertyType,
+        daysOnMarket: z.daysOnZillow,
+        listingType: 'Rental',
+        listedDate: '',
+        lastSeenDate: new Date().toISOString(),
+        status: 'Active',
+        zillowUrl: z.listingUrl,
+        zillowPhotos: z.photos,
+        listingAgent: z.listingAgent,
+        brokerName: z.brokerName,
+        source: 'zillow' as const,
+      }));
+    } else {
+      // Fallback to RentCast
+      console.log(`[tenant-match] Zillow returned 0 listings, falling back to RentCast`);
+      try {
+        const rentcastResults = await searchListings({
+          city,
+          state,
+          bedrooms: bedrooms || undefined,
+          maxPrice: budgetMax ? Math.round(budgetMax * 1.15) : undefined,
+          minPrice: budgetMin || undefined,
+          minDaysOnMarket: 0,
+          limit: 50,
+        });
+        listings = rentcastResults.map(l => ({ ...l, source: 'rentcast' as const }));
+      } catch (err) {
+        console.error('RentCast fallback also failed:', err);
+        await query(
+          `UPDATE tenant_match_jobs SET status = 'failed', updated_at = NOW() WHERE id = $1`,
+          [jobId]
+        );
+        await callbackToSweetLease(matchRequestId, 'searching', 0);
+        return NextResponse.json({ jobId, error: 'Listing search failed' }, { status: 500 });
+      }
     }
 
     // Filter by bedrooms and budget
     const filtered = listings.filter(l => {
-      const matchesBedrooms = l.bedrooms >= bedrooms;
-      const matchesBudget = l.price <= budgetMax * 1.1; // Allow 10% over budget
-      return matchesBedrooms && matchesBudget;
+      if (l.bedrooms > 0 && l.bedrooms < bedrooms) return false;
+      if (l.price > budgetMax * 1.15) return false;
+      return l.price > 0;
     });
 
-    // Sort by relevance: closest to budget, then by days on market (staler = more motivated landlord)
+    // Sort by relevance: closest to budget, then by days on market
     const sorted = filtered.sort((a, b) => {
       const aDiff = Math.abs(a.price - budgetMax);
       const bDiff = Math.abs(b.price - budgetMax);
@@ -332,13 +403,13 @@ export async function POST(req: NextRequest) {
     for (const candidate of enrichedCandidates) {
       const { rentcastListing: l } = candidate;
 
-      // Scrape Zillow (sequential with rate limiting built in)
-      const zillow = await scrapeZillowListing(
-        l.formattedAddress,
-        l.city,
-        l.state,
-        l.zipCode
-      );
+      // Use existing Zillow data if listing came from Zillow search, otherwise scrape
+      let zillow: { photos: string[]; zillowUrl: string | null };
+      if (l.source === 'zillow' && l.zillowPhotos && l.zillowPhotos.length > 0) {
+        zillow = { photos: l.zillowPhotos, zillowUrl: l.zillowUrl || null };
+      } else {
+        zillow = await scrapeZillowListing(l.formattedAddress, l.city, l.state, l.zipCode);
+      }
 
       // Construct Street View URL
       let streetViewUrl: string | null = null;
