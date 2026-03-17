@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { searchListings, getPropertyDetails, classifyOwnerType, calculateVacancyCost } from '@/lib/rentcast';
+import { searchRentals as searchScrapeak } from '@/lib/scrapeak';
 import { searchZillowRentals } from '@/lib/zillow-search';
 import { scrapeZillowListing, scrapeZillowContact } from '@/lib/zillow-scraper';
 import { enrichProperty } from '@/lib/propertyreach';
@@ -57,17 +58,55 @@ export async function POST(req: NextRequest) {
     );
     const jobId = jobResult.rows[0].id;
 
-    // Search Zillow first, fallback to RentCast
-    console.log(`[tenant-match] Searching Zillow for ${city}, ${state} | ${bedrooms}BR | max $${budgetMax}`);
+    // Search: Scrapeak (Zillow API) → Zillow scrape → RentCast
+    console.log(`[tenant-match] Searching for ${city}, ${state} | ${bedrooms}BR | max $${budgetMax}`);
 
-    let zillowListings = await searchZillowRentals({
+    // Try Scrapeak first (Zillow via API — returns 40+ results)
+    const scrapeakResults = await searchScrapeak({
       city,
       state,
       bedrooms: bedrooms || undefined,
       maxPrice: budgetMax ? Math.round(budgetMax * 1.15) : undefined,
       minPrice: budgetMin || undefined,
-      limit: 40,
     });
+
+    // Convert Scrapeak results to Zillow format
+    let zillowListings = scrapeakResults.map(s => ({
+      zpid: s.zpid,
+      address: s.address,
+      streetAddress: s.streetAddress,
+      city: s.city,
+      state: s.state,
+      zipCode: s.zipCode,
+      price: s.price,
+      bedrooms: s.bedrooms,
+      bathrooms: s.bathrooms,
+      sqft: s.sqft,
+      latitude: s.latitude,
+      longitude: s.longitude,
+      propertyType: s.propertyType,
+      listingUrl: s.listingUrl,
+      photos: s.photos,
+      daysOnZillow: s.daysOnZillow,
+      listingAgent: s.phone ? `Phone: ${s.phone}` : null,
+      listingPhone: s.phone,
+      brokerName: s.buildingName,
+      buildingName: s.buildingName,
+    }));
+
+    // Fallback to direct Zillow scrape if Scrapeak returned 0
+    if (zillowListings.length === 0) {
+      console.log(`[tenant-match] Scrapeak returned 0, trying Zillow scrape`);
+      const directResults = await searchZillowRentals({
+        city,
+        state,
+        bedrooms: bedrooms || undefined,
+        maxPrice: budgetMax ? Math.round(budgetMax * 1.15) : undefined,
+        minPrice: budgetMin || undefined,
+        limit: 40,
+      });
+      zillowListings = directResults;
+    }
 
     // Convert Zillow listings to common format
     let listings: Array<{
