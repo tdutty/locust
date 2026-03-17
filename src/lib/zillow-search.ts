@@ -52,7 +52,6 @@ function buildSearchUrl(params: ZillowSearchParams): string {
   const citySlug = city.toLowerCase().replace(/\s+/g, '-');
   const stateSlug = state.toLowerCase().replace(/\s+/g, '-');
 
-  // Build Zillow filter state
   const filterState: Record<string, unknown> = {
     fr: { value: true },     // for rent
     fsba: { value: false },  // not for sale by agent
@@ -63,9 +62,12 @@ function buildSearchUrl(params: ZillowSearchParams): string {
     fore: { value: false },  // not foreclosure
   };
 
+  // Bedroom filter: min only (1+ not exactly 1) to maximize results
   if (bedrooms !== undefined) {
-    filterState.beds = { min: bedrooms, max: bedrooms };
+    filterState.beds = { min: bedrooms };
   }
+
+  // Price filter on Zillow side so the 40 results per page are relevant
   if (maxPrice !== undefined || minPrice !== undefined) {
     const priceFilter: Record<string, number> = {};
     if (minPrice !== undefined) priceFilter.min = minPrice;
@@ -273,17 +275,10 @@ export async function searchZillowRentals(params: ZillowSearchParams): Promise<Z
       const html = await res.text();
       const listings = extractListingsFromHtml(html);
 
-      console.log(`[zillow-search] Found ${listings.length} listings`);
+      console.log(`[zillow-search] Found ${listings.length} listings (unfiltered)`);
 
-      // Filter by price/bedrooms if Zillow returned extras
-      const filtered = listings.filter(l => {
-        if (params.bedrooms !== undefined && l.bedrooms !== params.bedrooms && l.bedrooms !== 0) return false;
-        if (params.maxPrice !== undefined && l.price > params.maxPrice && l.price > 0) return false;
-        if (params.minPrice !== undefined && l.price < params.minPrice && l.price > 0) return false;
-        return l.price > 0;
-      });
-
-      return filtered.slice(0, limit);
+      // Return all listings with valid prices — filtering happens in the search route
+      return listings.filter(l => l.price > 0).slice(0, limit);
     } catch (err: any) {
       if (err.name === 'AbortError') {
         console.warn(`[zillow-search] Timeout on attempt ${attempt + 1}`);
