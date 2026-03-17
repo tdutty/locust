@@ -59,61 +59,155 @@ export async function POST(req: NextRequest) {
     );
     const jobId = jobResult.rows[0].id;
 
-    // Search: Scrapeak (Zillow API) → Zillow scrape → RentCast
+    // Check if city has been scanned recently (within 7 days)
     console.log(`[tenant-match] Searching for ${city}, ${state} | ${bedrooms}BR | max $${budgetMax}`);
 
-    // Try Scrapeak first (Zillow via API — returns 40+ results)
-    const scrapeakResults = await searchScrapeak({
-      city,
-      state,
-      bedrooms: bedrooms || undefined,
-      maxPrice: budgetMax ? Math.round(budgetMax * 1.15) : undefined,
-      minPrice: budgetMin || undefined,
-    });
+    const maxPrice = budgetMax ? Math.round(budgetMax * 1.15) : 99999;
+    const minPrice = budgetMin || 0;
 
-    // Convert Scrapeak results to Zillow format
-    let zillowListings = scrapeakResults.map(s => ({
-      zpid: s.zpid,
-      address: s.address,
-      streetAddress: s.streetAddress,
-      city: s.city,
-      state: s.state,
-      zipCode: s.zipCode,
-      price: s.price,
-      bedrooms: s.bedrooms,
-      bathrooms: s.bathrooms,
-      sqft: s.sqft,
-      latitude: s.latitude,
-      longitude: s.longitude,
-      propertyType: s.propertyType,
-      listingUrl: s.listingUrl,
-      photos: s.photos,
-      daysOnZillow: s.daysOnZillow,
-      listingAgent: s.phone ? `Phone: ${s.phone}` : null,
-      listingPhone: s.phone,
-      brokerName: s.buildingName,
-      buildingName: s.buildingName,
-      flexRecs: s.flexRecs,
-      zovInsight: s.zovInsight,
-    }));
+    let zillowListings: Array<any> = [];
 
-    // Fallback to direct Zillow scrape if Scrapeak returned 0
-    if (zillowListings.length === 0) {
-      console.log(`[tenant-match] Scrapeak returned 0, trying Zillow scrape`);
-      const directResults = await searchZillowRentals({
+    const scanCheck = await query(
+      `SELECT id, completed_at FROM city_scans
+       WHERE city = $1 AND state = $2 AND status = 'completed'
+         AND completed_at > NOW() - INTERVAL '7 days'`,
+      [city, state]
+    ).catch(() => ({ rows: [] }));
+
+    if (scanCheck.rows.length > 0) {
+      // City already scanned — query DB instead of hitting APIs
+      console.log(`[tenant-match] City ${city}, ${state} already scanned (${scanCheck.rows[0].completed_at}). Querying DB...`);
+
+      const dbListings = await query(
+        `SELECT rentcast_id as zpid, address, city, state, zip_code, listed_price, bedrooms, bathrooms, sqft,
+                latitude, longitude, property_type, zillow_url, zillow_photos, days_on_market,
+                owner_name, owner_email, owner_phone, owner_type, quality_score
+         FROM listings
+         WHERE city = $1 AND state = $2
+           AND listed_price >= $3 AND listed_price <= $4
+           AND bedrooms >= $5
+           AND source = 'zillow-scan'
+         ORDER BY quality_score DESC NULLS LAST, listed_price ASC
+         LIMIT 40`,
+        [city, state, minPrice, maxPrice, bedrooms]
+      );
+
+      if (dbListings.rows.length > 0) {
+        console.log(`[tenant-match] Found ${dbListings.rows.length} listings in DB`);
+
+        // Also pull portfolio landlord data for these listings
+        const landlords = await query(
+          `SELECT building_name, owner_name, owner_email, owner_phone, portfolio_size, listing_phone
+           FROM portfolio_landlords
+           WHERE city = $1 AND state = $2`,
+          [city, state]
+        ).catch(() => ({ rows: [] }));
+
+        const landlordMap = new Map<string, any>();
+        for (const l of landlords.rows) {
+          if (l.building_name) landlordMap.set(l.building_name.toLowerCase(), l);
+        }
+
+        zillowListings = dbListings.rows.map((r: any) => {
+          // Try to match with portfolio landlord data
+          const buildingName = r.address?.match(/^([^,]+),/)?.[0]?.replace(',', '').trim();
+          const landlord = buildingName ? landlordMap.get(buildingName.toLowerCase()) : null;
+
+          return {
+            zpid: r.zpid,
+            address: r.address,
+            streetAddress: r.address?.split(',')[0] || '',
+            city: r.city,
+            state: r.state,
+            zipCode: r.zip_code,
+            price: r.listed_price,
+            bedrooms: r.bedrooms,
+            bathrooms: r.bathrooms,
+            sqft: r.sqft,
+            latitude: r.latitude,
+            longitude: r.longitude,
+            propertyType: r.property_type,
+            listingUrl: r.zillow_url || '',
+            photos: r.zillow_photos || [],
+            daysOnZillow: r.days_on_market || 0,
+            listingAgent: null,
+            listingPhone: landlord?.listing_phone || null,
+            brokerName: null,
+            buildingName: null,
+            flexRecs: [] as Array<{ displayString: string; contentType: string }>,
+            zovInsight: null as { displayString: string; amenityType: string } | null,
+            // Pre-enriched from DB
+            source: 'db' as const,
+            dbOwnerName: r.owner_name || landlord?.owner_name || null,
+            dbOwnerEmail: r.owner_email || landlord?.owner_email || null,
+            dbOwnerPhone: r.owner_phone || landlord?.owner_phone || null,
+            dbOwnerType: r.owner_type || null,
+            dbPortfolioSize: landlord?.portfolio_size || 0,
+          };
+        });
+      }
+    }
+
+    // If DB didn't have enough results, fall back to live Scrapeak search
+    if (zillowListings.length < 10) {
+      console.log(`[tenant-match] DB had ${zillowListings.length} results, querying Scrapeak...`);
+
+      const scrapeakResults = await searchScrapeak({
         city,
         state,
         bedrooms: bedrooms || undefined,
-        maxPrice: budgetMax ? Math.round(budgetMax * 1.15) : undefined,
-        minPrice: budgetMin || undefined,
-        limit: 40,
+        maxPrice: maxPrice,
+        minPrice: minPrice,
       });
-      zillowListings = directResults.map(d => ({
-        ...d,
-        listingPhone: null as string | null,
-        flexRecs: [] as Array<{ displayString: string; contentType: string }>,
-        zovInsight: null as { displayString: string; amenityType: string } | null,
+
+      const scrapeakListings = scrapeakResults.map(s => ({
+        zpid: s.zpid,
+        address: s.address,
+        streetAddress: s.streetAddress,
+        city: s.city,
+        state: s.state,
+        zipCode: s.zipCode,
+        price: s.price,
+        bedrooms: s.bedrooms,
+        bathrooms: s.bathrooms,
+        sqft: s.sqft,
+        latitude: s.latitude,
+        longitude: s.longitude,
+        propertyType: s.propertyType,
+        listingUrl: s.listingUrl,
+        photos: s.photos,
+        daysOnZillow: s.daysOnZillow,
+        listingAgent: s.phone ? `Phone: ${s.phone}` : null,
+        listingPhone: s.phone,
+        brokerName: s.buildingName,
+        buildingName: s.buildingName,
+        flexRecs: s.flexRecs,
+        zovInsight: s.zovInsight,
       }));
+
+      // Fallback to direct Zillow scrape if Scrapeak also returned 0
+      if (scrapeakListings.length === 0) {
+        console.log(`[tenant-match] Scrapeak returned 0, trying Zillow scrape`);
+        const directResults = await searchZillowRentals({
+          city,
+          state,
+          bedrooms: bedrooms || undefined,
+          maxPrice,
+          minPrice,
+          limit: 40,
+        });
+        zillowListings = directResults.map(d => ({
+          ...d,
+          listingPhone: null as string | null,
+          flexRecs: [] as Array<{ displayString: string; contentType: string }>,
+          zovInsight: null as { displayString: string; amenityType: string } | null,
+        }));
+      } else {
+        // Deduplicate against DB results
+        const existingZpids = new Set(zillowListings.map(l => l.zpid));
+        const newListings = scrapeakListings.filter(l => !existingZpids.has(l.zpid));
+        zillowListings = [...zillowListings, ...newListings];
+      }
     }
 
     // Convert Zillow listings to common format
@@ -298,17 +392,23 @@ export async function POST(req: NextRequest) {
       const listingDbId = upsertResult.rows[0].id;
 
       // Enrich owner info from RentCast property details + Apollo
-      let ownerName: string | null = null;
-      let ownerType: string | null = null;
-      let ownerPhone: string | null = null;
-      let ownerEmail: string | null = null;
+      // Check if this listing came from the DB with pre-enriched owner data
+      let ownerName: string | null = (listing as any).dbOwnerName || null;
+      let ownerType: string | null = (listing as any).dbOwnerType || null;
+      let ownerPhone: string | null = (listing as any).dbOwnerPhone || null;
+      let ownerEmail: string | null = (listing as any).dbOwnerEmail || null;
+      const dbPortfolioSize: number = (listing as any).dbPortfolioSize || 0;
 
+      // If already enriched from city scan, skip expensive API calls
+      if (ownerName && (ownerEmail || ownerPhone)) {
+        console.log(`[tenant-match] Skipping enrichment for ${listing.formattedAddress} — already enriched from DB`);
+      } else {
       try {
         const existingListing = await query('SELECT owner_name, owner_email, owner_phone FROM listings WHERE id = $1', [listingDbId]);
         const row = existingListing.rows[0];
-        ownerName = row.owner_name;
-        ownerEmail = row.owner_email;
-        ownerPhone = row.owner_phone;
+        if (!ownerName) ownerName = row.owner_name;
+        if (!ownerEmail) ownerEmail = row.owner_email;
+        if (!ownerPhone) ownerPhone = row.owner_phone;
 
         if (!ownerName || !ownerEmail) {
           // Step 0: PropertyReach skip trace + portfolio detection (primary source)
@@ -469,6 +569,7 @@ export async function POST(req: NextRequest) {
       } catch (enrichErr) {
         console.error(`Failed to enrich listing ${listingDbId}:`, enrichErr);
       }
+      } // end else (not pre-enriched)
 
       enrichedCandidates.push({
         listingDbId,
