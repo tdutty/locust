@@ -112,11 +112,13 @@ export async function scanCity(city: string, state: string, bedroomsMin?: number
   const allListings: ScrappeakListing[] = [];
   let creditsUsed = 0;
 
+  // Build the base slug — handle multi-word cities and state abbreviations
+  const citySlug = city.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+  const stateSlug = state.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+  const baseSlug = `${citySlug}-${stateSlug}`;
+
   for (let page = 1; page <= PAGES_TO_SCAN; page++) {
     console.log(`[city-scan] Fetching page ${page}/${PAGES_TO_SCAN}...`);
-
-    const citySlug = city.toLowerCase().replace(/\s+/g, '-');
-    const stateSlug = state.toLowerCase().replace(/\s+/g, '-');
 
     const filterState: Record<string, unknown> = {
       isForRent: { value: true },
@@ -131,13 +133,15 @@ export async function scanCity(city: string, state: string, bedroomsMin?: number
 
     const searchQueryState: Record<string, unknown> = {
       pagination: page > 1 ? { currentPage: page } : {},
-      isMapVisible: false,
+      isMapVisible: true,
       mapBounds: { north: 90, south: -90, east: 180, west: -180 },
       regionSelection: [{ regionId, regionType: 6 }],
       filterState,
+      isListVisible: true,
     };
 
-    const zillowUrl = `https://www.zillow.com/${citySlug}-${stateSlug}/rentals/${page > 1 ? `${page}_p/` : ''}?searchQueryState=${encodeURIComponent(JSON.stringify(searchQueryState))}`;
+    // Use the regionId-based URL — more reliable than city slug for multi-word cities
+    const zillowUrl = `https://www.zillow.com/${baseSlug}/rentals/${page > 1 ? `${page}_p/` : ''}?searchQueryState=${encodeURIComponent(JSON.stringify(searchQueryState))}`;
 
     try {
       const res = await fetch(
@@ -148,13 +152,19 @@ export async function scanCity(city: string, state: string, bedroomsMin?: number
       creditsUsed += 10;
 
       if (!data.is_success) {
-        console.warn(`[city-scan] Page ${page} failed: ${data.message}`);
+        console.warn(`[city-scan] Page ${page} failed: ${data.message}. Credits remaining: ${data.info?.remaining_credits}`);
         break;
       }
 
       const results: any[] = data.data?.cat1?.searchResults?.listResults || [];
+      const totalAvailable = data.data?.categoryTotals?.cat1?.totalResultCount;
+
+      if (page === 1) {
+        console.log(`[city-scan] ${city}, ${state}: ${totalAvailable} total listings available on Zillow`);
+      }
+
       if (results.length === 0) {
-        console.log(`[city-scan] No more results at page ${page}`);
+        console.log(`[city-scan] No more results at page ${page}. Credits remaining: ${data.info?.remaining_credits}`);
         break;
       }
 
