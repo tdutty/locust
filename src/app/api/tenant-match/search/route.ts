@@ -196,23 +196,72 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Filter by bedrooms and budget
-    const filtered = listings.filter(l => {
-      if (l.bedrooms > 0 && l.bedrooms < bedrooms) return false;
-      if (l.price > budgetMax * 1.15) return false;
-      return l.price > 0;
-    });
+    // Pre-score all listings BEFORE enrichment to pick the best candidates
+    // This uses data we already have from Scrapeak (phone, photos, building name, amenities)
+    // No API calls — just ranking what we've got
+    const prescoredListings = listings
+      .filter(l => l.price > 0)
+      .map(l => {
+        let prescore = 0;
 
-    // Sort by relevance: closest to budget, then by days on market
-    const sorted = filtered.sort((a, b) => {
-      const aDiff = Math.abs(a.price - budgetMax);
-      const bDiff = Math.abs(b.price - budgetMax);
-      if (aDiff !== bDiff) return aDiff - bDiff;
-      return (b.daysOnMarket || 0) - (a.daysOnMarket || 0);
-    });
+        // Has phone from Zillow CTA (10pts) — means we can call immediately
+        if ((l as any).listingPhone) prescore += 10;
 
-    // Take top 20 candidates (we'll quality-filter down to 10 later)
-    const topCandidates = sorted.slice(0, 20);
+        // Photos available (5pts)
+        if ((l as any).zillowPhotos?.length >= 3 || (l as any).photos?.length >= 3) prescore += 5;
+
+        // Price within budget (15pts scaled)
+        if (l.price > 0 && budgetMax > 0) {
+          const ratio = l.price / budgetMax;
+          if (ratio <= 0.85) prescore += 15;       // well under budget
+          else if (ratio <= 1.0) prescore += 12;    // within budget
+          else if (ratio <= 1.1) prescore += 8;     // slightly over
+          else if (ratio <= 1.15) prescore += 3;    // at tolerance edge
+        }
+
+        // Bedroom match (10pts)
+        if (l.bedrooms > 0 && l.bedrooms === bedrooms) prescore += 10;
+        else if (l.bedrooms > 0 && l.bedrooms === bedrooms + 1) prescore += 5;
+
+        // Amenity hints from Scrapeak (10pts)
+        if (tenantAmenities.length > 0) {
+          const flexRecs = ((l as any).flexRecs || []).map((r: any) => r.displayString?.toLowerCase() || '');
+          const zovText = (l as any).zovInsight?.displayString?.toLowerCase() || '';
+          const buildingText = ((l as any).buildingName || '').toLowerCase();
+          const allText = [...flexRecs, zovText, buildingText].join(' ');
+
+          let matched = 0;
+          for (const amenity of tenantAmenities) {
+            const keywords: Record<string, string[]> = {
+              'Parking': ['parking', 'garage'], 'Gym': ['gym', 'fitness'], 'Pool': ['pool', 'swimming'],
+              'Pets OK': ['pet', 'dog', 'cat'], 'A/C': ['air', 'a/c', 'hvac'], 'Balcony': ['balcony', 'patio'],
+              'In-Unit Laundry': ['laundry', 'washer'], 'Dishwasher': ['dishwasher'],
+              'Doorman': ['doorman', 'concierge'], 'Rooftop': ['rooftop'], 'EV Charging': ['ev', 'charging'],
+              'Furnished': ['furnished'], 'Storage': ['storage'], 'Walk-in Closet': ['walk-in', 'closet'],
+              'Hardwood Floors': ['hardwood'], 'Washer/Dryer Hookup': ['hookup', 'washer'],
+            };
+            const kws = keywords[amenity] || [amenity.toLowerCase()];
+            if (kws.some(kw => allText.includes(kw))) matched++;
+          }
+          prescore += Math.round((matched / tenantAmenities.length) * 10);
+        }
+
+        // Days on market — staler = more negotiation leverage (5pts)
+        const dom = l.daysOnMarket || 0;
+        if (dom >= 30) prescore += 5;
+        else if (dom >= 14) prescore += 3;
+
+        // Is apartment complex (3pts) — usually has more units = portfolio potential
+        if ((l as any).buildingName) prescore += 3;
+
+        return { listing: l, prescore };
+      })
+      .sort((a, b) => b.prescore - a.prescore);
+
+    console.log(`[tenant-match] Pre-scored ${prescoredListings.length} listings. Top score: ${prescoredListings[0]?.prescore || 0}, Bottom: ${prescoredListings[prescoredListings.length - 1]?.prescore || 0}`);
+
+    // Take top 20 for enrichment (PropertyReach + Apollo — expensive calls)
+    const topCandidates = prescoredListings.slice(0, 20).map(p => p.listing);
 
     if (topCandidates.length === 0) {
       await query(
