@@ -606,7 +606,7 @@ Robert Gilbert`,
 
 export const TENANT_MATCH_BULK_SEQUENCES = [
   {
-    subject: '{{tenantCount}} pre-screened residents for your {{city}} property',
+    subject: 'Introduction: Tenant placement for your {{city}} property',
     body: (lead: LeadInfo) => {
       const count = lead.tenantCount || 2;
       const annual = lead.totalAnnualValue ? `$${Math.round(lead.totalAnnualValue).toLocaleString()}` : 'significant';
@@ -614,53 +614,55 @@ export const TENANT_MATCH_BULK_SEQUENCES = [
       const moveIn = lead.earliestMoveIn || 'soon';
       return `Dear ${lead.name},
 
-My name is Robert Gilbert with SweetLease. I am reaching out because we have ${count} verified medical residents actively looking for housing in ${lead.city || 'your area'} near your property at ${lead.propertyAddress || 'your listing'}.
+My name is Robert Gilbert, founder of SweetLease. We are a tenant placement service that works with verified medical professionals relocating for residency and fellowship training.
 
-Combined, that represents ${annual} in annual lease value — pre-screened tenants with guaranteed income averaging ${avg}/month per resident${moveIn !== 'soon' ? `, targeting a ${moveIn} move-in` : ''}.
+We currently have ${count} pre-qualified physicians looking for housing in ${lead.city || 'your area'} near your property at ${lead.propertyAddress || 'your listing'}. Combined, that represents ${annual} in annual lease value — all tenants with verified income averaging ${avg}/month${moveIn !== 'soon' ? `, targeting a ${moveIn} move-in` : ''}.
 
-Medical residents are among the most reliable tenants: stable income, long-term leases, and low turnover. Every vacant day costs roughly $${Math.round((lead.listingPrice || lead.averageBudget || 2000) / 30)}/day in lost rent — we can help fill your property quickly with verified tenants.
+Medical residents are among the most reliable tenant profiles: guaranteed W-2 income, 12-month minimum lease commitments, and historically low turnover. SweetLease handles tenant verification, lease coordination, and payment processing on your behalf. You maintain full approval authority on pricing and tenant selection.
 
-Here is how SweetLease works: we handle tenant verification, lease negotiation, and payment processing for each resident. You maintain final say on pricing and tenant approval. There is no cost to you — our platform fee is paid by the tenants.
+Our placement fee is one month's rent, due only at lease signing. There are no upfront costs or commitments.
 
-Would it be worth a 10-minute conversation? I can share anonymized profiles and walk you through the next steps.
+I would welcome the opportunity to share anonymized tenant profiles and discuss whether this might be a fit. Would a brief call this week work for you?
 
 Best regards,
-Robert Gilbert`;
+Robert Gilbert
+SweetLease`;
     },
   },
   {
-    subject: 'Quick follow-up — {{tenantCount}} residents still looking in {{city}}',
+    subject: 'Following up — tenant placement inquiry, {{city}}',
     body: (lead: LeadInfo) => {
       const count = lead.tenantCount || 2;
-      const vacancyCost = Math.round((lead.listingPrice || lead.averageBudget || 2000) / 30);
-      return `Hi ${lead.name.split(' ')[0]},
+      return `Dear ${lead.name.split(' ')[0]},
 
-Following up on my previous note about the ${count} pre-screened medical residents looking in ${lead.city || 'your area'}.
+I wanted to follow up on my previous note regarding the ${count} pre-qualified medical residents seeking housing in ${lead.city || 'your area'}.
 
-Your property at ${lead.propertyAddress || 'your listing'} is losing roughly $${vacancyCost}/day sitting vacant. We have ${count} verified residents ready to sign — all with guaranteed income and long-term lease commitments.
+These physicians begin their residency programs in the coming weeks and are actively finalizing their housing arrangements. Your property at ${lead.propertyAddress || 'your listing'} is well-suited to their requirements.
 
-We handle everything: lease generation, e-signatures, payment processing, and tenant verification. You just approve the terms and tenants.
+We handle the full placement process: tenant verification, lease preparation, electronic signatures, and payment collection. You simply review and approve.
 
-If the timing works, I am happy to share the resident profiles. If not, just let me know and I will remove you from future outreach.
+If the timing works, I would be happy to share the tenant profiles. If not, I understand completely.
 
 Best regards,
-Robert Gilbert`;
+Robert Gilbert
+SweetLease`;
     },
   },
   {
-    subject: 'Last note about your {{city}} listing',
+    subject: 'Closing the loop — {{city}} tenant placement',
     body: (lead: LeadInfo) => {
       const count = lead.tenantCount || 2;
-      return `Hi ${lead.name.split(' ')[0]},
+      return `Dear ${lead.name.split(' ')[0]},
 
-This will be my last note about the ${count} medical residents looking for housing near your property at ${lead.propertyAddress || 'your listing'}.
+I am reaching out one final time regarding the ${count} medical residents seeking housing near your property at ${lead.propertyAddress || 'your listing'}.
 
-If the timing is not right, I completely understand. We regularly work with new groups of residents relocating for training, so if you would like to be considered for future placement opportunities, just let me know.
+If the timing is not right, I completely understand. We work with new groups of relocating physicians throughout the year, so if you would like to be considered for future placement opportunities, please do not hesitate to reach out.
 
-Wishing you the best.
+Wishing you all the best.
 
 Best regards,
-Robert Gilbert`;
+Robert Gilbert
+SweetLease`;
     },
   },
 ];
