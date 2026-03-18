@@ -53,20 +53,35 @@ export async function register() {
 
     // listing-enricher: every 3 minutes — pull full details from Scrapeak /property
     if (process.env.SCRAPEAK_API_KEY) {
-      cron.default.schedule('*/2 * * * *', async () => {
+      cron.default.schedule('*/1 * * * *', async () => {
         try {
           const { enrichListingBatch, getEnrichmentProgress } = await import('@/lib/listing-enricher');
-          const result = await enrichListingBatch(20); // 20 listings per batch (400 credits)
-          if (result.enriched > 0 || result.failed > 0) {
+          // Run 5 parallel batches of 10 each = 50 listings per minute
+          const results = await Promise.allSettled([
+            enrichListingBatch(10),
+            enrichListingBatch(10),
+            enrichListingBatch(10),
+            enrichListingBatch(10),
+            enrichListingBatch(10),
+          ]);
+          const totals = results.reduce((acc, r) => {
+            if (r.status === 'fulfilled') {
+              acc.enriched += r.value.enriched;
+              acc.failed += r.value.failed;
+              acc.credits += r.value.creditsUsed;
+            }
+            return acc;
+          }, { enriched: 0, failed: 0, credits: 0 });
+          if (totals.enriched > 0 || totals.failed > 0) {
             const progress = await getEnrichmentProgress();
-            console.log(`[cron] listing-enricher → ${result.enriched} enriched, ${result.failed} failed | ${progress.enriched}/${progress.totalListings} done (${progress.percentComplete}%) | ${progress.creditsUsed} credits used`);
+            console.log(`[cron] listing-enricher → ${totals.enriched} enriched, ${totals.failed} failed | ${progress.enriched}/${progress.totalListings} (${progress.percentComplete}%) | ${progress.creditsUsed} credits`);
           }
         } catch (err: any) {
           console.error(`[cron] listing-enricher failed:`, err.message);
         }
       });
       jobCount++;
-      console.log('[cron]   listing-enricher  : */3 * * * *  (every 3 min, 3 listings/batch)');
+      console.log('[cron]   listing-enricher  : */1 * * * *  (every min, 5x10 parallel)');
     }
 
     // photo-download: every 5 minutes — download enriched photos to S3

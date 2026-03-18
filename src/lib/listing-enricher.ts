@@ -9,7 +9,7 @@ import { query } from '@/lib/db';
 const SCRAPEAK_API_KEY = process.env.SCRAPEAK_API_KEY || '';
 
 function delay(ms: number) {
-  return new Promise(resolve => setTimeout(resolve, ms + Math.random() * 500));
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 interface EnrichResult {
@@ -103,14 +103,13 @@ export async function enrichListingBatch(batchSize: number = 5): Promise<EnrichR
         );
         await query(`UPDATE listings SET enriched_at = NOW() WHERE id = $1`, [listing.id]);
         skipped++;
-        await delay(300);
+        await delay(100);
         continue;
       }
 
       const zpid = zpidData.data[0].zpid;
 
-      // Step 2: Get full property details
-      await delay(300);
+      await delay(100);
 
       const propRes = await fetch(
         `https://app.scrapeak.com/v1/scrapers/zillow/property?api_key=${SCRAPEAK_API_KEY}&zpid=${zpid}`,
@@ -226,8 +225,7 @@ export async function enrichListingBatch(batchSize: number = 5): Promise<EnrichR
       enriched++;
       console.log(`[enricher] ${listing.address}: ${photos.length} photos, ${amenities.length} amenities, ${d.bathrooms || 0} baths`);
 
-      // Delay between listings (500ms-1s)
-      await delay(500 + Math.random() * 500);
+      await delay(200);
     } catch (err: any) {
       failed++;
       await query(
