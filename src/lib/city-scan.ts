@@ -12,6 +12,51 @@ import { searchRentals, getRegionId, ScrappeakListing } from '@/lib/scrapeak';
 import { enrichProperty, getLinkedProperties } from '@/lib/propertyreach';
 
 const SCRAPEAK_API_KEY = process.env.SCRAPEAK_API_KEY || '';
+
+/**
+ * Extract ALL photos from a Scrapeak listing result.
+ * Uses carouselPhotosComposable for full photo set, falls back to imgSrc thumbnail.
+ */
+function extractAllPhotos(r: any): string[] {
+  const photos: string[] = [];
+  const seen = new Set<string>();
+
+  // Carousel photos (full set — up to 20+)
+  if (r.carouselPhotosComposable?.photoData) {
+    const baseUrl = r.carouselPhotosComposable.baseUrl || 'https://photos.zillowstatic.com/fp/{photoKey}-p_e.jpg';
+    for (const p of r.carouselPhotosComposable.photoData) {
+      if (p.photoKey) {
+        const url = baseUrl.replace('{photoKey}', p.photoKey);
+        if (!seen.has(url)) {
+          seen.add(url);
+          photos.push(url);
+        }
+      }
+    }
+  }
+
+  // Community photos
+  if (r.carouselPhotosComposable?.communityBaseUrl && r.carouselPhotosComposable?.photoData) {
+    const communityBase = r.carouselPhotosComposable.communityBaseUrl;
+    for (const p of r.carouselPhotosComposable.photoData) {
+      if (p.communityPhotoKey) {
+        const url = communityBase.replace('{photoKey}', p.communityPhotoKey);
+        if (!seen.has(url)) {
+          seen.add(url);
+          photos.push(url);
+        }
+      }
+    }
+  }
+
+  // Fallback to thumbnail
+  if (photos.length === 0 && r.imgSrc) {
+    photos.push(r.imgSrc);
+  }
+
+  return photos;
+}
+
 // Max 20 pages per scan — Zillow caps at ~page 20 anyway
 // Each page = 41 listings × 10 credits = ~820 listings for 200 credits
 const PAGES_TO_SCAN = 20;
@@ -189,7 +234,7 @@ export async function scanCity(city: string, state: string, bedroomsMin?: number
           longitude: r.latLong?.longitude || 0,
           propertyType: r.buildingName ? 'Apartment' : 'Single Family',
           listingUrl: (r.detailUrl || '').startsWith('http') ? r.detailUrl : `https://www.zillow.com${r.detailUrl || ''}`,
-          photos: r.imgSrc ? [r.imgSrc] : [],
+          photos: extractAllPhotos(r),
           daysOnZillow: r.daysOnZillow || 0,
           buildingName: r.buildingName || null,
           phone,
