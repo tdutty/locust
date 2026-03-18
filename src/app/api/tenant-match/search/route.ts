@@ -148,6 +148,67 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // If DB had enough results, send directly to SweetLease (skip enrichment)
+    const dbListings = zillowListings.filter((l: any) => l.source === 'db');
+    if (dbListings.length >= 10) {
+      console.log(`[tenant-match] Using ${dbListings.length} pre-enriched DB listings`);
+
+      // Pre-score and take top 10
+      const scored = dbListings
+        .map((l: any) => {
+          let score = 0;
+          if (l.dbOwnerEmail || l.dbOwnerPhone) score += 25;
+          if (l.listingPhone) score += 10;
+          if (l.price > 0 && budgetMax > 0 && l.price <= budgetMax) score += 15;
+          if (l.bedrooms === bedrooms) score += 10;
+          if (l.photos?.length > 0) score += 5;
+          return { listing: l, score };
+        })
+        .sort((a: any, b: any) => b.score - a.score)
+        .slice(0, 10);
+
+      const matchedListingData = scored.map((s: any) => {
+        const l = s.listing;
+        return {
+          locustListingId: 0,
+          address: l.address,
+          city: l.city || city,
+          state: l.state || state,
+          zipCode: l.zipCode,
+          price: l.price,
+          bedrooms: l.bedrooms,
+          bathrooms: l.bathrooms,
+          sqft: l.sqft,
+          daysOnMarket: l.daysOnZillow || 0,
+          ownerName: l.dbOwnerName || null,
+          ownerEmail: l.dbOwnerEmail || null,
+          ownerPhone: l.dbOwnerPhone || null,
+          ownerType: l.dbOwnerType || null,
+          propertyType: l.propertyType,
+          latitude: l.latitude,
+          longitude: l.longitude,
+          zillowUrl: l.listingUrl,
+          zillowPhotos: l.photos || [],
+          qualityScore: s.score,
+        };
+      });
+
+      await query(
+        `UPDATE tenant_match_jobs SET status = 'matched', matched_listing_ids = $1, updated_at = NOW() WHERE id = $2`,
+        [scored.map(() => 0), jobId]
+      );
+
+      await callbackToSweetLease(matchRequestId, 'matched', matchedListingData.length, matchedListingData);
+
+      return NextResponse.json({
+        jobId,
+        matchCount: matchedListingData.length,
+        enrichedCount: matchedListingData.filter((l: any) => l.ownerEmail).length,
+        qualityFilteredFrom: dbListings.length,
+        source: 'db-cache',
+      });
+    }
+
     // If DB didn't have enough results, fall back to live Scrapeak search
     if (zillowListings.length < 10) {
       console.log(`[tenant-match] DB had ${zillowListings.length} results, querying Scrapeak...`);
