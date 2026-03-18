@@ -51,15 +51,32 @@ export async function register() {
       triggerCron('advance-sequences', '/api/cron/advance-sequences');
     });
 
-    // photo-download: every 5 minutes — download listing photos from Zillow to S3
+    // listing-enricher: every 3 minutes — pull full details from Scrapeak /property
+    if (process.env.SCRAPEAK_API_KEY) {
+      cron.default.schedule('*/2 * * * *', async () => {
+        try {
+          const { enrichListingBatch, getEnrichmentProgress } = await import('@/lib/listing-enricher');
+          const result = await enrichListingBatch(20); // 20 listings per batch (400 credits)
+          if (result.enriched > 0 || result.failed > 0) {
+            const progress = await getEnrichmentProgress();
+            console.log(`[cron] listing-enricher → ${result.enriched} enriched, ${result.failed} failed | ${progress.enriched}/${progress.totalListings} done (${progress.percentComplete}%) | ${progress.creditsUsed} credits used`);
+          }
+        } catch (err: any) {
+          console.error(`[cron] listing-enricher failed:`, err.message);
+        }
+      });
+      jobCount++;
+      console.log('[cron]   listing-enricher  : */3 * * * *  (every 3 min, 3 listings/batch)');
+    }
+
+    // photo-download: every 5 minutes — download enriched photos to S3
     if (process.env.DO_SPACES_KEY) {
       cron.default.schedule('*/5 * * * *', async () => {
         try {
-          const { downloadPhotoBatch, getDownloadProgress } = await import('@/lib/photo-downloader');
-          const result = await downloadPhotoBatch(10); // 10 listings per batch (~100 photos)
+          const { downloadPhotoBatch } = await import('@/lib/photo-downloader');
+          const result = await downloadPhotoBatch(10);
           if (result.downloaded > 0) {
-            const progress = await getDownloadProgress();
-            console.log(`[cron] photo-download → ${result.downloaded} downloaded, ${result.failed} failed | ${progress.withS3Photos}/${progress.withZillowPhotos} listings done (${progress.totalS3Photos} total photos)`);
+            console.log(`[cron] photo-download → ${result.downloaded} downloaded, ${result.failed} failed`);
           }
         } catch (err: any) {
           console.error(`[cron] photo-download failed:`, err.message);
