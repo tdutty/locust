@@ -101,7 +101,16 @@ export async function downloadPhotoBatch(batchSize: number = 20): Promise<Downlo
         clearTimeout(timeout);
 
         if (!res.ok) {
+          const isBlocked = res.status === 403 || res.status === 429;
+          await query(
+            `INSERT INTO photo_download_log (listing_id, photo_url, status, error) VALUES ($1, $2, $3, $4)`,
+            [listing.id, zillowUrl, isBlocked ? 'blocked' : 'failed', `HTTP ${res.status}`]
+          ).catch(() => {});
           failed++;
+          if (isBlocked) {
+            console.warn(`[photo-dl] Blocked by Zillow (${res.status}) — pausing this listing`);
+            await delay(5000 + Math.random() * 5000); // Extra long delay on block
+          }
           continue;
         }
 
@@ -114,6 +123,7 @@ export async function downloadPhotoBatch(batchSize: number = 20): Promise<Downlo
         }
 
         // Upload to S3
+        const startTime = Date.now();
         await s3Client.send(new PutObjectCommand({
           Bucket: BUCKET,
           Key: s3Key,
@@ -123,16 +133,30 @@ export async function downloadPhotoBatch(batchSize: number = 20): Promise<Downlo
           CacheControl: 'public, max-age=31536000',
         }));
 
-        s3Urls.push(`${CDN_BASE}/${s3Key}`);
+        const cdnUrl = `${CDN_BASE}/${s3Key}`;
+        s3Urls.push(cdnUrl);
         downloaded++;
+
+        // Log success
+        await query(
+          `INSERT INTO photo_download_log (listing_id, photo_url, s3_url, status, bytes, duration_ms) VALUES ($1, $2, $3, 'success', $4, $5)`,
+          [listing.id, zillowUrl, cdnUrl, buffer.length, Date.now() - startTime]
+        ).catch(() => {});
 
         // Random delay between images (500ms-2s)
         await delay(500 + Math.random() * 1500);
       } catch (err: any) {
+        const status = err.name === 'AbortError' ? 'timeout' : 'failed';
         if (err.name === 'AbortError') {
           console.warn(`[photo-dl] Timeout downloading ${zillowUrl}`);
         }
         failed++;
+
+        // Log failure
+        await query(
+          `INSERT INTO photo_download_log (listing_id, photo_url, status, error) VALUES ($1, $2, $3, $4)`,
+          [listing.id, zillowUrl, status, err.message?.slice(0, 200)]
+        ).catch(() => {});
       }
     }
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { downloadPhotoBatch, getDownloadProgress } from '@/lib/photo-downloader';
+import { getPhotoMonitorStats } from '@/lib/photo-monitor';
 
 export const maxDuration = 300;
 
@@ -25,13 +26,13 @@ export async function POST(req: NextRequest) {
       totalFailed += result.failed;
       totalProcessed += result.processed;
 
-      if (result.processed === 0) break; // No more to process
+      if (result.processed === 0) break;
     }
 
-    const progress = await getDownloadProgress();
+    const stats = await getPhotoMonitorStats();
 
     return NextResponse.json({
-      ...progress,
+      ...stats,
       batchResult: { totalProcessed, totalDownloaded, totalFailed },
     });
   } catch (error: any) {
@@ -42,8 +43,8 @@ export async function POST(req: NextRequest) {
 
 export async function GET() {
   try {
-    const progress = await getDownloadProgress();
-    return NextResponse.json(progress);
+    const stats = await getPhotoMonitorStats();
+    return NextResponse.json(stats);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
