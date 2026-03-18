@@ -84,22 +84,23 @@ export async function register() {
       console.log('[cron]   listing-enricher  : */1 * * * *  (every min, 5x10 parallel)');
     }
 
-    // photo-download: every 5 minutes — download enriched photos to S3
-    if (process.env.DO_SPACES_KEY) {
-      cron.default.schedule('*/5 * * * *', async () => {
-        try {
-          const { downloadPhotoBatch } = await import('@/lib/photo-downloader');
-          const result = await downloadPhotoBatch(10);
-          if (result.downloaded > 0) {
-            console.log(`[cron] photo-download → ${result.downloaded} downloaded, ${result.failed} failed`);
-          }
-        } catch (err: any) {
-          console.error(`[cron] photo-download failed:`, err.message);
-        }
-      });
-      jobCount++;
-      console.log('[cron]   photo-download    : */5 * * * *  (every 5 min, 10 listings/batch)');
-    }
+    // photo-download: PAUSED — waiting for listing enricher to finish getting all photos
+    // Uncomment when enrichment is complete to start transferring to S3
+    // if (process.env.DO_SPACES_KEY) {
+    //   cron.default.schedule('*/5 * * * *', async () => {
+    //     try {
+    //       const { downloadPhotoBatch } = await import('@/lib/photo-downloader');
+    //       const result = await downloadPhotoBatch(10);
+    //       if (result.downloaded > 0) {
+    //         console.log(`[cron] photo-download → ${result.downloaded} downloaded, ${result.failed} failed`);
+    //       }
+    //     } catch (err: any) {
+    //       console.error(`[cron] photo-download failed:`, err.message);
+    //     }
+    //   });
+    //   jobCount++;
+    // }
+    console.log('[cron]   photo-download    : PAUSED (waiting for enrichment to complete)');
 
     // trigger-calls: only schedule if Retell is configured
     if (process.env.RETELL_API_KEY && process.env.RETELL_AGENT_ID) {
