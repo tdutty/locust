@@ -55,14 +55,18 @@ export async function enrichListingBatch(batchSize: number = 5): Promise<EnrichR
     )
   `).catch(() => {});
 
-  // Find listings not yet enriched — prioritize by quality score (best listings first)
+  // Find listings not yet enriched — skip ones that already failed with "not found"
   const listings = await query(
-    `SELECT id, rentcast_id, address, city, state, zip_code, zillow_url
-     FROM listings
-     WHERE enriched_at IS NULL
-       AND source = 'zillow-scan'
-       AND zillow_photos IS NOT NULL
-     ORDER BY quality_score DESC NULLS LAST
+    `SELECT l.id, l.rentcast_id, l.address, l.city, l.state, l.zip_code, l.zillow_url
+     FROM listings l
+     WHERE l.enriched_at IS NULL
+       AND l.source = 'zillow-scan'
+       AND l.zillow_photos IS NOT NULL
+       AND NOT EXISTS (
+         SELECT 1 FROM listing_enrichment_log el
+         WHERE el.listing_id = l.id AND el.status = 'no_zpid'
+       )
+     ORDER BY l.quality_score DESC NULLS LAST
      LIMIT $1`,
     [batchSize]
   );
@@ -95,15 +99,27 @@ export async function enrichListingBatch(batchSize: number = 5): Promise<EnrichR
       const zpidData = await zpidRes.json();
       creditsUsed += 10;
 
+      // Rate limit detection — pause and retry later
+      const zpidMsg = zpidData.message || '';
+      if (zpidMsg.toLowerCase().includes('rate limit')) {
+        console.warn(`[enricher] Rate limited on zpid lookup — pausing batch`);
+        await query(
+          `INSERT INTO listing_enrichment_log (listing_id, status, error, credits_used, duration_ms) VALUES ($1, 'rate_limited', $2, 0, $3)`,
+          [listing.id, zpidMsg, Date.now() - startTime]
+        );
+        failed++;
+        await delay(10000); // 10 second pause on rate limit
+        break; // Stop this batch entirely
+      }
+
       if (!zpidData.is_success || !zpidData.data?.[0]?.zpid) {
-        // Log and mark as enriched (so we don't retry)
         await query(
           `INSERT INTO listing_enrichment_log (listing_id, status, error, credits_used, duration_ms) VALUES ($1, 'no_zpid', $2, 10, $3)`,
           [listing.id, 'Address not found on Zillow', Date.now() - startTime]
         );
         await query(`UPDATE listings SET enriched_at = NOW() WHERE id = $1`, [listing.id]);
         skipped++;
-        await delay(100);
+        await delay(300);
         continue;
       }
 
@@ -118,14 +134,22 @@ export async function enrichListingBatch(batchSize: number = 5): Promise<EnrichR
       const propData = await propRes.json();
       creditsUsed += 10;
 
+      const propMsg = propData.message || '';
+      if (propMsg.toLowerCase().includes('rate limit')) {
+        console.warn(`[enricher] Rate limited on property detail — pausing batch`);
+        await delay(10000);
+        failed++;
+        break;
+      }
+
       if (!propData.is_success || !propData.data) {
         await query(
           `INSERT INTO listing_enrichment_log (listing_id, zpid, status, error, credits_used, duration_ms) VALUES ($1, $2, 'failed', $3, 20, $4)`,
-          [listing.id, zpid, propData.message || 'No data returned', Date.now() - startTime]
+          [listing.id, zpid, propMsg || 'No data returned', Date.now() - startTime]
         );
         await query(`UPDATE listings SET enriched_at = NOW(), zpid = $2 WHERE id = $1`, [listing.id, zpid]);
         failed++;
-        await delay(2000);
+        await delay(500);
         continue;
       }
 
@@ -225,7 +249,7 @@ export async function enrichListingBatch(batchSize: number = 5): Promise<EnrichR
       enriched++;
       console.log(`[enricher] ${listing.address}: ${photos.length} photos, ${amenities.length} amenities, ${d.bathrooms || 0} baths`);
 
-      await delay(200);
+      await delay(500);
     } catch (err: any) {
       failed++;
       await query(
@@ -257,9 +281,10 @@ export async function getEnrichmentProgress(): Promise<{
     SELECT
       COUNT(*) as total,
       COUNT(CASE WHEN enriched_at IS NOT NULL THEN 1 END) as enriched,
-      COUNT(CASE WHEN enriched_at IS NULL AND source = 'zillow-scan' THEN 1 END) as pending
+      COUNT(CASE WHEN enriched_at IS NULL AND source = 'zillow-scan' THEN 1 END) as pending,
+      (SELECT COUNT(*) FROM listing_enrichment_log WHERE status = 'no_zpid') as skipped
     FROM listings
-  `).catch(() => ({ rows: [{ total: '0', enriched: '0', pending: '0' }] }));
+  `).catch(() => ({ rows: [{ total: '0', enriched: '0', pending: '0', skipped: '0' }] }));
 
   const hourStats = await query(`
     SELECT

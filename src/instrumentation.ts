@@ -53,14 +53,11 @@ export async function register() {
 
     // listing-enricher: every 3 minutes — pull full details from Scrapeak /property
     if (process.env.SCRAPEAK_API_KEY) {
-      cron.default.schedule('*/1 * * * *', async () => {
+      cron.default.schedule('*/2 * * * *', async () => {
         try {
           const { enrichListingBatch, getEnrichmentProgress } = await import('@/lib/listing-enricher');
-          // Run 5 parallel batches of 10 each = 50 listings per minute
+          // Run 2 parallel batches of 10 each = 20 listings per 2 min (avoids rate limits)
           const results = await Promise.allSettled([
-            enrichListingBatch(10),
-            enrichListingBatch(10),
-            enrichListingBatch(10),
             enrichListingBatch(10),
             enrichListingBatch(10),
           ]);
