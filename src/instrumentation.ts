@@ -51,6 +51,24 @@ export async function register() {
       triggerCron('advance-sequences', '/api/cron/advance-sequences');
     });
 
+    // photo-download: every 5 minutes — download listing photos from Zillow to S3
+    if (process.env.DO_SPACES_KEY) {
+      cron.default.schedule('*/5 * * * *', async () => {
+        try {
+          const { downloadPhotoBatch, getDownloadProgress } = await import('@/lib/photo-downloader');
+          const result = await downloadPhotoBatch(10); // 10 listings per batch (~100 photos)
+          if (result.downloaded > 0) {
+            const progress = await getDownloadProgress();
+            console.log(`[cron] photo-download → ${result.downloaded} downloaded, ${result.failed} failed | ${progress.withS3Photos}/${progress.withZillowPhotos} listings done (${progress.totalS3Photos} total photos)`);
+          }
+        } catch (err: any) {
+          console.error(`[cron] photo-download failed:`, err.message);
+        }
+      });
+      jobCount++;
+      console.log('[cron]   photo-download    : */5 * * * *  (every 5 min, 10 listings/batch)');
+    }
+
     // trigger-calls: only schedule if Retell is configured
     if (process.env.RETELL_API_KEY && process.env.RETELL_AGENT_ID) {
       cron.default.schedule('*/1 * * * *', () => {
