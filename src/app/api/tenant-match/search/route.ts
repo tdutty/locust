@@ -153,7 +153,7 @@ export async function POST(req: NextRequest) {
     if (dbListings.length >= 10) {
       console.log(`[tenant-match] Using ${dbListings.length} pre-enriched DB listings`);
 
-      // Pre-score and take top 10
+      // Pre-score and take top 30
       const scored = dbListings
         .map((l: any) => {
           let score = 0;
@@ -165,7 +165,7 @@ export async function POST(req: NextRequest) {
           return { listing: l, score };
         })
         .sort((a: any, b: any) => b.score - a.score)
-        .slice(0, 10);
+        .slice(0, 30);
 
       const matchedListingData = scored.map((s: any) => {
         const l = s.listing;
@@ -415,8 +415,8 @@ export async function POST(req: NextRequest) {
 
     console.log(`[tenant-match] Pre-scored ${prescoredListings.length} listings. Top score: ${prescoredListings[0]?.prescore || 0}, Bottom: ${prescoredListings[prescoredListings.length - 1]?.prescore || 0}`);
 
-    // Take top 20 for enrichment (PropertyReach + Apollo — expensive calls)
-    const topCandidates = prescoredListings.slice(0, 20).map(p => p.listing);
+    // Take top 40 for enrichment (PropertyReach + Apollo — expensive calls)
+    const topCandidates = prescoredListings.slice(0, 40).map(p => p.listing);
 
     if (topCandidates.length === 0) {
       await query(
@@ -728,8 +728,8 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Quality filter: score >= 40, sorted by quality desc, top 10
-    const qualityFiltered = filterByQuality(scoredListings).slice(0, 10);
+    // Quality filter: score >= 40, sorted by quality desc, top 30
+    const qualityFiltered = filterByQuality(scoredListings).slice(0, 30);
 
     console.log(`[tenant-match] Quality filter: ${scoredListings.length} → ${qualityFiltered.length} listings (threshold 40)`);
 
