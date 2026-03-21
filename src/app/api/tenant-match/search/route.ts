@@ -153,7 +153,7 @@ export async function POST(req: NextRequest) {
     if (dbListings.length >= 10) {
       console.log(`[tenant-match] Using ${dbListings.length} pre-enriched DB listings`);
 
-      // Pre-score and take top 30
+      // Pre-score and take top 100
       const scored = dbListings
         .map((l: any) => {
           let score = 0;
@@ -165,7 +165,7 @@ export async function POST(req: NextRequest) {
           return { listing: l, score };
         })
         .sort((a: any, b: any) => b.score - a.score)
-        .slice(0, 30);
+        .slice(0, 100);
 
       const matchedListingData = scored.map((s: any) => {
         const l = s.listing;
@@ -415,8 +415,8 @@ export async function POST(req: NextRequest) {
 
     console.log(`[tenant-match] Pre-scored ${prescoredListings.length} listings. Top score: ${prescoredListings[0]?.prescore || 0}, Bottom: ${prescoredListings[prescoredListings.length - 1]?.prescore || 0}`);
 
-    // Take top 40 for enrichment (PropertyReach + Apollo — expensive calls)
-    const topCandidates = prescoredListings.slice(0, 40).map(p => p.listing);
+    // Take top 100 for enrichment
+    const topCandidates = prescoredListings.slice(0, 100).map(p => p.listing);
 
     if (topCandidates.length === 0) {
       await query(
@@ -728,8 +728,8 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Quality filter: score >= 40, sorted by quality desc, top 30
-    const qualityFiltered = filterByQuality(scoredListings).slice(0, 30);
+    // Quality filter: score >= 40, sorted by quality desc, top 100
+    const qualityFiltered = filterByQuality(scoredListings).slice(0, 100);
 
     console.log(`[tenant-match] Quality filter: ${scoredListings.length} → ${qualityFiltered.length} listings (threshold 40)`);
 
@@ -776,6 +776,80 @@ export async function POST(req: NextRequest) {
       streetViewUrl: l.streetViewUrl,
       qualityScore: l.qualityScore,
     }));
+
+    // Enrich top listings with full property details + all photos from Scrapeak
+    console.log(`[tenant-match] Enriching ${Math.min(matchedListingData.length, 100)} listings with full property details...`);
+    const SCRAPEAK_KEY = process.env.SCRAPEAK_API_KEY || '';
+    if (SCRAPEAK_KEY) {
+      for (let i = 0; i < Math.min(matchedListingData.length, 100); i++) {
+        const listing = matchedListingData[i];
+        try {
+          // Get zpid from address
+          const street = listing.address?.split(',')[0]?.trim();
+          if (!street || !listing.city || !listing.state) continue;
+
+          const zpidRes = await fetch(
+            `https://app.scrapeak.com/v1/scrapers/zillow/zpidByAddress?api_key=${SCRAPEAK_KEY}&street=${encodeURIComponent(street)}&city=${encodeURIComponent(listing.city)}&state=${encodeURIComponent(listing.state)}`,
+            { signal: AbortSignal.timeout(15000) }
+          );
+          const zpidData = await zpidRes.json();
+          if (!zpidData.is_success || !zpidData.data?.[0]?.zpid) continue;
+
+          // Get full property details
+          const propRes = await fetch(
+            `https://app.scrapeak.com/v1/scrapers/zillow/property?api_key=${SCRAPEAK_KEY}&zpid=${zpidData.data[0].zpid}`,
+            { signal: AbortSignal.timeout(15000) }
+          );
+          const propData = await propRes.json();
+          if (!propData.is_success || !propData.data) continue;
+
+          const d = propData.data;
+
+          // Extract all hi-res photos
+          const allPhotos: string[] = [];
+          const responsivePhotos = d.responsivePhotos || d.photos || [];
+          for (const p of responsivePhotos) {
+            const jpegs = p.mixedSources?.jpeg || [];
+            const largest = jpegs.length > 0 ? jpegs[jpegs.length - 1] : null;
+            const url = largest?.url || p.url;
+            if (url) allPhotos.push(url);
+          }
+
+          // Update the listing data with enriched info
+          if (allPhotos.length > 0) listing.zillowPhotos = allPhotos;
+          if (d.bathrooms) listing.bathrooms = d.bathrooms;
+          if (d.livingArea) listing.sqft = d.livingArea;
+          if (d.description) (listing as any).description = d.description;
+
+          // Extract amenities
+          const amenities: string[] = [];
+          const desc = (d.description || '').toLowerCase();
+          const amenityMap: Record<string, string> = {
+            'pool': 'Pool', 'gym': 'Gym', 'fitness': 'Gym', 'parking': 'Parking',
+            'garage': 'Garage', 'laundry': 'Laundry', 'washer': 'Washer/Dryer',
+            'dishwasher': 'Dishwasher', 'balcony': 'Balcony', 'patio': 'Patio',
+            'hardwood': 'Hardwood Floors', 'pet': 'Pet Friendly', 'elevator': 'Elevator',
+            'storage': 'Storage', 'furnished': 'Furnished',
+          };
+          for (const [kw, am] of Object.entries(amenityMap)) {
+            if (desc.includes(kw) && !amenities.includes(am)) amenities.push(am);
+          }
+          (listing as any).amenities = amenities;
+          (listing as any).yearBuilt = d.yearBuilt || null;
+
+          // Update Locust DB too
+          await query(
+            `UPDATE listings SET zillow_photos = $1, bathrooms = COALESCE($2, bathrooms), sqft = COALESCE($3, sqft), enriched_at = NOW() WHERE id = $4`,
+            [allPhotos.length > 0 ? allPhotos : listing.zillowPhotos, d.bathrooms, d.livingArea, (qualityFiltered[i] as any).listingDbId]
+          ).catch(() => {});
+
+          if (i % 10 === 0 && i > 0) console.log(`[tenant-match] Enriched ${i}/${matchedListingData.length} listings`);
+        } catch (err) {
+          // Non-blocking — continue with carousel photos
+        }
+      }
+      console.log(`[tenant-match] Enrichment complete`);
+    }
 
     await callbackToSweetLease(matchRequestId, 'matched', qualityFiltered.length, matchedListingData);
 
