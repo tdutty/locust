@@ -824,6 +824,7 @@ export async function POST(req: NextRequest) {
           // Extract amenities
           const amenities: string[] = [];
           const desc = (d.description || '').toLowerCase();
+          const facts = d.resoFacts || {};
           const amenityMap: Record<string, string> = {
             'pool': 'Pool', 'gym': 'Gym', 'fitness': 'Gym', 'parking': 'Parking',
             'garage': 'Garage', 'laundry': 'Laundry', 'washer': 'Washer/Dryer',
@@ -834,8 +835,21 @@ export async function POST(req: NextRequest) {
           for (const [kw, am] of Object.entries(amenityMap)) {
             if (desc.includes(kw) && !amenities.includes(am)) amenities.push(am);
           }
+          if (facts.cooling?.length) amenities.push('A/C');
+          if (facts.heating?.length) amenities.push('Heating');
           (listing as any).amenities = amenities;
           (listing as any).yearBuilt = d.yearBuilt || null;
+          (listing as any).walkScore = d.walkScore || null;
+          (listing as any).transitScore = d.transitScore || null;
+          (listing as any).bikeScore = d.bikeScore || null;
+          (listing as any).flooring = facts.flooring || null;
+          (listing as any).appliances = facts.appliances || null;
+          (listing as any).petsAllowed = facts.petsAllowed != null ? facts.petsAllowed :
+            (desc.includes('pet friendly') || desc.includes('pets allowed')) ? true : null;
+          (listing as any).lotSize = d.lotSize || null;
+          (listing as any).stories = facts.stories || null;
+          (listing as any).interiorFeatures = facts.interiorFeatures || null;
+          (listing as any).exteriorFeatures = facts.exteriorFeatures || null;
 
           // Update Locust DB too
           await query(

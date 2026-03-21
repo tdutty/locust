@@ -39,6 +39,16 @@ export async function enrichListingBatch(batchSize: number = 5): Promise<EnrichR
   await query(`ALTER TABLE listings ADD COLUMN IF NOT EXISTS hi_res_image TEXT`).catch(() => {});
   await query(`ALTER TABLE listings ADD COLUMN IF NOT EXISTS enriched_at TIMESTAMPTZ`).catch(() => {});
   await query(`ALTER TABLE listings ADD COLUMN IF NOT EXISTS zpid TEXT`).catch(() => {});
+  await query(`ALTER TABLE listings ADD COLUMN IF NOT EXISTS walk_score INT`).catch(() => {});
+  await query(`ALTER TABLE listings ADD COLUMN IF NOT EXISTS transit_score INT`).catch(() => {});
+  await query(`ALTER TABLE listings ADD COLUMN IF NOT EXISTS bike_score INT`).catch(() => {});
+  await query(`ALTER TABLE listings ADD COLUMN IF NOT EXISTS flooring TEXT[]`).catch(() => {});
+  await query(`ALTER TABLE listings ADD COLUMN IF NOT EXISTS appliances TEXT[]`).catch(() => {});
+  await query(`ALTER TABLE listings ADD COLUMN IF NOT EXISTS pets_allowed BOOLEAN`).catch(() => {});
+  await query(`ALTER TABLE listings ADD COLUMN IF NOT EXISTS lot_size INT`).catch(() => {});
+  await query(`ALTER TABLE listings ADD COLUMN IF NOT EXISTS stories INT`).catch(() => {});
+  await query(`ALTER TABLE listings ADD COLUMN IF NOT EXISTS interior_features TEXT[]`).catch(() => {});
+  await query(`ALTER TABLE listings ADD COLUMN IF NOT EXISTS exterior_features TEXT[]`).catch(() => {});
 
   // Ensure enrichment log table exists
   await query(`
@@ -197,6 +207,10 @@ export async function enrichListingBatch(batchSize: number = 5): Promise<EnrichR
       if (facts.laundryFeatures?.length) amenities.push('Laundry');
       if (facts.parking) amenities.push('Parking');
 
+      // Extract pet policy
+      const petsAllowed = facts.petsAllowed != null ? facts.petsAllowed :
+        desc.includes('pet friendly') || desc.includes('pets allowed') || desc.includes('dog') || desc.includes('cat') ? true : null;
+
       // Update listing with full data
       await query(
         `UPDATE listings SET
@@ -216,6 +230,16 @@ export async function enrichListingBatch(batchSize: number = 5): Promise<EnrichR
           broker_name = $14,
           hi_res_image = $15,
           zpid = $16,
+          walk_score = $18,
+          transit_score = $19,
+          bike_score = $20,
+          flooring = $21,
+          appliances = $22,
+          pets_allowed = $23,
+          lot_size = $24,
+          stories = $25,
+          interior_features = $26,
+          exterior_features = $27,
           enriched_at = NOW(),
           updated_at = NOW()
         WHERE id = $17`,
@@ -237,6 +261,16 @@ export async function enrichListingBatch(batchSize: number = 5): Promise<EnrichR
           d.hiResImageLink || null,
           zpid,
           listing.id,
+          d.walkScore || null,
+          d.transitScore || null,
+          d.bikeScore || null,
+          facts.flooring || null,
+          facts.appliances || null,
+          petsAllowed,
+          d.lotSize || null,
+          facts.stories || null,
+          facts.interiorFeatures || null,
+          facts.exteriorFeatures || null,
         ]
       );
 
