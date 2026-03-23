@@ -44,6 +44,7 @@ export async function lookupByName(
 
   if (!resp.ok) {
     const text = await resp.text();
+    import('@/lib/credit-monitor').then(m => m.checkApollo(resp.status, text)).catch(() => {});
     throw new Error(`Apollo match error ${resp.status}: ${text}`);
   }
 

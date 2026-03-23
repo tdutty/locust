@@ -109,6 +109,9 @@ export async function enrichListingBatch(batchSize: number = 5): Promise<EnrichR
       const zpidData = await zpidRes.json();
       creditsUsed += 10;
 
+      // Monitor Scrapeak credits
+      import('@/lib/credit-monitor').then(m => m.checkScrapeak(zpidData.info?.remaining_credits)).catch(() => {});
+
       // Rate limit detection — pause and retry later
       const zpidMsg = zpidData.message || '';
       if (zpidMsg.toLowerCase().includes('rate limit')) {
@@ -143,6 +146,9 @@ export async function enrichListingBatch(batchSize: number = 5): Promise<EnrichR
       );
       const propData = await propRes.json();
       creditsUsed += 10;
+
+      // Monitor Scrapeak credits
+      import('@/lib/credit-monitor').then(m => m.checkScrapeak(propData.info?.remaining_credits)).catch(() => {});
 
       const propMsg = propData.message || '';
       if (propMsg.toLowerCase().includes('rate limit')) {

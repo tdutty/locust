@@ -43,6 +43,9 @@ export async function skipTrace(address: string, city: string, state: string, zi
 
   if (!resp.ok) {
     const text = await resp.text();
+    // Monitor for credit depletion
+    const parsed = (() => { try { return JSON.parse(text); } catch { return {}; } })();
+    import('@/lib/credit-monitor').then(m => m.checkBatchData(resp.status, parsed?.status?.message)).catch(() => {});
     throw new Error(`BatchData API error ${resp.status}: ${text}`);
   }
 

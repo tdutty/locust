@@ -134,6 +134,9 @@ export async function searchRentals(params: SearchParams): Promise<ScrappeakList
     const credits = data.info?.remaining_credits;
     console.log(`[scrapeak] Credits remaining: ${credits}`);
 
+    // Monitor credits
+    import('@/lib/credit-monitor').then(m => m.checkScrapeak(credits)).catch(() => {});
+
     const results = data.data?.cat1?.searchResults?.listResults || [];
     const totalAvailable = data.data?.categoryTotals?.cat1?.totalResultCount || results.length;
     console.log(`[scrapeak] Found ${results.length} listings (${totalAvailable} total available)`);
