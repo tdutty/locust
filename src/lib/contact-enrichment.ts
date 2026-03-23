@@ -13,8 +13,9 @@ import { query } from '@/lib/db';
 import { scrapeZillowContact } from '@/lib/zillow-scraper';
 import { lookupByName, lookupByOrganization, parseName } from '@/lib/apollo-contact';
 import { skipTrace } from '@/lib/batchdata';
+import { lookupProperty } from '@/lib/hasdata';
 
-const SCRAPEAK_API_KEY = process.env.SCRAPEAK_API_KEY || '';
+const HASDATA_API_KEY = process.env.HASDATA_API_KEY || '';
 
 export interface EnrichmentRequest {
   sweetleaseListingId?: string;
@@ -149,63 +150,40 @@ export async function enrichContact(req: EnrichmentRequest): Promise<EnrichmentR
     return result;
   }
 
-  // ── Strategy 3: Scrapeak property ──
-  if (SCRAPEAK_API_KEY) {
-    const sStart = Date.now();
+  // ── Strategy 3: HasData property lookup (replaces Scrapeak) ──
+  if (HASDATA_API_KEY && req.zillowUrl) {
+    const hStart = Date.now();
     try {
-      let zpid = req.zpid;
+      const propData = await lookupProperty(req.zillowUrl);
+      const fieldsFound: string[] = [];
 
-      // Get zpid from address if not provided
-      if (!zpid) {
-        const zpidResp = await fetch(
-          `https://app.scrapeak.com/v1/scrapers/zillow/zpidByAddress?api_key=${SCRAPEAK_API_KEY}&street=${encodeURIComponent(req.address)}&city=${encodeURIComponent(req.city)}&state=${encodeURIComponent(req.state)}&zipcode=${encodeURIComponent(req.zip)}`
-        );
-        if (zpidResp.ok) {
-          const zpidData = await zpidResp.json();
-          zpid = zpidData?.data?.[0]?.zpid || zpidData?.zpid || null;
-        }
+      if (propData.agentName && !result.agentName) {
+        result.agentName = propData.agentName;
+        fieldsFound.push('agentName');
+      }
+      if (propData.agentPhone && !result.agentPhone) {
+        result.agentPhone = propData.agentPhone;
+        fieldsFound.push('agentPhone');
+      }
+      if (propData.brokerPhone && !result.brokerName) {
+        result.brokerName = propData.agentName; // broker is often the same entity for rentals
+        fieldsFound.push('brokerName');
       }
 
-      if (zpid) {
-        const propResp = await fetch(
-          `https://app.scrapeak.com/v1/scrapers/zillow/property?api_key=${SCRAPEAK_API_KEY}&zpid=${zpid}`
-        );
-        if (propResp.ok) {
-          const propData = await propResp.json();
-          const d = propData?.data || {};
-          const fieldsFound: string[] = [];
+      result.strategies.push({
+        name: 'hasdata', attempted: true, found: fieldsFound.length > 0,
+        fieldsFound, durationMs: Date.now() - hStart, cost: 0.0025,
+      });
 
-          if (d.attributionInfo?.agentName && !result.agentName) {
-            result.agentName = d.attributionInfo.agentName;
-            fieldsFound.push('agentName');
-          }
-          if (d.attributionInfo?.agentPhoneNumber && !result.agentPhone) {
-            result.agentPhone = d.attributionInfo.agentPhoneNumber;
-            fieldsFound.push('agentPhone');
-          }
-          if (d.attributionInfo?.brokerName && !result.brokerName) {
-            result.brokerName = d.attributionInfo.brokerName;
-            fieldsFound.push('brokerName');
-          }
-
-          result.strategies.push({
-            name: 'scrapeak', attempted: true, found: fieldsFound.length > 0,
-            fieldsFound, durationMs: Date.now() - sStart, cost: 0.02,
-          });
-
-          if (hasContactableInfo(result) && result.contactSource === 'none') {
-            result.contactSource = 'scrapeak';
-            result.confidence = 'high';
-          }
-        } else {
-          result.strategies.push({ name: 'scrapeak', attempted: true, found: false, fieldsFound: [], durationMs: Date.now() - sStart, cost: 0.02, error: 'property fetch failed' });
-        }
-      } else {
-        result.strategies.push({ name: 'scrapeak', attempted: true, found: false, fieldsFound: [], durationMs: Date.now() - sStart, cost: 0.01, error: 'no zpid found' });
+      if (hasContactableInfo(result) && result.contactSource === 'none') {
+        result.contactSource = 'hasdata';
+        result.confidence = 'high';
       }
     } catch (err: any) {
-      result.strategies.push({ name: 'scrapeak', attempted: true, found: false, fieldsFound: [], durationMs: Date.now() - sStart, cost: 0, error: err.message });
+      result.strategies.push({ name: 'hasdata', attempted: true, found: false, fieldsFound: [], durationMs: Date.now() - hStart, cost: 0, error: err.message });
     }
+  } else if (!req.zillowUrl) {
+    result.strategies.push({ name: 'hasdata', attempted: false, found: false, fieldsFound: [], durationMs: 0, cost: 0, error: 'no zillowUrl' });
   }
 
   // If we already have an email, stop
