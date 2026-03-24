@@ -29,6 +29,9 @@ interface Listing {
   estimated_vacancy_cost: number;
   imported_to_contacts: number;
   contact_id: number | null;
+  zillow_photos: string[] | null;
+  hi_res_image: string | null;
+  zillow_url: string | null;
 }
 
 interface Stats {
@@ -497,6 +500,7 @@ export default function ScraperPage() {
                     className="rounded border-slate-300 text-primary focus:ring-primary"
                   />
                 </th>
+                <th className="px-3 py-2.5 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider w-16">Photo</th>
                 <th className="px-3 py-2.5 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Address</th>
                 <th className="px-3 py-2.5 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Price</th>
                 <th className="px-3 py-2.5 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Beds/Bath</th>
@@ -520,6 +524,17 @@ export default function ScraperPage() {
                       onChange={() => toggleSelect(l.id)}
                       className="rounded border-slate-300 text-primary focus:ring-primary"
                     />
+                  </td>
+                  <td className="px-3 py-2.5">
+                    {(() => {
+                      const photo = l.zillow_photos?.[0] || l.hi_res_image;
+                      if (!photo) return <div className="w-12 h-9 rounded bg-slate-100 flex items-center justify-center"><Building2 size={14} className="text-slate-300" /></div>;
+                      return (
+                        <a href={l.zillow_url || '#'} target="_blank" rel="noopener noreferrer">
+                          <img src={photo} alt="" className="w-12 h-9 rounded object-cover border border-slate-200" loading="lazy" />
+                        </a>
+                      );
+                    })()}
                   </td>
                   <td className="px-3 py-2.5">
                     <div className="font-medium text-slate-900 truncate max-w-[240px]">{l.address}</div>
