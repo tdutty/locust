@@ -784,39 +784,10 @@ export async function POST(req: NextRequest) {
       for (let i = 0; i < Math.min(matchedListingData.length, 100); i++) {
         const listing = matchedListingData[i];
         try {
-          let zUrl = listing.zillowUrl;
+          const zUrl = listing.zillowUrl;
           if (!zUrl) continue;
 
-          // For /apartments/ building URLs, try to find a homedetails URL via address search
-          if (!zUrl.includes('homedetails')) {
-            try {
-              const street = listing.address?.split(',')[0]?.trim();
-              if (street && listing.city && listing.state) {
-                const searchRes = await fetch(
-                  `https://api.hasdata.com/scrape/zillow/search?location=${encodeURIComponent(`${street} ${listing.city} ${listing.state}`)}&listingType=rent&maxResults=5`,
-                  { headers: { 'x-api-key': HASDATA_KEY }, signal: AbortSignal.timeout(15000) }
-                );
-                if (searchRes.ok) {
-                  const searchData = await searchRes.json();
-                  const match = (searchData.properties || []).find((p: any) => p.detailUrl?.includes('homedetails'));
-                  if (match?.detailUrl) {
-                    zUrl = 'https://www.zillow.com' + match.detailUrl;
-                  } else {
-                    // Use thumbnail from search if available
-                    const thumb = (searchData.properties || [])[0]?.imgSrc;
-                    if (thumb) listing.zillowPhotos = [thumb];
-                    continue;
-                  }
-                }
-              } else {
-                continue;
-              }
-            } catch {
-              continue;
-            }
-            await new Promise(r => setTimeout(r, 500));
-          }
-
+          // HasData property endpoint works with both homedetails and /apartments/ URLs
           const propRes = await fetch(
             `https://api.hasdata.com/scrape/zillow/property?url=${encodeURIComponent(zUrl)}`,
             { headers: { 'x-api-key': HASDATA_KEY }, signal: AbortSignal.timeout(20000) }
