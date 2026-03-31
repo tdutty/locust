@@ -77,7 +77,7 @@ export async function checkHasData(remainingCredits?: number) {
   try {
     const resp = await fetch('https://api.hasdata.com/user/me/usage', {
       headers: { 'x-api-key': key },
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(8000),
     });
     if (!resp.ok) {
       updateCache('hasdata', null, 'error', `HTTP ${resp.status}`);
@@ -167,7 +167,7 @@ export async function checkAnthropic() {
           model: 'claude-haiku-4-5-20251001',
           messages: [{ role: 'user', content: 'hi' }],
         }),
-        signal: AbortSignal.timeout(5000),
+        signal: AbortSignal.timeout(8000),
       });
 
       if (resp.status === 402 || resp.status === 403) {
@@ -197,7 +197,7 @@ export async function checkAnthropic() {
           'anthropic-version': '2023-06-01',
           'x-api-key': adminKey,
         },
-        signal: AbortSignal.timeout(5000),
+        signal: AbortSignal.timeout(8000),
       }
     );
 
