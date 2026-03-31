@@ -220,13 +220,7 @@ export async function checkAnthropic() {
 
 // ── Get all credit statuses (for Hive dashboard) ──
 
-export async function getAllCreditStatus(): Promise<Record<string, { credits: number | null; status: string; lastChecked: string; error?: string }>> {
-  // Refresh HasData and Anthropic (they have polling endpoints)
-  await Promise.allSettled([
-    checkHasData(),
-    checkAnthropic(),
-  ]);
-
+export function getCachedStatus(): Record<string, { credits: number | null; status: string; lastChecked: string; error?: string }> {
   return {
     hasdata: creditCache['hasdata'] || { credits: null, status: 'unknown', lastChecked: '' },
     scrapeak: creditCache['scrapeak'] || { credits: null, status: 'unknown', lastChecked: '' },
