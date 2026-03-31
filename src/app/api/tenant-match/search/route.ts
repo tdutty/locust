@@ -777,54 +777,38 @@ export async function POST(req: NextRequest) {
       qualityScore: l.qualityScore,
     }));
 
-    // Enrich top listings with full property details + all photos from Scrapeak
-    console.log(`[tenant-match] Enriching ${Math.min(matchedListingData.length, 100)} listings with full property details...`);
-    const SCRAPEAK_KEY = process.env.SCRAPEAK_API_KEY || '';
-    if (SCRAPEAK_KEY) {
+    // Enrich top listings with full property details + all photos from HasData
+    const HASDATA_KEY = process.env.HASDATA_API_KEY || '';
+    if (HASDATA_KEY) {
+      console.log(`[tenant-match] Enriching ${Math.min(matchedListingData.length, 100)} listings via HasData...`);
       for (let i = 0; i < Math.min(matchedListingData.length, 100); i++) {
         const listing = matchedListingData[i];
         try {
-          // Get zpid from address
-          const street = listing.address?.split(',')[0]?.trim();
-          if (!street || !listing.city || !listing.state) continue;
+          // Only homedetails URLs work with HasData property endpoint
+          const zUrl = listing.zillowUrl;
+          if (!zUrl || !zUrl.includes('homedetails')) continue;
 
-          const zpidRes = await fetch(
-            `https://app.scrapeak.com/v1/scrapers/zillow/zpidByAddress?api_key=${SCRAPEAK_KEY}&street=${encodeURIComponent(street)}&city=${encodeURIComponent(listing.city)}&state=${encodeURIComponent(listing.state)}`,
-            { signal: AbortSignal.timeout(15000) }
-          );
-          const zpidData = await zpidRes.json();
-          if (!zpidData.is_success || !zpidData.data?.[0]?.zpid) continue;
-
-          // Get full property details
           const propRes = await fetch(
-            `https://app.scrapeak.com/v1/scrapers/zillow/property?api_key=${SCRAPEAK_KEY}&zpid=${zpidData.data[0].zpid}`,
-            { signal: AbortSignal.timeout(15000) }
+            `https://api.hasdata.com/scrape/zillow/property?url=${encodeURIComponent(zUrl)}`,
+            { headers: { 'x-api-key': HASDATA_KEY }, signal: AbortSignal.timeout(20000) }
           );
+          if (!propRes.ok) continue;
           const propData = await propRes.json();
-          if (!propData.is_success || !propData.data) continue;
+          const d = propData.property;
+          if (!d) continue;
 
-          const d = propData.data;
-
-          // Extract all hi-res photos
-          const allPhotos: string[] = [];
-          const responsivePhotos = d.responsivePhotos || d.photos || [];
-          for (const p of responsivePhotos) {
-            const jpegs = p.mixedSources?.jpeg || [];
-            const largest = jpegs.length > 0 ? jpegs[jpegs.length - 1] : null;
-            const url = largest?.url || p.url;
-            if (url) allPhotos.push(url);
-          }
+          // Extract all photos (HasData returns them as string array in property.photos)
+          const allPhotos: string[] = d.photos || [];
 
           // Update the listing data with enriched info
           if (allPhotos.length > 0) listing.zillowPhotos = allPhotos;
-          if (d.bathrooms) listing.bathrooms = d.bathrooms;
-          if (d.livingArea) listing.sqft = d.livingArea;
+          if (d.baths) listing.bathrooms = d.baths;
+          if (d.area?.livingArea) listing.sqft = d.area.livingArea;
           if (d.description) (listing as any).description = d.description;
 
-          // Extract amenities
+          // Extract amenities from description
           const amenities: string[] = [];
           const desc = (d.description || '').toLowerCase();
-          const facts = d.resoFacts || {};
           const amenityMap: Record<string, string> = {
             'pool': 'Pool', 'gym': 'Gym', 'fitness': 'Gym', 'parking': 'Parking',
             'garage': 'Garage', 'laundry': 'Laundry', 'washer': 'Washer/Dryer',
@@ -835,31 +819,25 @@ export async function POST(req: NextRequest) {
           for (const [kw, am] of Object.entries(amenityMap)) {
             if (desc.includes(kw) && !amenities.includes(am)) amenities.push(am);
           }
-          if (facts.cooling?.length) amenities.push('A/C');
-          if (facts.heating?.length) amenities.push('Heating');
           (listing as any).amenities = amenities;
           (listing as any).yearBuilt = d.yearBuilt || null;
           (listing as any).walkScore = d.walkScore || null;
           (listing as any).transitScore = d.transitScore || null;
           (listing as any).bikeScore = d.bikeScore || null;
-          (listing as any).flooring = facts.flooring || null;
-          (listing as any).appliances = facts.appliances || null;
-          (listing as any).petsAllowed = facts.petsAllowed != null ? facts.petsAllowed :
-            (desc.includes('pet friendly') || desc.includes('pets allowed')) ? true : null;
-          (listing as any).lotSize = d.lotSize || null;
-          (listing as any).stories = facts.stories || null;
-          (listing as any).interiorFeatures = facts.interiorFeatures || null;
-          (listing as any).exteriorFeatures = facts.exteriorFeatures || null;
+          (listing as any).petsAllowed = desc.includes('pet friendly') || desc.includes('pets allowed') ? true : null;
 
           // Update Locust DB too
           await query(
-            `UPDATE listings SET zillow_photos = $1, bathrooms = COALESCE($2, bathrooms), sqft = COALESCE($3, sqft), enriched_at = NOW() WHERE id = $4`,
-            [allPhotos.length > 0 ? allPhotos : listing.zillowPhotos, d.bathrooms, d.livingArea, (qualityFiltered[i] as any).listingDbId]
+            `UPDATE listings SET enriched_at = NOW(), bathrooms = COALESCE($1, bathrooms), sqft = COALESCE($2, sqft) WHERE id = $3`,
+            [d.baths, d.area?.livingArea, (qualityFiltered[i] as any).listingDbId]
           ).catch(() => {});
 
           if (i % 10 === 0 && i > 0) console.log(`[tenant-match] Enriched ${i}/${matchedListingData.length} listings`);
+
+          // Rate limit HasData (~2 req/sec)
+          await new Promise(r => setTimeout(r, 500));
         } catch (err) {
-          // Non-blocking — continue with carousel photos
+          // Non-blocking — continue with next listing
         }
       }
       console.log(`[tenant-match] Enrichment complete`);
