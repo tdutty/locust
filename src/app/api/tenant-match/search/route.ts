@@ -59,6 +59,34 @@ export async function POST(req: NextRequest) {
     );
     const jobId = jobResult.rows[0].id;
 
+    // Return immediately — process in background
+    // This prevents Cloudflare 524 timeouts on large cities
+    const processInBackground = async () => {
+      try {
+        await processSearch({ jobId, matchRequestId, email, name, city, state, budgetMin, budgetMax, bedrooms, moveInDate, tenantAmenities, body });
+      } catch (err) {
+        console.error(`[tenant-match] Background search failed for ${city}:`, err);
+        await query(`UPDATE tenant_match_jobs SET status = 'failed', updated_at = NOW() WHERE id = $1`, [jobId]);
+      }
+    };
+
+    // Fire and forget — don't await
+    processInBackground();
+
+    return NextResponse.json({ jobId, status: 'searching', message: `Search started for ${city}, ${state}` });
+
+  } catch (error: any) {
+    console.error('[tenant-match] Search error:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+async function processSearch({ jobId, matchRequestId, email, name, city, state, budgetMin, budgetMax, bedrooms, moveInDate, tenantAmenities, body }: any) {
+    const maxPrice = budgetMax ? Math.round(budgetMax * 1.15) : 99999;
+    const minPrice = budgetMin || 0;
+
+    let zillowListings: Array<any> = [];
+
     // Check if city has been scanned recently (within 7 days)
     console.log(`[tenant-match] Searching for ${city}, ${state} | ${bedrooms}BR | max $${budgetMax}`);
 
@@ -845,15 +873,12 @@ export async function POST(req: NextRequest) {
 
     await callbackToSweetLease(matchRequestId, 'matched', qualityFiltered.length, matchedListingData);
 
-    return NextResponse.json({
-      jobId,
-      matchCount: qualityFiltered.length,
-      enrichedCount: qualityFiltered.filter(l => l.ownerEmail).length,
-      qualityFilteredFrom: scoredListings.length,
-    });
+    console.log(`[tenant-match] Complete: ${city} — ${qualityFiltered.length} matches, ${qualityFiltered.filter((l: any) => l.ownerEmail).length} enriched`);
+    await query(`UPDATE tenant_match_jobs SET status = 'matched', updated_at = NOW() WHERE id = $1`, [jobId]);
   } catch (error: any) {
     console.error('Tenant match search error:', error);
-    return NextResponse.json({ error: error.message || 'Search failed' }, { status: 500 });
+    await query(`UPDATE tenant_match_jobs SET status = 'failed', updated_at = NOW() WHERE id = $1`, [jobId]).catch(() => {});
+    throw error;
   }
 }
 
