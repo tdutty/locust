@@ -82,6 +82,7 @@ export async function POST(req: NextRequest) {
 }
 
 async function processSearch({ jobId, matchRequestId, email, name, city, state, budgetMin, budgetMax, bedrooms, moveInDate, tenantAmenities, body }: any) {
+  try {
     const maxPrice = budgetMax ? Math.round(budgetMax * 1.15) : 99999;
     const minPrice = budgetMin || 0;
 
@@ -89,11 +90,6 @@ async function processSearch({ jobId, matchRequestId, email, name, city, state, 
 
     // Check if city has been scanned recently (within 7 days)
     console.log(`[tenant-match] Searching for ${city}, ${state} | ${bedrooms}BR | max $${budgetMax}`);
-
-    const maxPrice = budgetMax ? Math.round(budgetMax * 1.15) : 99999;
-    const minPrice = budgetMin || 0;
-
-    let zillowListings: Array<any> = [];
 
     const scanCheck = await query(
       `SELECT id, completed_at FROM city_scans
