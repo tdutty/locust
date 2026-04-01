@@ -51,9 +51,13 @@ export async function register() {
       triggerCron('advance-sequences', '/api/cron/advance-sequences');
     });
 
-    // listing-enricher: every 3 minutes — pull full details from Scrapeak /property
+    // listing-enricher: every 2 minutes — pull full details from Scrapeak /property
+    // 60s startup delay so health check passes before heavy work begins
     if (process.env.SCRAPEAK_API_KEY) {
+      let enricherReady = false;
+      setTimeout(() => { enricherReady = true; console.log('[cron] listing-enricher now active (60s startup delay passed)'); }, 60000);
       cron.default.schedule('*/2 * * * *', async () => {
+        if (!enricherReady) return;
         try {
           const { enrichListingBatch, getEnrichmentProgress } = await import('@/lib/listing-enricher');
           // Run 2 parallel batches of 10 each = 20 listings per 2 min (avoids rate limits)
