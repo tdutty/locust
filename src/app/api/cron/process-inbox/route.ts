@@ -91,9 +91,31 @@ export async function GET(request: NextRequest) {
     let dealsCreated = 0;
     let dealsUpdated = 0;
     let repliesScheduled = 0;
+    let internalSkipped = 0;
+
+    // Addresses whose inbound mail must NEVER trigger an outbound reply.
+    // Prevents the founder/team -> contacts table -> AI reply -> founder
+    // feedback loop seen with terrellgilb5@gmail.com (Locust contact id=834).
+    const isInternalAddress = (addr: string | undefined): boolean => {
+      if (!addr) return false;
+      const a = addr.toLowerCase();
+      return (
+        a.endsWith('@sweetlease.io') ||
+        (a.startsWith('terrellgilb') && a.endsWith('@gmail.com')) ||
+        a.startsWith('rgilbert@') ||
+        a.startsWith('robert@')
+      );
+    };
 
     for (const email of emails) {
       try {
+        // Internal-address guard: skip founder/team mail before any
+        // contact match or reply generation runs.
+        if (isInternalAddress(email.fromEmail)) {
+          internalSkipped++;
+          continue;
+        }
+
         // 2. Dedup — check if already processed in inbox_cache
         const cacheKey = `${email.fromEmail}:${email.subject}:${email.date}`;
         const existing = await query(
@@ -778,6 +800,7 @@ export async function GET(request: NextRequest) {
       total: emails.length,
       processed,
       skipped,
+      internal_skipped: internalSkipped,
       matched,
       deals_created: dealsCreated,
       deals_updated: dealsUpdated,
