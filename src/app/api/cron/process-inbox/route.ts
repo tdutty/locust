@@ -56,6 +56,69 @@ const REPLY_DELAY: Record<string, number> = {
   not_interested: 1 * 60 * 60 * 1000, // 1 hour
 };
 
+// Detects auto-responders (out-of-office, vacation replies) and delivery
+// failures so the inbox bot never replies to a machine. Headers like
+// Auto-Submitted / Precedence aren't exposed by the fetcher, so we match on
+// subject, sender, and the opening of the body — covers the common cases.
+function isAutoResponder(email: Email): boolean {
+  const subject = (email.subject || '').toLowerCase();
+  const from = (email.fromEmail || '').toLowerCase();
+  const body = (email.body || '').slice(0, 600).toLowerCase();
+
+  // Bounce / system senders
+  if (
+    from.startsWith('mailer-daemon') ||
+    from.startsWith('postmaster@') ||
+    from.includes('@mailer-daemon')
+  ) {
+    return true;
+  }
+
+  const subjectSignals = [
+    'automatic reply',
+    'auto-reply',
+    'auto reply',
+    'autoreply',
+    'out of office',
+    'out-of-office',
+    'ooo:',
+    'away from the office',
+    'away from my desk',
+    'on vacation',
+    'on annual leave',
+    'on leave',
+    'vacation response',
+    'autosvar',
+    // delivery failures
+    'undeliverable',
+    'delivery status notification',
+    'mail delivery failed',
+    'returned mail',
+    'delivery has failed',
+    'failure notice',
+  ];
+  if (subjectSignals.some((s) => subject.includes(s))) return true;
+
+  const bodySignals = [
+    'i am currently out of',
+    'i will be out of the office',
+    'i am out of the office',
+    'i am away from the office',
+    'thank you for your email. i am',
+    'i am on leave',
+    'i am on annual leave',
+    'currently on vacation',
+    'limited access to email',
+    'will respond upon my return',
+    'i will be returning on',
+    'this is an automatic reply',
+    'this is an automated response',
+  ];
+  if (bodySignals.some((s) => body.includes(s))) return true;
+
+  return false;
+}
+
 function validateCronAuth(request: NextRequest): boolean {
   const cronSecret = process.env.CRON_SECRET;
   if (!cronSecret) return false;
@@ -136,6 +199,16 @@ export async function GET(request: NextRequest) {
           [cacheKey, email.from, email.fromEmail, email.subject, email.preview, email.body, email.date,
            email.isRead ? 1 : 0, email.isStarred ? 1 : 0, email.classification, email.priority]
         );
+
+        // 3a. Auto-responder guard: never reply to out-of-office / vacation
+        // auto-replies or delivery-failure bounces. Cache it (so the UI shows
+        // it) but stop here — no reply, no status change, no deal updates.
+        if (isAutoResponder(email)) {
+          await logResponse(email, null, null, null, 'skipped_auto_reply');
+          await markProcessed(cacheKey);
+          skipped++;
+          continue;
+        }
 
         // 4. Match contact
         const contactResult = await query(
