@@ -193,3 +193,108 @@ function toArray(val: any): string[] {
   if (typeof val === 'string') return val.split(',').map(s => s.trim()).filter(Boolean);
   return [];
 }
+
+// ---------------------------------------------------------------------------
+// Google Maps local-business discovery (PropScout "maps" crawl source).
+//
+// Maps surfaces local property managers that Apollo's B2B graph misses
+// (small/regional firms). We return the firm's name/phone/site/address;
+// the main app crawls each firm's public site for a contact email and
+// upserts PMCompany. Keeping the keyed Maps call here preserves the
+// "providers live on Locust" split.
+// Docs: https://docs.hasdata.com/apis/google-maps
+// ---------------------------------------------------------------------------
+
+export interface HasDataMapsFirm {
+  title: string;
+  phone: string | null;
+  address: string | null;
+  website: string | null;
+  type: string | null;
+  description: string | null;
+  rating: number | null;
+  reviews: number | null;
+}
+
+/** One Google Maps search. `ll` is an optional "@lat,lng,zoomz" hint. */
+export async function searchGoogleMaps(query: string, ll?: string): Promise<HasDataMapsFirm[]> {
+  if (!HASDATA_API_KEY) throw new Error('HASDATA_API_KEY not configured');
+
+  const url = `https://api.hasdata.com/scrape/google-maps/search?q=${encodeURIComponent(query)}`
+    + (ll ? `&ll=${encodeURIComponent(ll)}` : '');
+
+  const resp = await fetch(url, {
+    method: 'GET',
+    headers: { 'x-api-key': HASDATA_API_KEY },
+    signal: AbortSignal.timeout(40000),
+  });
+
+  if (!resp.ok) {
+    const text = await resp.text();
+    if (resp.status === 402 || resp.status === 403) {
+      import('@/lib/credit-monitor').then(m => m.checkHasData(0)).catch(() => {});
+    }
+    throw new Error(`HasData Maps error ${resp.status}: ${text.slice(0, 200)}`);
+  }
+
+  const data = await resp.json();
+  const local = data.localResults || [];
+  return local
+    .map((r: any): HasDataMapsFirm => ({
+      title: r.title || '',
+      phone: r.phone || null,
+      address: r.address || null,
+      website: r.website || null,
+      type: r.type || null,
+      description: r.description || null,
+      rating: typeof r.rating === 'number' ? r.rating : null,
+      reviews: typeof r.reviews === 'number' ? r.reviews : null,
+    }))
+    .filter((f: HasDataMapsFirm) => f.title);
+}
+
+const PM_MAPS_QUERIES = (area: string): string[] => [
+  `property management ${area}`,
+  `single family home property management ${area}`,
+  `residential property management ${area}`,
+  `house rentals property manager ${area}`,
+  `rental homes management company ${area}`,
+];
+
+/**
+ * Run several query angles for one city, deduped by title+address. Maps
+ * caps each query at ~20 results, so multiple angles widen coverage.
+ * Counts each completed query as one "search" for credit accounting.
+ * Throws only if every query failed (so the caller can DLQ the city).
+ */
+export async function searchGoogleMapsPMs(
+  city: string,
+  state: string,
+  ll?: string,
+  maxQueries = 4,
+): Promise<{ firms: HasDataMapsFirm[]; searchesRun: number }> {
+  const area = `${city} ${state}`.trim();
+  const queries = PM_MAPS_QUERIES(area).slice(0, Math.max(1, Math.min(maxQueries, 5)));
+
+  const settled = await Promise.allSettled(queries.map(q => searchGoogleMaps(q, ll)));
+  const byKey = new Map<string, HasDataMapsFirm>();
+  const errors: string[] = [];
+  let searchesRun = 0;
+
+  for (const s of settled) {
+    if (s.status === 'fulfilled') {
+      searchesRun++;
+      for (const f of s.value) {
+        const key = `${f.title}|${f.address || ''}`.toLowerCase();
+        if (!byKey.has(key)) byKey.set(key, f);
+      }
+    } else {
+      errors.push(s.reason instanceof Error ? s.reason.message : String(s.reason));
+    }
+  }
+
+  if (searchesRun === 0) {
+    throw new Error(`all ${queries.length} Maps queries failed: ${errors[0] || 'unknown error'}`);
+  }
+  return { firms: [...byKey.values()], searchesRun };
+}

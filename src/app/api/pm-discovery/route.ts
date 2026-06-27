@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { lookupProperty } from '@/lib/hasdata';
+import { lookupProperty, searchGoogleMapsPMs } from '@/lib/hasdata';
+
+export const maxDuration = 60;
 
 /**
  * POST /api/pm-discovery
@@ -16,6 +18,7 @@ import { lookupProperty } from '@/lib/hasdata';
  * Body:
  *   { action: 'apollo', city, state, perPage? }   -> { contacts: [...] }
  *   { action: 'hasdata', zillowUrl }              -> { agent: {...} | null }
+ *   { action: 'maps', city, state, ll?, maxQueries? } -> { firms: [...], searchesRun }
  */
 
 const APOLLO_API_URL = 'https://api.apollo.io/api/v1';
@@ -155,6 +158,16 @@ export async function POST(req: NextRequest) {
       }
       const contacts = await apolloDiscovery(city, state, perPage);
       return NextResponse.json({ contacts });
+    }
+
+    if (action === 'maps') {
+      const { city, state, ll } = body;
+      const maxQueries = Math.min(Math.max(Number(body.maxQueries) || 4, 1), 5);
+      if (!city || !state) {
+        return NextResponse.json({ error: 'city and state required' }, { status: 400 });
+      }
+      const { firms, searchesRun } = await searchGoogleMapsPMs(city, state, ll, maxQueries);
+      return NextResponse.json({ firms, searchesRun });
     }
 
     if (action === 'hasdata') {
