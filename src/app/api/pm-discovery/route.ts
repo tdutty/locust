@@ -19,6 +19,7 @@ export const maxDuration = 60;
  *   { action: 'apollo', city, state, perPage? }   -> { contacts: [...] }
  *   { action: 'hasdata', zillowUrl }              -> { agent: {...} | null }
  *   { action: 'maps', city, state, ll?, maxQueries? } -> { firms: [...], searchesRun }
+ *   { action: 'enrich-domain', domain }          -> { contact: {...} | null }
  */
 
 const APOLLO_API_URL = 'https://api.apollo.io/api/v1';
@@ -134,6 +135,69 @@ async function apolloDiscovery(city: string, state: string, perPage: number): Pr
   });
 }
 
+// Titles that own leasing / represent the firm at a small PM company,
+// ranked so we reveal the most decision-making contact first.
+const PM_ENRICH_TITLES = [
+  'Owner', 'Principal', 'President', 'Founder', 'Managing Broker', 'Broker',
+  'Managing Partner', 'Director of Leasing', 'Property Manager', 'Leasing Manager',
+  'Regional Manager', 'Community Manager', 'Operations Manager', 'Leasing Consultant',
+];
+
+function enrichTitleScore(title: string | null): number {
+  if (!title) return -1;
+  const t = title.toLowerCase();
+  let best = -1;
+  PM_ENRICH_TITLES.forEach((kw, i) => {
+    if (t.includes(kw.toLowerCase())) { const s = PM_ENRICH_TITLES.length - i; if (s > best) best = s; }
+  });
+  if (/\b(owner|principal|president|founder|broker)\b/.test(t)) best += 0.5;
+  if (/\b(director|manager)\b/.test(t)) best += 0.25;
+  return best;
+}
+
+/**
+ * Find a contact email at a PM firm by its domain. Apollo people search
+ * (scoped to the domain) + a single reveal of the highest-ranked contact.
+ * Returns the contact or null when the firm has no indexed people / email.
+ */
+async function apolloEnrichByDomain(domain: string): Promise<{
+  name: string; email: string; title: string | null; phone: string | null; linkedinUrl: string | null;
+} | null> {
+  if (!APOLLO_API_KEY) throw new Error('APOLLO_API_KEY not configured on Locust');
+
+  const searchResp = await fetch(`${APOLLO_API_URL}/mixed_people/api_search`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache', 'x-api-key': APOLLO_API_KEY },
+    body: JSON.stringify({ q_organization_domains_list: [domain], person_titles: PM_ENRICH_TITLES, page: 1, per_page: 10 }),
+  });
+  if (!searchResp.ok) throw new Error(`Apollo search ${searchResp.status}: ${(await searchResp.text()).slice(0, 160)}`);
+  const people = (await searchResp.json()).people || [];
+  if (people.length === 0) return null;
+
+  const ranked = people
+    .map((p: any) => ({ p, score: enrichTitleScore(p.title) }))
+    .sort((a: any, b: any) => b.score - a.score);
+  const top = ranked[0].p;
+
+  // Reveal the top contact's email.
+  const matchResp = await fetch(`${APOLLO_API_URL}/people/match`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache', 'x-api-key': APOLLO_API_KEY },
+    body: JSON.stringify({ id: top.id, reveal_personal_emails: true }),
+  });
+  const person = matchResp.ok ? (await matchResp.json()).person || {} : {};
+  const email = person.email || (person.personal_emails && person.personal_emails[0]) || top.email || '';
+  if (!email || /email_not_unlocked|domain\.com/i.test(email)) return null;
+
+  return {
+    name: person.name || `${person.first_name || top.first_name || ''} ${person.last_name || top.last_name || ''}`.trim(),
+    email,
+    title: person.title || top.title || null,
+    phone: person.phone_numbers?.[0]?.raw_number || person.sanitized_phone || null,
+    linkedinUrl: person.linkedin_url || top.linkedin_url || null,
+  };
+}
+
 export async function POST(req: NextRequest) {
   const secret = req.headers.get('x-webhook-secret');
   if (WEBHOOK_SECRET && secret !== WEBHOOK_SECRET) {
@@ -168,6 +232,13 @@ export async function POST(req: NextRequest) {
       }
       const { firms, searchesRun } = await searchGoogleMapsPMs(city, state, ll, maxQueries);
       return NextResponse.json({ firms, searchesRun });
+    }
+
+    if (action === 'enrich-domain') {
+      const domain = String(body.domain || '').trim().toLowerCase().replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0];
+      if (!domain) return NextResponse.json({ error: 'domain required' }, { status: 400 });
+      const contact = await apolloEnrichByDomain(domain);
+      return NextResponse.json({ contact });
     }
 
     if (action === 'hasdata') {
