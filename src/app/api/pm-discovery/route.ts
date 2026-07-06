@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { lookupProperty, searchGoogleMapsPMs } from '@/lib/hasdata';
+import { lookupProperty, searchGoogleMapsPMs, lookupFirmWebsite } from '@/lib/hasdata';
 
 export const maxDuration = 60;
 
@@ -20,6 +20,7 @@ export const maxDuration = 60;
  *   { action: 'hasdata', zillowUrl }              -> { agent: {...} | null }
  *   { action: 'maps', city, state, ll?, maxQueries? } -> { firms: [...], searchesRun }
  *   { action: 'enrich-domain', domain }          -> { contact: {...} | null }
+ *   { action: 'maps-lookup', query, ll? }        -> { firm: {...} | null }
  */
 
 const APOLLO_API_URL = 'https://api.apollo.io/api/v1';
@@ -232,6 +233,13 @@ export async function POST(req: NextRequest) {
       }
       const { firms, searchesRun } = await searchGoogleMapsPMs(city, state, ll, maxQueries);
       return NextResponse.json({ firms, searchesRun });
+    }
+
+    if (action === 'maps-lookup') {
+      const query = String(body.query || '').trim();
+      if (!query) return NextResponse.json({ error: 'query required' }, { status: 400 });
+      const firm = await lookupFirmWebsite(query, body.ll);
+      return NextResponse.json({ firm });
     }
 
     if (action === 'enrich-domain') {

@@ -253,6 +253,27 @@ export async function searchGoogleMaps(query: string, ll?: string): Promise<HasD
     .filter((f: HasDataMapsFirm) => f.title);
 }
 
+/**
+ * Look up a single business by name (+ location) on Google Maps and return
+ * its website/phone. A specific-business query returns `placeResults` (the
+ * knowledge panel), not the `localResults` list, so this reads that field.
+ * Used to backfill websites for phone-only PMs.
+ */
+export async function lookupFirmWebsite(query: string, ll?: string): Promise<{ title: string | null; website: string | null; phone: string | null; address: string | null } | null> {
+  if (!HASDATA_API_KEY) throw new Error('HASDATA_API_KEY not configured');
+  const url = `https://api.hasdata.com/scrape/google-maps/search?q=${encodeURIComponent(query)}`
+    + (ll ? `&ll=${encodeURIComponent(ll)}` : '');
+  const resp = await fetch(url, { headers: { 'x-api-key': HASDATA_API_KEY }, signal: AbortSignal.timeout(40000) });
+  if (!resp.ok) {
+    if (resp.status === 402 || resp.status === 403) import('@/lib/credit-monitor').then(m => m.checkHasData(0)).catch(() => {});
+    throw new Error(`HasData Maps error ${resp.status}`);
+  }
+  const data = await resp.json();
+  const pr = data.placeResults || (Array.isArray(data.localResults) ? data.localResults[0] : null);
+  if (!pr) return null;
+  return { title: pr.title || null, website: pr.website || null, phone: pr.phone || null, address: pr.address || null };
+}
+
 const PM_MAPS_QUERIES = (area: string): string[] => [
   `property management ${area}`,
   `single family home property management ${area}`,
