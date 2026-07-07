@@ -119,6 +119,30 @@ function isAutoResponder(email: Email): boolean {
   return false;
 }
 
+/**
+ * When an inbound reply is not one of our Locust contacts, it may be a
+ * property manager replying to SweetLease's PM outreach. Ask SweetLease if
+ * the sender is a known PM; if so, SweetLease emails Robert a one-click
+ * onboarding link. Returns { isPM } (or null when unavailable).
+ */
+async function notifyIfSweetleasePM(email: Email): Promise<{ isPM: boolean } | null> {
+  const url = process.env.SWEETLEASE_API_URL;
+  const secret = process.env.SWEETLEASE_WEBHOOK_SECRET;
+  if (!url || !secret || !email.fromEmail) return null;
+  try {
+    const res = await fetch(`${url}/api/pm-onboard/lookup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-webhook-secret': secret },
+      body: JSON.stringify({ email: email.fromEmail, notify: true, snippet: email.preview || email.body, subject: email.subject }),
+      signal: AbortSignal.timeout(15000),
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
 function validateCronAuth(request: NextRequest): boolean {
   const cronSecret = process.env.CRON_SECRET;
   if (!cronSecret) return false;
@@ -217,8 +241,11 @@ export async function GET(request: NextRequest) {
         );
 
         if (contactResult.rows.length === 0) {
-          // No contact match — log and continue
-          await logResponse(email, null, null, null, 'no_contact_match');
+          // Not a Locust contact — check if it's a PM replying to SweetLease
+          // outreach. If so, SweetLease notifies Robert with a one-click
+          // onboarding link. Either way, log and continue (no auto-reply).
+          const pm = await notifyIfSweetleasePM(email);
+          await logResponse(email, null, null, null, pm?.isPM ? 'pm_interested' : 'no_contact_match');
           await markProcessed(cacheKey);
           processed++;
           continue;
