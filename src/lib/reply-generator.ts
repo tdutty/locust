@@ -418,7 +418,7 @@ async function generateReplyWithAI(originalEmail: OriginalEmail): Promise<{ subj
     const client = new Anthropic({ apiKey });
     const systemPrompt = await getReplySystemPrompt(originalEmail.contactType);
     const message = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 1024,
       system: systemPrompt,
       messages: [{
@@ -472,7 +472,7 @@ export async function generateReferralThankYou(
     try {
       const client = new Anthropic({ apiKey });
       const message = await client.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 512,
         system: `You are writing a brief thank-you reply on behalf of Robert Gilbert, Account Executive at SweetLease.
 The recipient referred us to ${referredName}${referralInfo.email ? ` (${referralInfo.email})` : ''}.
@@ -538,7 +538,7 @@ export async function generateWarmIntroEmail(
       const client = new Anthropic({ apiKey });
       const systemPrompt = await getReplySystemPrompt(contactType);
       const message = await client.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 512,
         system: systemPrompt + `\n\nIMPORTANT CONTEXT: This is a WARM INTRO email, not a cold outreach. ${referrerName} referred us to this person. Mention ${referrerName} by name in the opening. The referred person's name is ${referralInfo.name}${referralInfo.title ? `, title: ${referralInfo.title}` : ''}. Keep it to 2-3 short paragraphs. This should feel like a warm handoff, not a cold email.`,
         messages: [{
@@ -590,7 +590,7 @@ export async function classifyContractRequest(emailBody: string): Promise<Contra
   try {
     const client = new Anthropic({ apiKey });
     const message = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 128,
       messages: [{
         role: 'user',
@@ -707,7 +707,7 @@ export async function generateContractReply(
     try {
       const client = new Anthropic({ apiKey });
       const message = await client.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 512,
         system: `You are writing a brief, professional reply on behalf of Robert Gilbert, Account Executive at SweetLease.
 The recipient has requested contract/legal documents (${requestType}). Acknowledge their request warmly and let them know the requested documents are included below.
@@ -772,7 +772,7 @@ export async function generateDocumentReceivedAck(
     try {
       const client = new Anthropic({ apiKey });
       const message = await client.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 512,
         system: `You are writing a brief, professional reply on behalf of Robert Gilbert, Account Executive at SweetLease.
 The recipient has returned signed contract/legal documents. Thank them for completing the paperwork promptly.

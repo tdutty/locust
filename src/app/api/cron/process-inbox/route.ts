@@ -922,7 +922,7 @@ async function extractReferralInfo(emailBody: string, senderName: string, orgNam
   try {
     const client = new Anthropic({ apiKey });
     const message = await client.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 256,
       messages: [{
         role: 'user',
