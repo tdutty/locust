@@ -275,11 +275,18 @@ export async function lookupFirmWebsite(query: string, ll?: string): Promise<{ t
 }
 
 const PM_MAPS_QUERIES = (area: string): string[] => [
+  // set A (0-4): "property management" phrasing
   `property management ${area}`,
   `single family home property management ${area}`,
   `residential property management ${area}`,
   `house rentals property manager ${area}`,
   `rental homes management company ${area}`,
+  // set B (5-9, added 2026-09-29): firms that describe themselves otherwise
+  `apartment leasing office ${area}`,
+  `apartment management company ${area}`,
+  `apartments for rent ${area}`,
+  `real estate rentals leasing agency ${area}`,
+  `townhomes for rent management ${area}`,
 ];
 
 /**
@@ -293,9 +300,12 @@ export async function searchGoogleMapsPMs(
   state: string,
   ll?: string,
   maxQueries = 4,
+  queryOffset = 0,
 ): Promise<{ firms: HasDataMapsFirm[]; searchesRun: number }> {
   const area = `${city} ${state}`.trim();
-  const queries = PM_MAPS_QUERIES(area).slice(0, Math.max(1, Math.min(maxQueries, 5)));
+  const all = PM_MAPS_QUERIES(area);
+  const start = Math.max(0, Math.min(queryOffset, all.length - 1));
+  const queries = all.slice(start, start + Math.max(1, Math.min(maxQueries, 5)));
 
   const settled = await Promise.allSettled(queries.map(q => searchGoogleMaps(q, ll)));
   const byKey = new Map<string, HasDataMapsFirm>();

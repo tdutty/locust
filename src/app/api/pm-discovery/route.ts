@@ -231,7 +231,8 @@ export async function POST(req: NextRequest) {
       if (!city || !state) {
         return NextResponse.json({ error: 'city and state required' }, { status: 400 });
       }
-      const { firms, searchesRun } = await searchGoogleMapsPMs(city, state, ll, maxQueries);
+      const queryOffset = Math.max(0, Number(body.queryOffset) || 0);
+      const { firms, searchesRun } = await searchGoogleMapsPMs(city, state, ll, maxQueries, queryOffset);
       return NextResponse.json({ firms, searchesRun });
     }
 
