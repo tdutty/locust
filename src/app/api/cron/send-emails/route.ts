@@ -50,6 +50,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Paused 2026-10-03 (user stopped all automated outreach and replies). Queued
+  // emails stay in scheduled_emails untouched. To resume, set
+  // EMAIL_SENDING_ENABLED=true in the Locust app env.
+  if (process.env.EMAIL_SENDING_ENABLED !== 'true') {
+    return NextResponse.json({ skipped: true, reason: 'email sending is paused (EMAIL_SENDING_ENABLED is not true)' });
+  }
+
   try {
     // Fetch up to 10 due emails
     const result = await query(
