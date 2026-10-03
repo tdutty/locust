@@ -20,6 +20,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Paused 2026-10-03 (user stopped the AI phone calls). Bookings are left as
+  // they are. To resume, set AI_CALLS_ENABLED=true in the Locust app env.
+  if (process.env.AI_CALLS_ENABLED !== 'true') {
+    return NextResponse.json({ skipped: true, reason: 'AI phone calls are paused (AI_CALLS_ENABLED is not true)' });
+  }
   if (!process.env.RETELL_API_KEY || !process.env.RETELL_AGENT_ID || !process.env.RETELL_PHONE_NUMBER) {
     return NextResponse.json({ error: 'Retell not configured' }, { status: 500 });
   }
